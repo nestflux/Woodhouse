@@ -267,6 +267,8 @@ supabase/
 <h4>Acceptance Criteria</h4>
 <ul class="checklist">
 <li>Migration creates all 7 tables with exact columns, types, and constraints from MP &sect;7</li>
+<li><code>profiles</code> includes <code>country TEXT</code>, <code>target_countries TEXT[] DEFAULT '{}'</code></li>
+<li><code>work_experiences</code> includes <code>country TEXT</code></li>
 <li>RLS is enabled on all 7 tables</li>
 <li>RLS policies enforce user-can-only-access-own-data on all tables</li>
 <li><code>profiles.id</code> is a FK referencing <code>auth.users(id)</code> with <code>ON DELETE CASCADE</code></li>
@@ -296,6 +298,8 @@ supabase/
 <h4>Acceptance Criteria</h4>
 <ul class="checklist">
 <li>Migration creates all 9 tables with exact columns, types, and constraints from MP &sect;7</li>
+<li><code>search_preferences</code> includes <code>salary_currency TEXT DEFAULT 'USD'</code></li>
+<li><code>job_postings</code> includes <code>country TEXT</code> and <code>salary_currency TEXT DEFAULT 'USD'</code></li>
 <li><code>job_postings</code> and <code>pipeline_jobs</code> have RLS enabled but NO restrictive policies</li>
 <li>All other tables have RLS with user-scoped policies</li>
 <li><code>search_preferences</code> has <code>UNIQUE(profile_id)</code> and <code>next_discovery_at</code> column</li>
@@ -550,19 +554,21 @@ supabase/
 <li>Steps: basics &rarr; headline &rarr; experience &rarr; education &rarr; skills &rarr; projects &rarr; preferences &rarr; upload.</li>
 <li>Each step is a separate route. Progress bar shows 8 steps.</li>
 <li>All data saves via Server Actions on "Continue" &mdash; progress preserved if user abandons.</li>
-<li>Step 7 (Preferences): match threshold slider (0-100), target roles, locations, remote preference, salary range, excluded companies/keywords.</li>
+<li>Step 1 (Basic Info): includes country dropdown and location (city/region) field.</li>
+<li>Step 3 (Work Experience): each entry includes country field.</li>
+<li>Step 7 (Preferences): match threshold slider (0-100), target countries, target roles, locations, remote preference, salary range with currency selector, excluded companies/keywords.</li>
 <li>On completion, set <code>profiles.onboarding_complete = true</code> and redirect to <code>/dashboard</code>.</li>
 </ul>
 <h4>Acceptance Criteria</h4>
 <ul class="checklist">
 <li>8 onboarding steps render at their respective routes with a progress bar</li>
-<li>Step 1 (Basic Info): saves name, phone, location, LinkedIn, portfolio, GitHub</li>
+<li>Step 1 (Basic Info): saves name, phone, country, location, LinkedIn, portfolio, GitHub</li>
 <li>Step 2 (Headline): saves headline and summary</li>
 <li>Step 3 (Work Experience): multiple entries with achievements</li>
 <li>Step 4 (Education): saves to education table</li>
 <li>Step 5 (Skills): saves with category and proficiency</li>
 <li>Step 6 (Projects &amp; Certs): saves to projects and certifications tables</li>
-<li>Step 7 (Preferences): saves to search_preferences table</li>
+<li>Step 7 (Preferences): saves to search_preferences table (including target_countries, salary_currency)</li>
 <li>Step 8 (Resume Upload): accepts PDF and DOCX files</li>
 <li>"Back" and "Continue" buttons work correctly</li>
 <li>Abandoning mid-onboarding preserves all entered data</li>
@@ -736,7 +742,7 @@ supabase/
 <h4>Acceptance Criteria</h4>
 <ul class="checklist">
 <li><code>parse-job-url</code> Edge Function fetches a URL and returns structured job data</li>
-<li>Parsed data includes: job_title, company_name, location, description_raw, application_url</li>
+<li>Parsed data includes: job_title, company_name, country, location, description_raw, application_url</li>
 <li><code>/jobs/add</code> renders two tabs: "Paste URL" and "Manual Entry"</li>
 <li>Pasting a URL and clicking "Fetch &amp; Parse" shows extracted data</li>
 <li>User can review and edit extracted data before saving</li>
@@ -966,7 +972,7 @@ supabase/
 <li><code>/jobs</code> renders a list of discovered job postings</li>
 <li>Each card shows: company, title, location, remote badge, source badge, match score, posted date</li>
 <li>Match score badge is color-coded: green 80+, yellow 60-79, red &lt;60, gray if not evaluated</li>
-<li>Filters work: search, source, score range, location, remote, status</li>
+<li>Filters work: search, source, score range, country, location, remote, status</li>
 <li>"Clear Filters" resets all filters</li>
 <li>Sort works: by match score, newest, company name</li>
 <li>Pagination loads next/previous pages</li>

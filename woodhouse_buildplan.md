@@ -191,6 +191,8 @@ Create the user profile and knowledge base tables. These store everything about 
 ### Acceptance Criteria
 
 - [ ] Migration creates all 7 tables with exact columns, types, and constraints from MP §7
+- [ ] `profiles` includes `country TEXT`, `target_countries TEXT[] DEFAULT '{}'`
+- [ ] `work_experiences` includes `country TEXT`
 - [ ] RLS is enabled on all 7 tables
 - [ ] RLS policies enforce user-can-only-access-own-data on all tables
 - [ ] `profiles.id` is a FK referencing `auth.users(id)` with `ON DELETE CASCADE`
@@ -223,6 +225,8 @@ Create the job discovery, evaluation, application pipeline, and queue tables. Th
 ### Acceptance Criteria
 
 - [ ] Migration creates all 9 tables with exact columns, types, and constraints from MP §7
+- [ ] `search_preferences` includes `salary_currency TEXT DEFAULT 'USD'`
+- [ ] `job_postings` includes `country TEXT` and `salary_currency TEXT DEFAULT 'USD'`
 - [ ] `job_postings` and `pipeline_jobs` have RLS enabled but NO restrictive policies (service role access)
 - [ ] All other tables have RLS with user-scoped policies
 - [ ] `search_preferences` has `UNIQUE(profile_id)` and `next_discovery_at` column
@@ -518,7 +522,9 @@ Build the 8-step onboarding wizard that guides new users through profile creatio
 - All data saves to the database via Server Actions on "Continue" — progress is preserved if user abandons.
 - Step 3 (Work Experience): expandable cards with achievement bullets. "Add Experience" button.
 - Step 5 (Skills): tag-style input with category and proficiency dropdowns per skill.
-- Step 7 (Preferences): match threshold slider (0-100) with labels at 50/70/90. Target role titles, locations (multi-select/free text), remote preference, salary range, job types, excluded companies/keywords, preferred industries/company sizes.
+- Step 1 (Basic Info): includes country dropdown and location (city/region) field.
+- Step 3 (Work Experience): each entry includes country field.
+- Step 7 (Preferences): match threshold slider (0-100) with labels at 50/70/90. Target countries (multi-select), target role titles, locations (multi-select/free text), remote preference, salary range with currency selector (default based on user's country), job types, excluded companies/keywords, preferred industries/company sizes.
 - Step 8 (Resume Upload): drag-and-drop zone, accepts PDF/DOCX. Parsing comes in E4-02.
 - On final step completion, set `profiles.onboarding_complete = true` and redirect to `/dashboard`.
 - Create Server Actions for all profile CRUD: `createWorkExperience`, `updateWorkExperience`, `deleteWorkExperience`, `reorderWorkExperiences`, `createAchievement`, `updateAchievement`, `deleteAchievement`, plus CRUD for education, skills, projects, certifications, search preferences.
@@ -526,13 +532,13 @@ Build the 8-step onboarding wizard that guides new users through profile creatio
 ### Acceptance Criteria
 
 - [ ] 8 onboarding steps render at their respective routes with a progress bar showing current step
-- [ ] Step 1 (Basic Info): saves full_name, phone, location, linkedin_url, portfolio_url, github_url to profiles table
+- [ ] Step 1 (Basic Info): saves full_name, phone, country, location, linkedin_url, portfolio_url, github_url to profiles table
 - [ ] Step 2 (Headline): saves headline and summary to profiles table
 - [ ] Step 3 (Work Experience): user can add multiple entries with achievements, save to work_experiences + achievements tables
 - [ ] Step 4 (Education): saves to education table
 - [ ] Step 5 (Skills): saves to skills table with category and proficiency
 - [ ] Step 6 (Projects & Certs): saves to projects and certifications tables
-- [ ] Step 7 (Preferences): saves to search_preferences table (including next_discovery_at)
+- [ ] Step 7 (Preferences): saves to search_preferences table (including target_countries, salary_currency, next_discovery_at)
 - [ ] Step 8 (Resume Upload): file input accepts PDF and DOCX files (parsing is E4-02)
 - [ ] "Back" button navigates to the previous step; "Continue" saves current data and advances
 - [ ] Abandoning mid-onboarding preserves all entered data — returning later resumes from last step
@@ -592,8 +598,8 @@ Build the Discovery Agent that fetches and normalizes job postings from aggregat
 
 - Create `supabase/functions/_shared/agents/discovery.ts`.
 - Two source functions:
-  - `searchGoogleJobs(query, location, radius)` — calls SerpAPI's Google Jobs endpoint. Normalize results into the `DiscoveryPostingSchema` format.
-  - `searchJSearch(query, location, jobType)` — calls JSearch API on RapidAPI. Normalize results.
+  - `searchGoogleJobs(query, location, country, radius)` — calls SerpAPI's Google Jobs endpoint. Normalize results into the `DiscoveryPostingSchema` format.
+  - `searchJSearch(query, location, country, jobType)` — calls JSearch API on RapidAPI. Normalize results.
 - For each raw posting, call Claude Haiku to extract structured fields (skills, experience level, salary if present) from the description text. Use `callClaude` with `model: 'claude-haiku-4-5'`.
 - Validate each posting against `DiscoveryPostingSchema`.
 - Deduplication: before saving, check `job_postings` for existing entries with same `(source, external_id)`. Skip duplicates. Also check for cross-source duplicates by matching company_name + job_title + location similarity.
@@ -703,9 +709,9 @@ Build the Haiku pre-screen that quickly filters out obvious mismatches before th
 ### Implementation Notes
 
 - Create `supabase/functions/_shared/agents/pre-screen.ts`.
-- The pre-screen checks: title mismatch, location incompatibility, seniority mismatch, salary range mismatch.
-- System prompt provides: user's target roles, target locations, remote preference, experience years, salary range.
-- User message provides: job title, location, is_remote, experience_level, salary range.
+- The pre-screen checks: title mismatch, country/location incompatibility, seniority mismatch, salary range mismatch.
+- System prompt provides: user's target roles, target countries, target locations, remote preference, experience years, salary range.
+- User message provides: job title, country, location, is_remote, experience_level, salary range.
 - Uses `callClaude` with `model: 'claude-haiku-4-5'`.
 - Output validated against `PreScreenSchema`.
 - Wire into `process-pipeline` worker: when `step='pre_screen'`:
@@ -780,7 +786,7 @@ Build the manual job addition flow: user pastes a URL or description, system par
 - Create the Add Job screen at `(app)/jobs/add`:
   - Two tabs: "Paste URL" and "Manual Entry".
   - Paste URL: input field + "Fetch & Parse" button → shows parsing progress → displays extracted data for review → "Save & Evaluate" button.
-  - Manual Entry: full form (title, company, location, remote, job_type, experience_level, description, application_url) → "Save & Evaluate" button.
+  - Manual Entry: full form (title, company, country, location, remote, job_type, experience_level, description, application_url) → "Save & Evaluate" button.
 - On save: create `job_postings` record with source='manual', enqueue `pipeline_jobs` with `step='pre_screen'`.
 - Create the API route `POST /api/jobs/manual` per MP §8.
 
@@ -1115,7 +1121,7 @@ Build the job feed showing all discovered jobs with filters, search, and sorting
 ### Implementation Notes
 
 - Route: `(app)/jobs/page.tsx`.
-- Filter bar: search input, source dropdown, score range slider, location filter, remote toggle, status filter (active/expired). "Clear Filters" button.
+- Filter bar: search input, source dropdown, score range slider, country filter, location filter, remote toggle, status filter (active/expired). "Clear Filters" button.
 - Sort dropdown: Match Score (high to low), Newest, Company Name.
 - Job card: company name + logo placeholder (40x40), job title, location + remote badge, source badge, match score badge (color-coded), posted date, quick action buttons ("View Details", "Add to Queue" for below-threshold jobs).
 - Pagination at bottom.
@@ -1127,7 +1133,7 @@ Build the job feed showing all discovered jobs with filters, search, and sorting
 - [ ] `/jobs` renders a list of discovered job postings for the authenticated user
 - [ ] Each job card shows: company, title, location, remote badge, source badge, match score, posted date
 - [ ] Match score badge is color-coded: green 80+, yellow 60-79, red <60, gray if not evaluated
-- [ ] Filters work: search by keyword, filter by source, score range, location, remote, status
+- [ ] Filters work: search by keyword, filter by source, score range, country, location, remote, status
 - [ ] "Clear Filters" resets all filters
 - [ ] Sort works: by match score, newest, company name
 - [ ] Pagination loads next/previous pages

@@ -4,6 +4,7 @@
 > **Date:** 2026-03-07
 > **Status:** Final Draft
 > **Changelog:**
+> - v1.3 — Internationalization: added country fields to profiles, work_experiences, and job_postings. Added target_countries to profiles. Added salary_currency to search_preferences. Removed US-centric defaults throughout.
 > - v1.2 — Worker loop pattern for throughput, tracked_boards table, per-user cron scheduling via next_discovery_at, pre-screen failure handling (Option B), Materials Agent split (Sonnet + Haiku), scan interval tier enforcement, updated architecture diagram, flow consistency with queue pattern.
 > - v1.1 — Integrated AI architecture research findings: pipeline queue table, concurrency control, exponential backoff, Zod validation, Anthropic prompt caching, Haiku pre-screen, Langfuse observability, Premium tier soft cap.
 
@@ -89,13 +90,13 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 
 1. User lands on the sign-up page. Enters email and password. Clicks "Create Account."
 2. Email verification sent. User clicks the link. Redirected to onboarding.
-3. **Step 1 — Basic Info:** Form with fields: full name, phone (optional), location, LinkedIn URL (optional), portfolio URL (optional), GitHub URL (optional). User fills in and clicks "Continue."
+3. **Step 1 — Basic Info:** Form with fields: full name, phone (optional), country, location (city/region), LinkedIn URL (optional), portfolio URL (optional), GitHub URL (optional). User fills in and clicks "Continue."
 4. **Step 2 — Professional Headline:** Single field: "How would you describe your role?" (e.g., "Senior Software Engineer"). Below it, a textarea for professional summary (2-3 sentences). AI assist button available: "Help me write this" — generates a summary from what the user has entered so far. User clicks "Continue."
-5. **Step 3 — Work Experience:** User adds work experience entries one at a time. Each entry: company name, job title, location, start date, end date (or "I currently work here" toggle), description. For each entry, user adds achievement bullets. AI assist available: "Improve this bullet" — rewrites for impact and clarity. User can add multiple entries. Clicks "Continue" when done.
+5. **Step 3 — Work Experience:** User adds work experience entries one at a time. Each entry: company name, job title, location, country, start date, end date (or "I currently work here" toggle), description. For each entry, user adds achievement bullets. AI assist available: "Improve this bullet" — rewrites for impact and clarity. User can add multiple entries. Clicks "Continue" when done.
 6. **Step 4 — Education:** User adds education entries. Each: institution, degree, field of study, start/end dates, GPA (optional), achievements/honors. Clicks "Continue."
 7. **Step 5 — Skills:** User adds skills. Each skill has a name, category (technical, soft, language, certification, tool, framework), proficiency level (beginner through expert), and years of experience. AI assist: "Suggest skills from my experience" — analyzes work history and suggests skills to add. Clicks "Continue."
 8. **Step 6 — Projects & Certifications (optional):** User adds portfolio projects and certifications. Clicks "Continue."
-9. **Step 7 — Job Search Preferences:** Form with: target role titles (multi-select/free text), target locations (multi-select), remote preference (remote only, hybrid, onsite, flexible), salary range, job types (full-time, part-time, contract), preferred industries, preferred company sizes, keywords to search for, keywords to exclude, companies to exclude. Match threshold slider (default 70%). Clicks "Continue."
+9. **Step 7 — Job Search Preferences:** Form with: target role titles (multi-select/free text), target countries (multi-select), target locations (multi-select), remote preference (remote only, hybrid, onsite, flexible), salary range, salary currency (dropdown, default based on user's country), job types (full-time, part-time, contract), preferred industries, preferred company sizes, keywords to search for, keywords to exclude, companies to exclude. Match threshold slider (default 70%). Clicks "Continue."
 10. **Step 8 — Resume Upload (optional):** User can upload an existing resume (PDF or DOCX). The system parses it and pre-fills any missing profile fields. User reviews and confirms extracted data.
 11. **Onboarding complete.** User sees dashboard with a message: "Woodhouse is now scanning for jobs matching your profile. You'll see results within the next few hours."
 
@@ -111,7 +112,7 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 **Trigger:** Scheduled discovery run (runs every 6 hours per user, configurable).
 
 1. System checks user's search preferences: keywords, target roles, locations, excluded companies/keywords.
-2. **Source: Aggregator APIs** — System queries Google Jobs (via SerpAPI) and JSearch with the user's keywords and location. Results are normalized into the standard job posting format.
+2. **Source: Aggregator APIs** — System queries Google Jobs (via SerpAPI) and JSearch with the user's keywords, location, and target countries. Results are normalized into the standard job posting format.
 3. **Source: ATS Boards** — System checks tracked company career pages on Greenhouse and Lever. New postings matching keywords are captured.
 4. **Source: Email Forwarding** — System checks for any forwarded job alert emails since the last run. Parses email content to extract job posting details.
 5. Each discovered posting is deduplicated against existing postings (by source URL and external ID).
@@ -132,7 +133,7 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 **Trigger:** Pipeline job with `step='pre_screen'` is claimed by the worker.
 
 **Stage 1 — Haiku Pre-Screen (fast, ~$0.001):**
-1. Haiku checks the job posting against the user's profile for basic disqualifiers: title mismatch, location incompatibility, seniority mismatch, salary range mismatch.
+1. Haiku checks the job posting against the user's profile for basic disqualifiers: title mismatch, country/location incompatibility, seniority mismatch, salary range mismatch.
 2. If the job fails the pre-screen (obvious mismatch):
    - Pipeline job is marked as completed. **No evaluation record is created.** The pre-screen result is stored in `pipeline_jobs.output_data` for audit purposes. The job is invisible to the user — it never appears in their feed.
 3. If the job passes the pre-screen:
@@ -493,8 +494,8 @@ If `status = 'processing'` and `started_at < now() - interval '5 minutes'`, the 
 - Source configuration (API keys, board URLs)
 
 **Tools available:**
-- `search_google_jobs(query, location, radius)` — Calls SerpAPI Google Jobs endpoint
-- `search_jsearch(query, location, job_type)` — Calls JSearch API on RapidAPI
+- `search_google_jobs(query, location, country, radius)` — Calls SerpAPI Google Jobs endpoint
+- `search_jsearch(query, location, country, job_type)` — Calls JSearch API on RapidAPI
 - `scrape_greenhouse_board(board_url)` — Fetches and parses Greenhouse job board JSON
 - `scrape_lever_board(board_url)` — Fetches and parses Lever job board JSON
 - `parse_email_content(email_raw)` — Extracts job posting data from forwarded email HTML
@@ -510,11 +511,13 @@ If `status = 'processing'` and `started_at < now() - interval '5 minutes'`, the 
       "company_name": "string",
       "job_title": "string",
       "location": "string",
+      "country": "string",
       "is_remote": "boolean",
       "job_type": "full_time | part_time | contract | freelance | internship",
       "experience_level": "entry | mid | senior | lead | director | executive",
       "salary_min": "number | null",
       "salary_max": "number | null",
+      "salary_currency": "string | null",
       "description_raw": "string",
       "required_skills": ["string"],
       "preferred_skills": ["string"],
@@ -551,6 +554,7 @@ If `status = 'processing'` and `started_at < now() - interval '5 minutes'`, the 
   "experience_score": 90,
   "seniority_score": 75,
   "location_score": 100,
+  "country_compatible": true,
   "technology_score": 70,
   "recommendation": "strong_match",
   "reasoning": "string — 2-3 paragraph explanation",
@@ -720,7 +724,7 @@ Edge Function → Anthropic API (Claude Sonnet for evaluation/tailoring, Haiku f
 |------|-------|-----------|-------------------|
 | Job description parsing | Haiku 4.5 | Structured extraction, no reasoning needed | ~$0.001 |
 | Email parsing | Haiku 4.5 | Structured extraction | ~$0.001 |
-| Evaluation pre-screen | Haiku 4.5 | Quick title/location/seniority gate | ~$0.001 |
+| Evaluation pre-screen | Haiku 4.5 | Quick title/country/location/seniority gate | ~$0.001 |
 | Full evaluation | Sonnet 4.6 | Requires reasoning, scoring, explanation | ~$0.01-0.03 |
 | Resume tailoring | Sonnet 4.6 | Requires reasoning, writing quality | ~$0.02-0.05 |
 | Cover letter generation | Sonnet 4.6 | Requires quality writing | ~$0.01-0.03 |
@@ -730,7 +734,7 @@ Edge Function → Anthropic API (Claude Sonnet for evaluation/tailoring, Haiku f
 
 **Two-stage evaluation (Haiku pre-screen):**
 
-Before sending to Sonnet (~$0.02/eval), every job runs through a quick Haiku pre-screen (~$0.001) that checks basic disqualifiers: title mismatch, location incompatibility, seniority mismatch, salary range mismatch. Only jobs passing the pre-screen proceed to full Sonnet evaluation. This cuts evaluation costs by 50-70% by filtering obviously bad matches before the expensive call.
+Before sending to Sonnet (~$0.02/eval), every job runs through a quick Haiku pre-screen (~$0.001) that checks basic disqualifiers: title mismatch, country/location incompatibility, seniority mismatch, salary range mismatch. Only jobs passing the pre-screen proceed to full Sonnet evaluation. This cuts evaluation costs by 50-70% by filtering obviously bad matches before the expensive call.
 
 ```
 Haiku pre-screen (fast, $0.001) → PASS → Sonnet full evaluation ($0.02)
@@ -952,6 +956,7 @@ CREATE TABLE public.profiles (
   full_name TEXT NOT NULL,
   phone TEXT,
   location TEXT,
+  country TEXT,
   linkedin_url TEXT,
   portfolio_url TEXT,
   github_url TEXT,
@@ -959,6 +964,7 @@ CREATE TABLE public.profiles (
   summary TEXT,
   target_roles TEXT[] DEFAULT '{}',
   target_locations TEXT[] DEFAULT '{}',
+  target_countries TEXT[] DEFAULT '{}',
   remote_preference TEXT DEFAULT 'flexible'
     CHECK (remote_preference IN ('remote_only', 'hybrid', 'onsite', 'flexible')),
   min_salary INTEGER,
@@ -995,6 +1001,7 @@ CREATE TABLE public.work_experiences (
   company_name TEXT NOT NULL,
   job_title TEXT NOT NULL,
   location TEXT,
+  country TEXT,
   start_date DATE NOT NULL,
   end_date DATE,
   is_current BOOLEAN DEFAULT FALSE,
@@ -1144,6 +1151,7 @@ CREATE TABLE public.search_preferences (
   preferred_industries TEXT[] DEFAULT '{}',
   min_salary INTEGER,
   max_salary INTEGER,
+  salary_currency TEXT DEFAULT 'USD',
   job_types TEXT[] DEFAULT ARRAY['full_time'],
   is_active BOOLEAN DEFAULT TRUE,
   next_discovery_at TIMESTAMPTZ DEFAULT now(),
@@ -1202,6 +1210,7 @@ CREATE TABLE public.job_postings (
   company_logo_url TEXT,
   job_title TEXT NOT NULL,
   location TEXT,
+  country TEXT,
   is_remote BOOLEAN DEFAULT FALSE,
   job_type TEXT
     CHECK (job_type IN ('full_time', 'part_time', 'contract', 'freelance', 'internship')),
@@ -1663,13 +1672,16 @@ These are handled by Supabase Auth client library, not custom endpoints:
     "full_name": "string",
     "phone": "string | null",
     "location": "string | null",
+    "country": "string | null",
     "headline": "string | null",
     "summary": "string | null",
     "target_roles": ["string"],
+    "target_countries": ["string"],
     "target_locations": ["string"],
     "remote_preference": "string",
     "min_salary": "number | null",
     "max_salary": "number | null",
+    "salary_currency": "string",
     "experience_years": "number | null",
     "work_authorization": "string | null",
     "match_threshold": 70,
@@ -1741,6 +1753,7 @@ Same CRUD pattern as work experience for each entity type.
       "company_name": "string",
       "job_title": "string",
       "location": "string",
+      "country": "string",
       "is_remote": true,
       "source": "string",
       "posted_date": "ISO8601",
@@ -2003,7 +2016,7 @@ SELECT cron.schedule('trigger-discoveries', '0 * * * *',
 | 2 | Sign Up | `/signup` | No | Email + password + full name registration form |
 | 3 | Sign In | `/signin` | No | Email + password login form |
 | 4 | Forgot Password | `/forgot-password` | No | Password reset email request |
-| 5 | Onboarding — Basic Info | `/onboarding/basics` | Yes | Name, location, links |
+| 5 | Onboarding — Basic Info | `/onboarding/basics` | Yes | Name, country, location, links |
 | 6 | Onboarding — Headline | `/onboarding/headline` | Yes | Professional headline + summary with AI assist |
 | 7 | Onboarding — Work Experience | `/onboarding/experience` | Yes | Add/edit work history + achievement bullets |
 | 8 | Onboarding — Education | `/onboarding/education` | Yes | Add/edit education entries |
@@ -2079,7 +2092,7 @@ SELECT cron.schedule('trigger-discoveries', '0 * * * *',
 **Layout:** Sidebar + main content.
 
 **Main content:**
-- **Filter bar at top:** Search input, source dropdown, score range slider, location filter, remote toggle, status filter (active/expired). "Clear Filters" button.
+- **Filter bar at top:** Search input, source dropdown, score range slider, country filter, location filter, remote toggle, status filter (active/expired). "Clear Filters" button.
 - **Sort:** Dropdown: Match Score (high to low), Newest, Company Name.
 - **Job list:** Vertical list of job cards. Each card shows:
   - Company name + logo (if available)
@@ -2173,7 +2186,7 @@ SELECT cron.schedule('trigger-discoveries', '0 * * * *',
 
 **Two options (tabs or toggle):**
 - **Paste URL:** Single URL input field. "Fetch & Parse" button. Shows parsing progress, then displays extracted data for review before saving.
-- **Manual Entry:** Full form: job title, company name, location, remote toggle, job type, experience level, description (large textarea), application URL. "Save & Evaluate" button.
+- **Manual Entry:** Full form: job title, company name, country, location, remote toggle, job type, experience level, description (large textarea), application URL. "Save & Evaluate" button.
 
 #### 22-26. Settings Screens (`/settings/*`)
 
