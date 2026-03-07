@@ -19,7 +19,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 
 .container{max-width:960px;margin:0 auto;padding:0 24px}
 
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;margin-top:-40px;position:relative;z-index:10;padding:0 24px;max-width:960px;margin-left:auto;margin-right:auto}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:-40px;position:relative;z-index:10;padding:0 24px;max-width:960px;margin-left:auto;margin-right:auto}
 
 .card{background:var(--surface);border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08);border:1px solid var(--border);padding:32px;transition:transform .2s,box-shadow .2s;text-decoration:none;color:var(--text);display:flex;flex-direction:column}
 .card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.12)}
@@ -57,7 +57,7 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 @media(max-width:768px){
 .hero h1{font-size:2.25rem}
 .hero .subtitle{font-size:1rem}
-.cards{grid-template-columns:1fr;padding:0 16px}
+.cards{grid-template-columns:1fr;padding:0 16px;gap:16px}
 .info-grid{grid-template-columns:1fr 1fr}
 }
 </style>
@@ -85,11 +85,18 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 <span class="badge complete">Complete</span>
 </a>
 
-<a href="#" class="card" style="pointer-events:none;opacity:.5">
+<a href="buildplan.html" class="card">
 <div class="card-icon green">&#9881;</div>
 <h2>Build Plan</h2>
-<p>Epics, issues, and acceptance criteria ordered by dependency. Claude Code implementation guide for building Woodhouse from the ground up.</p>
-<span class="badge planned">Coming Next</span>
+<p>15 epics, 43 issues, and acceptance criteria ordered by dependency. Claude Code implementation guide for building Woodhouse from the ground up.</p>
+<span class="badge complete">Complete</span>
+</a>
+
+<a href="prototype.html" class="card">
+<div class="card-icon amber">&#9998;</div>
+<h2>Interactive Prototype</h2>
+<p>Clickable HTML prototype of all 27 screens. Navigate the complete product — onboarding, dashboard, job feed, review queue, tracker, settings, and admin.</p>
+<span class="badge complete">Complete</span>
 </a>
 </div>
 
@@ -133,21 +140,21 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot next">3</div>
+<div class="timeline-dot done">3</div>
 <div class="timeline-content">
 <h4>Build Plan</h4>
 <p>Epics, issues, acceptance criteria, critical path</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot future">4</div>
+<div class="timeline-dot done">4</div>
 <div class="timeline-content">
 <h4>Interactive Prototype</h4>
 <p>Clickable HTML prototype of all key screens</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot future">5</div>
+<div class="timeline-dot next">5</div>
 <div class="timeline-content">
 <h4>CLAUDE.md</h4>
 <p>Session rules for Claude Code build sessions</p>

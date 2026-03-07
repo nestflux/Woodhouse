@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Woodhouse Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--primary:#1e3a5f;--primary-light:#2d5a8e;--primary-dark:#132843;
+--accent:#d97706;--accent-light:#f59e0b;
+--bg:#fafaf9;--surface:#fff;--surface-alt:#f5f5f4;
+--border:#e7e5e4;--border-focus:#1e3a5f;
+--text:#18181b;--text-sec:#52525b;--text-muted:#a1a1aa;
+--success:#059669;--success-bg:#ecfdf5;
+--warning:#d97706;--warning-bg:#fffbeb;
+--error:#dc2626;--error-bg:#fef2f2;
+--info:#2563eb;--info-bg:#eff6ff;
+--radius-sm:4px;--radius-md:8px;--radius-lg:12px;--radius-full:9999px;
+--shadow-sm:0 1px 2px rgba(0,0,0,.05);
+--shadow-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+--shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);
+--sidebar-w:240px;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:16px}
+a{color:var(--primary);text-decoration:none;cursor:pointer}
+a:hover{color:var(--primary-light)}
+button,.btn{font-family:inherit;cursor:pointer;border:none;border-radius:var(--radius-md);font-size:14px;font-weight:600;padding:10px 20px;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-light)}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent-light)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{background:var(--surface-alt)}
+.btn-ghost{background:transparent;color:var(--text-sec);padding:8px 12px}.btn-ghost:hover{background:var(--surface-alt)}
+.btn-danger{background:var(--error);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-sm{padding:6px 14px;font-size:13px}
+.btn-lg{padding:14px 28px;font-size:16px}
+input,textarea,select{font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text);width:100%;outline:none;transition:border .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(30,58,95,.1)}
+textarea{resize:vertical;min-height:100px}
+label{display:block;font-size:13px;font-weight:500;color:var(--text-sec);margin-bottom:4px}
+.form-group{margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* Score badges */
+.score{display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;padding:4px 10px;border-radius:var(--radius-full);min-width:40px}
+.score-high{background:var(--success-bg);color:var(--success)}
+.score-med{background:var(--warning-bg);color:var(--warning)}
+.score-low{background:var(--error-bg);color:var(--error)}
+.score-large{font-size:28px;width:64px;height:64px;border-radius:50%;padding:0}
+.badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:var(--radius-full);text-transform:uppercase;letter-spacing:.3px}
+.badge-source{background:var(--surface-alt);color:var(--text-sec)}
+.badge-remote{background:var(--info-bg);color:var(--info)}
+.badge-status{background:var(--primary);color:#fff;font-size:12px;padding:4px 12px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm)}
+.stat-card{text-align:center;padding:20px}.stat-card .stat-num{font-size:30px;font-weight:700;color:var(--primary);line-height:1}.stat-card .stat-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+
+/* Layout */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+.full-page{min-height:100vh}
+
+/* App layout */
+#app-layout{display:none;min-height:100vh}
+#app-layout.active{display:flex}
+.sidebar{width:var(--sidebar-w);background:var(--surface-alt);border-right:1px solid var(--border);height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;z-index:50}
+.sidebar-logo{padding:20px 20px 16px;font-size:18px;font-weight:700;color:var(--primary);letter-spacing:-.5px}
+.sidebar-nav{flex:1;padding:0 8px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-md);color:var(--text-sec);font-size:14px;font-weight:500;cursor:pointer;margin-bottom:2px;transition:all .1s}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{background:var(--primary);color:#fff}
+.nav-icon{width:20px;text-align:center;font-size:16px;flex-shrink:0}
+.nav-sub{padding-left:20px;display:none}.nav-sub.open{display:block}
+.sidebar-user{padding:16px 20px;border-top:1px solid var(--border);font-size:13px;color:var(--text-sec)}
+.sidebar-user strong{display:block;color:var(--text);font-weight:600}
+.app-main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;background:var(--bg)}
+.app-content{display:none;padding:32px}.app-content.active{display:block}
+.page-title{font-size:24px;font-weight:700;color:var(--primary);margin-bottom:24px}
+.page-subtitle{font-size:14px;color:var(--text-sec);margin-top:-20px;margin-bottom:24px}
+
+/* Grid helpers */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px}
+.flex{display:flex}.flex-between{display:flex;justify-content:space-between;align-items:center}
+.gap-8{gap:8px}.gap-12{gap:12px}.gap-16{gap:16px}.gap-24{gap:24px}
+.mt-8{margin-top:8px}.mt-16{margin-top:16px}.mt-24{margin-top:24px}.mt-32{margin-top:32px}
+.mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}.mb-24{margin-bottom:24px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px}
+.tab{padding:10px 20px;font-size:14px;font-weight:500;color:var(--text-sec);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--primary);border-bottom-color:var(--accent);font-weight:600}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* Progress bar */
+.progress-bar{display:flex;gap:8px;justify-content:center;margin-bottom:32px}
+.progress-dot{width:10px;height:10px;border-radius:50%;background:var(--border)}
+.progress-dot.done{background:var(--accent)}
+.progress-dot.current{background:var(--primary);box-shadow:0 0 0 3px rgba(30,58,95,.2)}
+.progress-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .3s}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:32px;max-width:480px;width:90%;box-shadow:var(--shadow-lg)}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:8px;color:var(--primary)}
+.modal p{color:var(--text-sec);font-size:14px;margin-bottom:20px}
+.modal-actions{display:flex;gap:12px;justify-content:flex-end}
+
+/* Job card */
+.job-card{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;cursor:pointer;transition:all .15s}
+.job-card:hover{box-shadow:var(--shadow-md);border-color:var(--primary-light)}
+.job-card-info h4{font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px}
+.job-card-info p{font-size:13px;color:var(--text-sec);margin-bottom:6px}
+.job-card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* App card (review queue) */
+.app-card{border-left:4px solid var(--success);padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:12px}
+.app-card.score-med-border{border-left-color:var(--warning)}
+.app-card .app-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.app-card h4{font-size:15px;font-weight:600;margin-bottom:2px}
+.app-card .app-card-sub{font-size:13px;color:var(--text-sec)}
+.app-card .app-card-actions{display:flex;gap:8px;margin-top:12px}
+
+/* Kanban */
+.kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:16px}
+.kanban-col{min-width:200px;flex:1;background:var(--surface-alt);border-radius:var(--radius-md);padding:12px}
+.kanban-col-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.kanban-col-title .count{background:var(--border);border-radius:var(--radius-full);padding:1px 8px;font-size:11px}
+.kanban-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s}
+.kanban-card:hover{box-shadow:var(--shadow-md)}
+.kanban-card h5{font-size:13px;font-weight:600;margin-bottom:2px}
+.kanban-card p{font-size:12px;color:var(--text-sec)}
+
+/* Notification */
+.notif-item{display:flex;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.notif-item:hover{background:var(--surface-alt)}
+.notif-item.unread{background:var(--info-bg)}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--info);margin-top:6px;flex-shrink:0}
+.notif-item:not(.unread) .notif-dot{background:transparent}
+.notif-body h5{font-size:14px;font-weight:500}.notif-body p{font-size:13px;color:var(--text-sec)}.notif-body time{font-size:12px;color:var(--text-muted)}
+
+/* Timeline */
+.timeline-item{display:flex;gap:12px;padding-bottom:20px;position:relative}
+.timeline-item:not(:last-child)::before{content:'';position:absolute;left:11px;top:28px;bottom:0;width:2px;background:var(--border)}
+.timeline-dot{width:24px;height:24px;border-radius:50%;background:var(--primary);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.timeline-dot-sm{width:12px;height:12px;background:var(--border);margin:6px}
+.timeline-body h5{font-size:14px;font-weight:600}.timeline-body p{font-size:13px;color:var(--text-sec)}.timeline-body time{font-size:12px;color:var(--text-muted)}
+
+/* Score bars */
+.score-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.score-bar-label{font-size:13px;color:var(--text-sec);width:100px;flex-shrink:0}
+.score-bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:4px}
+.score-bar-val{font-size:13px;font-weight:600;width:30px;text-align:right}
+
+/* Landing page */
+.landing-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:12px 32px;display:flex;justify-content:space-between;align-items:center}
+.landing-nav .logo{font-size:20px;font-weight:700;color:var(--primary);letter-spacing:-.5px}
+.landing-nav .nav-links{display:flex;gap:24px;align-items:center}
+.landing-nav .nav-links a{font-size:14px;font-weight:500;color:var(--text-sec)}
+.hero{padding:120px 32px 80px;text-align:center;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);color:#fff}
+.hero h1{font-size:48px;font-weight:800;letter-spacing:-1.5px;margin-bottom:16px}
+.hero p{font-size:18px;color:rgba(255,255,255,.7);max-width:600px;margin:0 auto 32px;line-height:1.7}
+.section{padding:64px 32px;max-width:1000px;margin:0 auto}
+.section-title{font-size:28px;font-weight:700;color:var(--primary);text-align:center;margin-bottom:12px}
+.section-sub{text-align:center;color:var(--text-sec);margin-bottom:40px;font-size:16px}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.feature-card{padding:24px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
+.feature-card .f-icon{font-size:28px;margin-bottom:12px}
+.feature-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--primary)}
+.feature-card p{font-size:14px;color:var(--text-sec);line-height:1.6}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.pricing-card{border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;background:var(--surface);text-align:center}
+.pricing-card.featured{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.pricing-card h3{font-size:20px;font-weight:700;margin-bottom:4px}
+.pricing-card .price{font-size:36px;font-weight:800;color:var(--primary);margin:8px 0}
+.pricing-card .price span{font-size:16px;font-weight:400;color:var(--text-muted)}
+.pricing-card ul{list-style:none;text-align:left;margin:20px 0;font-size:14px;color:var(--text-sec)}
+.pricing-card li{padding:6px 0;border-bottom:1px solid var(--border)}
+.pricing-card li:last-child{border:none}
+.landing-footer{background:var(--primary-dark);color:rgba(255,255,255,.6);text-align:center;padding:40px;font-size:14px}
+
+/* Auth card */
+.auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:24px}
+.auth-card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:40px;width:100%;max-width:420px}
+.auth-card .logo{font-size:24px;font-weight:700;color:var(--primary);text-align:center;margin-bottom:24px;letter-spacing:-.5px}
+.auth-card h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.auth-card .sub{font-size:14px;color:var(--text-sec);margin-bottom:24px}
+.auth-links{text-align:center;margin-top:16px;font-size:13px;color:var(--text-sec)}
+.auth-links a{color:var(--primary);font-weight:500}
+
+/* Onboarding */
+.onboard-page{min-height:100vh;background:var(--bg);display:flex;flex-direction:column}
+.onboard-top{padding:24px 32px;text-align:center;border-bottom:1px solid var(--border);background:var(--surface)}
+.onboard-top .logo{font-size:20px;font-weight:700;color:var(--primary);margin-bottom:16px}
+.onboard-body{flex:1;max-width:600px;margin:0 auto;padding:32px 24px}
+.onboard-body h2{font-size:20px;font-weight:700;color:var(--primary);margin-bottom:8px}
+.onboard-body .step-desc{font-size:14px;color:var(--text-sec);margin-bottom:24px}
+.onboard-footer{padding:20px 32px;border-top:1px solid var(--border);background:var(--surface);display:flex;justify-content:space-between;max-width:600px;margin:0 auto;width:100%}
+
+/* Eval panel */
+.eval-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;position:sticky;top:32px}
+.eval-card .rec-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-full);font-size:12px;font-weight:600;margin-bottom:16px}
+.rec-strong{background:var(--success-bg);color:var(--success)}
+.rec-good{background:var(--warning-bg);color:var(--warning)}
+.rec-weak{background:var(--error-bg);color:var(--error)}
+.strengths li,.gaps li{font-size:13px;padding:4px 0}
+.strengths li::before{content:"+ ";color:var(--success);font-weight:700}
+.gaps li::before{content:"- ";color:var(--warning);font-weight:700}
+.strengths,.gaps{list-style:none;padding:0;margin:8px 0 16px}
+
+/* Resume preview */
+.resume-doc{max-width:700px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:48px;box-shadow:var(--shadow-md)}
+.resume-doc h2{font-size:22px;font-weight:700;margin-bottom:2px}
+.resume-doc .resume-contact{font-size:13px;color:var(--text-sec);margin-bottom:16px}
+.resume-doc h3{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:4px;margin:20px 0 12px}
+.resume-doc h4{font-size:14px;font-weight:600;margin-bottom:2px}
+.resume-doc .res-sub{font-size:13px;color:var(--text-sec);margin-bottom:6px}
+.resume-doc ul{margin:0 0 12px 20px;font-size:13px;color:var(--text-sec)}
+.resume-doc li{margin-bottom:4px}
+.resume-doc p{font-size:13px;color:var(--text-sec);margin-bottom:8px}
+
+/* Admin */
+.admin-nav{background:var(--primary);color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+.admin-nav .logo{font-size:18px;font-weight:700}
+.admin-nav a{color:#fff;font-size:14px;font-weight:500;opacity:.8}
+.admin-nav a:hover{opacity:1;color:#fff}
+.error-row{font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:140px 100px 1fr 80px;gap:8px;align-items:center}
+.error-row:hover{background:var(--error-bg)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--success);border-radius:var(--radius-md);padding:14px 20px;box-shadow:var(--shadow-lg);font-size:14px;display:none;z-index:2000;max-width:360px}
+.toast.show{display:block;animation:slideUp .3s}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* Slider */
+.slider-wrap{position:relative;margin:8px 0 4px}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(--border);border-radius:3px;border:none;padding:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;background:var(--primary);border-radius:50%;cursor:pointer}
+.slider-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted)}
+</style>
+</head>
+<body>
+
+<!-- ============================== -->
+<!-- LANDING PAGE                    -->
+<!-- ============================== -->
+<div id="screen-landing" class="screen active">
+<nav class="landing-nav">
+<div class="logo">Woodhouse</div>
+<div class="nav-links">
+<a onclick="navigate('signin')">Sign In</a>
+<button class="btn btn-accent btn-sm" onclick="navigate('signup')">Get Started Free</button>
+</div>
+</nav>
+<div class="hero">
+<h1>Your AI Recruiting Agent</h1>
+<p>Woodhouse finds jobs, tailors your resume, and prepares applications &mdash; while you focus on what matters.</p>
+<button class="btn btn-accent btn-lg" onclick="navigate('signup')">Get Started Free</button>
+</div>
+<div class="section">
+<h2 class="section-title">How It Works</h2>
+<p class="section-sub">Three steps to transform your job search</p>
+<div class="grid-3">
+<div class="card" style="text-align:center;padding:32px">
+<div style="font-size:36px;margin-bottom:12px">1</div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--primary)">Set Up Your Profile</h3>
+<p style="font-size:14px;color:var(--text-sec)">Add your experience, skills, and preferences. AI helps you build a comprehensive profile in minutes.</p>
+</div>
+<div class="card" style="text-align:center;padding:32px">
+<div style="font-size:36px;margin-bottom:12px">2</div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--primary)">Woodhouse Scans &amp; Matches</h3>
+<p style="font-size:14px;color:var(--text-sec)">Your agent continuously discovers jobs, evaluates fit on five dimensions, and prepares tailored materials.</p>
+</div>
+<div class="card" style="text-align:center;padding:32px">
+<div style="font-size:36px;margin-bottom:12px">3</div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--primary)">Review &amp; Apply</h3>
+<p style="font-size:14px;color:var(--text-sec)">Review prepared applications, edit if needed, and submit. Track everything in one place.</p>
+</div>
+</div>
+</div>
+<div class="section" style="background:var(--surface-alt);max-width:100%;padding:64px 32px">
+<div style="max-width:1000px;margin:0 auto">
+<h2 class="section-title">Features</h2>
+<p class="section-sub">Everything you need for a smarter job search</p>
+<div class="feature-grid">
+<div class="feature-card"><div class="f-icon">&#9673;</div><h3>Automated Discovery</h3><p>Scans Google Jobs, JSearch, Greenhouse, and Lever boards on your schedule. Never miss a posting.</p></div>
+<div class="feature-card"><div class="f-icon">&#9733;</div><h3>Smart Matching</h3><p>AI evaluates every job on 5 dimensions. Only high-quality matches reach your queue.</p></div>
+<div class="feature-card"><div class="f-icon">&#9998;</div><h3>Resume Tailoring</h3><p>Every application gets a resume customized to the job description. Never send a generic resume again.</p></div>
+<div class="feature-card"><div class="f-icon">&#9993;</div><h3>Material Generation</h3><p>Cover letters, application answers, and "why interested" responses. All personalized, all grounded in your real experience.</p></div>
+<div class="feature-card"><div class="f-icon">&#10003;</div><h3>Review Queue</h3><p>Prepared applications waiting for your approval. Review, edit, and submit on your schedule.</p></div>
+<div class="feature-card"><div class="f-icon">&#9635;</div><h3>Application Tracking</h3><p>Kanban board, timeline, notes, and reminders. Know exactly where every application stands.</p></div>
+</div>
+</div>
+</div>
+<div class="section">
+<h2 class="section-title">Pricing</h2>
+<p class="section-sub">Start free. Upgrade when you're ready.</p>
+<div class="pricing-grid">
+<div class="pricing-card">
+<h3>Free</h3>
+<div class="price">$0<span>/mo</span></div>
+<ul>
+<li>5 applications/month</li>
+<li>Job discovery every 12 hours</li>
+<li>Resume tailoring (PDF)</li>
+<li>Basic tracker</li>
+</ul>
+<button class="btn btn-outline" style="width:100%" onclick="navigate('signup')">Get Started</button>
+</div>
+<div class="pricing-card featured">
+<h3>Pro</h3>
+<div class="price">$19<span>/mo</span></div>
+<ul>
+<li>50 applications/month</li>
+<li>Job discovery every 6 hours</li>
+<li>Resume tailoring (PDF + DOCX)</li>
+<li>Cover letter generation</li>
+<li>Full tracker with timeline</li>
+<li>Email forwarding</li>
+</ul>
+<button class="btn btn-accent" style="width:100%" onclick="navigate('signup')">Start Pro</button>
+</div>
+<div class="pricing-card">
+<h3>Premium</h3>
+<div class="price">$39<span>/mo</span></div>
+<ul>
+<li>200 applications/month</li>
+<li>Job discovery every hour</li>
+<li>Everything in Pro</li>
+<li>Full analytics &amp; insights</li>
+<li>Priority support</li>
+</ul>
+<button class="btn btn-primary" style="width:100%" onclick="navigate('signup')">Start Premium</button>
+</div>
+</div>
+</div>
+<div class="landing-footer">Woodhouse &mdash; AI-Powered Job Application Agent &mdash; 2026</div>
+</div>
+
+<!-- ============================== -->
+<!-- AUTH SCREENS                    -->
+<!-- ============================== -->
+<div id="screen-signup" class="screen">
+<div class="auth-page">
+<div class="auth-card">
+<div class="logo">Woodhouse</div>
+<h2>Create your account</h2>
+<p class="sub">Start your AI-powered job search</p>
+<div class="form-group"><label>Full Name</label><input type="text" placeholder="Sarah Chen"></div>
+<div class="form-group"><label>Email</label><input type="email" placeholder="sarah@example.com"></div>
+<div class="form-group"><label>Password</label><input type="password" placeholder="At least 8 characters"></div>
+<div class="form-group"><label>Confirm Password</label><input type="password" placeholder="Confirm your password"></div>
+<button class="btn btn-primary" style="width:100%" onclick="navigate('onboard-1')">Create Account</button>
+<div class="auth-links">Already have an account? <a onclick="navigate('signin')">Sign In</a></div>
+</div>
+</div>
+</div>
+
+<div id="screen-signin" class="screen">
+<div class="auth-page">
+<div class="auth-card">
+<div class="logo">Woodhouse</div>
+<h2>Welcome back</h2>
+<p class="sub">Sign in to your account</p>
+<div class="form-group"><label>Email</label><input type="email" placeholder="sarah@example.com"></div>
+<div class="form-group"><label>Password</label><input type="password" placeholder="Your password"></div>
+<button class="btn btn-primary" style="width:100%" onclick="navigateApp('dashboard')">Sign In</button>
+<div class="auth-links"><a onclick="navigate('forgot')">Forgot password?</a> &middot; <a onclick="navigate('signup')">Create account</a></div>
+</div>
+</div>
+</div>
+
+<div id="screen-forgot" class="screen">
+<div class="auth-page">
+<div class="auth-card">
+<div class="logo">Woodhouse</div>
+<h2>Reset password</h2>
+<p class="sub">We'll send you a reset link</p>
+<div class="form-group"><label>Email</label><input type="email" placeholder="sarah@example.com"></div>
+<button class="btn btn-primary" style="width:100%" onclick="navigate('signin')">Send Reset Link</button>
+<div class="auth-links"><a onclick="navigate('signin')">Back to Sign In</a></div>
+</div>
+</div>
+</div>
+
+<!-- ============================== -->
+<!-- ONBOARDING (8 steps)            -->
+<!-- ============================== -->
+<div id="screen-onboard-1" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot current"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div></div></div>
+<div class="onboard-body"><h2>Basic Information</h2><p class="step-desc">Let's start with your contact details.</p>
+<div class="form-group"><label>Full Name</label><input value="Sarah Chen"></div>
+<div class="form-row"><div class="form-group"><label>Phone</label><input placeholder="(555) 123-4567"></div><div class="form-group"><label>Location</label><input value="San Francisco, CA"></div></div>
+<div class="form-group"><label>LinkedIn URL</label><input placeholder="linkedin.com/in/sarahchen"></div>
+<div class="form-row"><div class="form-group"><label>Portfolio URL</label><input placeholder="sarahchen.dev"></div><div class="form-group"><label>GitHub URL</label><input placeholder="github.com/sarahchen"></div></div>
+</div>
+<div class="onboard-footer"><span></span><button class="btn btn-primary" onclick="navigate('onboard-2')">Continue</button></div>
+</div></div>
+
+<div id="screen-onboard-2" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot done"></div><div class="progress-dot current"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div></div></div>
+<div class="onboard-body"><h2>Professional Headline</h2><p class="step-desc">How would you describe your role?</p>
+<div class="form-group"><label>Headline</label><input value="Senior Software Engineer"></div>
+<div class="form-group"><label>Professional Summary</label><textarea rows="4">Senior Software Engineer with 7 years of experience building high-performance web applications. Specializing in React, TypeScript, and Node.js with a focus on design systems and frontend architecture.</textarea></div>
+<button class="btn btn-ghost btn-sm" style="color:var(--accent)">&#10024; Help me write this</button>
+</div>
+<div class="onboard-footer"><button class="btn btn-outline" onclick="navigate('onboard-1')">Back</button><button class="btn btn-primary" onclick="navigate('onboard-3')">Continue</button></div>
+</div></div>
+
+<div id="screen-onboard-3" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot current"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div></div></div>
+<div class="onboard-body"><h2>Work Experience</h2><p class="step-desc">Add your work history, starting with the most recent.</p>
+<div class="card mb-16" style="border-left:3px solid var(--accent)">
+<div class="flex-between mb-8"><h4 style="font-size:15px;font-weight:600">Senior Frontend Engineer</h4><span style="font-size:12px;color:var(--text-muted)">2021 &ndash; Present</span></div>
+<p style="font-size:14px;color:var(--text-sec);margin-bottom:8px">TechCorp &middot; San Francisco, CA</p>
+<ul style="font-size:13px;color:var(--text-sec);margin-left:16px"><li>Led migration of legacy jQuery app to React/TypeScript, reducing bundle size by 40%</li><li>Built component library used by 12 teams across the organization <button class="btn-ghost btn-sm" style="font-size:11px;color:var(--accent);padding:2px 6px">&#10024; Improve</button></li><li>Mentored 4 junior engineers through onboarding program</li></ul>
+</div>
+<div class="card mb-16" style="border-left:3px solid var(--border)">
+<div class="flex-between mb-8"><h4 style="font-size:15px;font-weight:600">Software Engineer</h4><span style="font-size:12px;color:var(--text-muted)">2018 &ndash; 2021</span></div>
+<p style="font-size:14px;color:var(--text-sec);margin-bottom:8px">StartupCo &middot; San Francisco, CA</p>
+<ul style="font-size:13px;color:var(--text-sec);margin-left:16px"><li>Developed real-time collaboration features serving 50K daily active users</li><li>Implemented CI/CD pipeline reducing deployment time from 45 min to 8 min</li></ul>
+</div>
+<button class="btn btn-outline btn-sm">+ Add Experience</button>
+</div>
+<div class="onboard-footer"><button class="btn btn-outline" onclick="navigate('onboard-2')">Back</button><button class="btn btn-primary" onclick="navigate('onboard-4')">Continue</button></div>
+</div></div>
+
+<div id="screen-onboard-4" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot current"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div></div></div>
+<div class="onboard-body"><h2>Education</h2><p class="step-desc">Add your educational background.</p>
+<div class="card mb-16">
+<h4 style="font-size:15px;font-weight:600">B.S. Computer Science</h4>
+<p style="font-size:14px;color:var(--text-sec)">UC Berkeley &middot; 2014 &ndash; 2018</p>
+<p style="font-size:13px;color:var(--text-muted)">GPA: 3.7 &middot; Dean's List</p>
+</div>
+<button class="btn btn-outline btn-sm">+ Add Education</button>
+</div>
+<div class="onboard-footer"><button class="btn btn-outline" onclick="navigate('onboard-3')">Back</button><button class="btn btn-primary" onclick="navigate('onboard-5')">Continue</button></div>
+</div></div>
+
+<div id="screen-onboard-5" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot current"></div><div class="progress-dot"></div><div class="progress-dot"></div><div class="progress-dot"></div></div></div>
+<div class="onboard-body"><h2>Skills</h2><p class="step-desc">Add your technical and professional skills.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">React</span>
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">TypeScript</span>
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">Node.js</span>
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">Next.js</span>
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">Python</span>
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">AWS</span>
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">PostgreSQL</span>
+<span class="badge" style="background:var(--primary);color:#fff;padding:6px 12px;font-size:13px">GraphQL</span>
+</div>
+<div class="form-row"><div class="form-group"><label>Add Skill</label><input placeholder="e.g. Docker"></div><div class="form-group"><label>Proficiency</label><select><option>Expert</option><option>Advanced</option><option>Intermediate</option><option>Beginner</option></select></div></div>
+<button class="btn btn-ghost btn-sm" style="color:var(--accent)">&#10024; Suggest skills from my experience</button>
+</div>
+<div class="onboard-footer"><button class="btn btn-outline" onclick="navigate('onboard-4')">Back</button><button class="btn btn-primary" onclick="navigate('onboard-6')">Continue</button></div>
+</div></div>
+
+<div id="screen-onboard-6" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot current"></div><div class="progress-dot"></div><div class="progress-dot"></div></div></div>
+<div class="onboard-body"><h2>Projects &amp; Certifications</h2><p class="step-desc">Optional: add projects or certifications to strengthen your profile.</p>
+<div class="card mb-16">
+<h4 style="font-size:15px;font-weight:600">Open Source Design System</h4>
+<p style="font-size:13px;color:var(--text-sec)">React component library with 2.4K GitHub stars. Full accessibility support and comprehensive Storybook documentation.</p>
+</div>
+<div class="card mb-16">
+<h4 style="font-size:15px;font-weight:600">AWS Solutions Architect Associate</h4>
+<p style="font-size:13px;color:var(--text-sec)">Amazon Web Services &middot; Issued Jan 2023</p>
+</div>
+<button class="btn btn-outline btn-sm">+ Add Project or Certification</button>
+</div>
+<div class="onboard-footer"><button class="btn btn-outline" onclick="navigate('onboard-5')">Back</button><button class="btn btn-primary" onclick="navigate('onboard-7')">Continue</button></div>
+</div></div>
+
+<div id="screen-onboard-7" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot current"></div><div class="progress-dot"></div></div></div>
+<div class="onboard-body"><h2>Job Search Preferences</h2><p class="step-desc">Tell Woodhouse what you're looking for.</p>
+<div class="form-group"><label>Target Roles</label><input value="Senior Frontend Engineer, Staff Engineer, Lead Frontend Developer"></div>
+<div class="form-row"><div class="form-group"><label>Locations</label><input value="San Francisco, New York, Remote"></div><div class="form-group"><label>Remote Preference</label><select><option>Remote OK</option><option>Remote Only</option><option>Hybrid</option><option>On-site</option></select></div></div>
+<div class="form-row"><div class="form-group"><label>Min Salary</label><input value="$180,000"></div><div class="form-group"><label>Max Salary</label><input value="$250,000"></div></div>
+<div class="form-group"><label>Excluded Companies</label><input placeholder="e.g. Meta, Amazon"></div>
+<div class="form-group"><label>Match Threshold</label>
+<div class="slider-wrap"><input type="range" min="0" max="100" value="70"></div>
+<div class="slider-labels"><span>50 &mdash; Wide net</span><span>70 &mdash; Balanced</span><span>90 &mdash; Strong only</span></div>
+</div>
+</div>
+<div class="onboard-footer"><button class="btn btn-outline" onclick="navigate('onboard-6')">Back</button><button class="btn btn-primary" onclick="navigate('onboard-8')">Continue</button></div>
+</div></div>
+
+<div id="screen-onboard-8" class="screen"><div class="onboard-page">
+<div class="onboard-top"><div class="logo">Woodhouse</div><div class="progress-bar"><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot done"></div><div class="progress-dot current"></div></div></div>
+<div class="onboard-body"><h2>Resume Upload</h2><p class="step-desc">Optional: upload an existing resume and we'll extract any missing details.</p>
+<div style="border:2px dashed var(--border);border-radius:var(--radius-lg);padding:48px;text-align:center;margin-bottom:16px;cursor:pointer">
+<div style="font-size:32px;color:var(--text-muted);margin-bottom:8px">&#8679;</div>
+<p style="font-size:14px;color:var(--text-sec)">Drag and drop your resume here, or click to browse</p>
+<p style="font-size:12px;color:var(--text-muted)">PDF or DOCX, up to 5MB</p>
+</div>
+<p style="font-size:13px;color:var(--text-muted);text-align:center">You can skip this step and add a resume later.</p>
+</div>
+<div class="onboard-footer"><button class="btn btn-outline" onclick="navigate('onboard-7')">Back</button><button class="btn btn-primary" onclick="navigateApp('dashboard')">Complete Setup</button></div>
+</div></div>
+
+<!-- ============================== -->
+<!-- APP LAYOUT                      -->
+<!-- ============================== -->
+<div id="app-layout">
+<aside class="sidebar">
+<div class="sidebar-logo">Woodhouse</div>
+<nav class="sidebar-nav">
+<div class="nav-item active" data-screen="dashboard" onclick="switchApp('dashboard')"><span class="nav-icon">&#9632;</span> Dashboard</div>
+<div class="nav-item" data-screen="jobs" onclick="switchApp('jobs')"><span class="nav-icon">&#9733;</span> Job Feed</div>
+<div class="nav-item" data-screen="queue" onclick="switchApp('queue')"><span class="nav-icon">&#10003;</span> Review Queue</div>
+<div class="nav-item" data-screen="tracker" onclick="switchApp('tracker')"><span class="nav-icon">&#9635;</span> Tracker</div>
+<div class="nav-item" data-screen="add-job" onclick="switchApp('add-job')"><span class="nav-icon">+</span> Add Job</div>
+<div class="nav-item" onclick="toggleSettings()" style="justify-content:space-between"><span><span class="nav-icon">&#9881;</span> Settings</span><span id="settings-arrow" style="font-size:10px">&#9660;</span></div>
+<div id="settings-sub" class="nav-sub">
+<div class="nav-item" data-screen="settings-profile" onclick="switchApp('settings-profile')"><span class="nav-icon">&nbsp;</span> Profile</div>
+<div class="nav-item" data-screen="settings-prefs" onclick="switchApp('settings-prefs')"><span class="nav-icon">&nbsp;</span> Preferences</div>
+<div class="nav-item" data-screen="settings-sub" onclick="switchApp('settings-subscription')"><span class="nav-icon">&nbsp;</span> Subscription</div>
+<div class="nav-item" data-screen="settings-account" onclick="switchApp('settings-account')"><span class="nav-icon">&nbsp;</span> Account</div>
+</div>
+<div class="nav-item" data-screen="notifications" onclick="switchApp('notifications')"><span class="nav-icon">&#9883;</span> Notifications <span class="badge" style="background:var(--error);color:#fff;margin-left:auto">3</span></div>
+</nav>
+<div class="sidebar-user">
+<strong>Sarah Chen</strong>
+<span>Pro Plan &middot; <a onclick="navigate('landing')" style="font-size:12px">Sign Out</a></span>
+</div>
+</aside>
+<main class="app-main">
+
+<!-- DASHBOARD -->
+<div id="app-dashboard" class="app-content active">
+<div class="page-title">Dashboard</div>
+<div class="grid-4 mb-24">
+<div class="card stat-card"><div class="stat-num">3</div><div class="stat-label">Ready to Review</div></div>
+<div class="card stat-card"><div class="stat-num" style="font-size:24px">12 <span style="font-size:16px;color:var(--text-muted)">/ 50</span></div><div class="stat-label">Used This Month</div><div class="progress-track mt-8"><div class="progress-fill" style="width:24%;background:var(--accent)"></div></div></div>
+<div class="card stat-card"><div class="stat-num">8</div><div class="stat-label">Submitted</div></div>
+<div class="card stat-card"><div class="stat-num" style="color:var(--success)">24%</div><div class="stat-label">Response Rate</div></div>
+</div>
+<div class="grid-2 gap-24">
+<div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Recent Matches</h3>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Senior Frontend Engineer</h4><p>Stripe &middot; San Francisco &middot; Remote OK</p><div class="job-card-meta"><span class="badge badge-source">Google Jobs</span><span style="font-size:12px;color:var(--text-muted)">2 hours ago</span></div></div><span class="score score-high">92</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Lead Frontend Engineer</h4><p>Linear &middot; Remote</p><div class="job-card-meta"><span class="badge badge-source">Greenhouse</span><span style="font-size:12px;color:var(--text-muted)">5 hours ago</span></div></div><span class="score score-high">88</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Staff Software Engineer</h4><p>Vercel &middot; Remote</p><div class="job-card-meta"><span class="badge badge-source">Lever</span><span style="font-size:12px;color:var(--text-muted)">8 hours ago</span></div></div><span class="score score-high">87</span></div>
+<div class="job-card" onclick="switchApp('jobs')"><div class="job-card-info"><h4>Senior Full-Stack Developer</h4><p>Notion &middot; San Francisco</p><div class="job-card-meta"><span class="badge badge-source">Google Jobs</span><span style="font-size:12px;color:var(--text-muted)">12 hours ago</span></div></div><span class="score score-high">83</span></div>
+<div class="job-card" onclick="switchApp('jobs')"><div class="job-card-info"><h4>Senior React Developer</h4><p>Shopify &middot; Remote</p><div class="job-card-meta"><span class="badge badge-source">JSearch</span><span style="font-size:12px;color:var(--text-muted)">1 day ago</span></div></div><span class="score score-med">78</span></div>
+</div>
+<div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Activity</h3>
+<div style="font-size:13px;color:var(--text-sec)">
+<div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--success)">&#10003;</strong> Application for <strong>Stripe</strong> is ready for review <span style="color:var(--text-muted);float:right">2h ago</span></div>
+<div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--success)">&#10003;</strong> Application for <strong>Linear</strong> is ready for review <span style="color:var(--text-muted);float:right">5h ago</span></div>
+<div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--info)">&#9733;</strong> 14 new jobs discovered, 5 matched your criteria <span style="color:var(--text-muted);float:right">6h ago</span></div>
+<div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--accent)">&#9993;</strong> You submitted your application to <strong>Notion</strong> <span style="color:var(--text-muted);float:right">1d ago</span></div>
+<div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--success)">&#9998;</strong> <strong>Shopify</strong> acknowledged your application <span style="color:var(--text-muted);float:right">2d ago</span></div>
+</div>
+<div class="card mt-16" style="padding:16px">
+<div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px">Discovery Status</div>
+<div style="font-size:13px;color:var(--text-sec)">Last scan: <strong>2 hours ago</strong> &middot; Next: <strong>in 4 hours</strong></div>
+<div style="font-size:13px;color:var(--text-sec)">Found 14 postings &middot; 5 matched &middot; 9 filtered by pre-screen</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- JOB FEED -->
+<div id="app-jobs" class="app-content">
+<div class="page-title">Job Feed</div>
+<div class="flex gap-12 mb-16" style="flex-wrap:wrap">
+<input style="max-width:250px" placeholder="Search jobs...">
+<select style="width:150px"><option>All Sources</option><option>Google Jobs</option><option>JSearch</option><option>Greenhouse</option><option>Lever</option><option>Manual</option></select>
+<select style="width:150px"><option>Match Score: High to Low</option><option>Newest First</option><option>Company Name</option></select>
+<button class="btn btn-ghost btn-sm">Clear Filters</button>
+</div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Senior Frontend Engineer</h4><p>Stripe &middot; San Francisco, CA &middot; <span class="badge badge-remote">Remote OK</span></p><div class="job-card-meta"><span class="badge badge-source">Google Jobs</span><span style="font-size:12px;color:var(--text-muted)">Posted 2 days ago</span></div></div><span class="score score-high">92</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Lead Frontend Engineer</h4><p>Linear &middot; <span class="badge badge-remote">Remote</span></p><div class="job-card-meta"><span class="badge badge-source">Greenhouse</span><span style="font-size:12px;color:var(--text-muted)">Posted 3 days ago</span></div></div><span class="score score-high">88</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Staff Software Engineer</h4><p>Vercel &middot; <span class="badge badge-remote">Remote</span></p><div class="job-card-meta"><span class="badge badge-source">Lever</span><span style="font-size:12px;color:var(--text-muted)">Posted 1 day ago</span></div></div><span class="score score-high">87</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Senior Full-Stack Developer</h4><p>Notion &middot; San Francisco, CA</p><div class="job-card-meta"><span class="badge badge-source">Google Jobs</span><span style="font-size:12px;color:var(--text-muted)">Posted 4 days ago</span></div></div><span class="score score-high">83</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Senior React Developer</h4><p>Shopify &middot; <span class="badge badge-remote">Remote</span></p><div class="job-card-meta"><span class="badge badge-source">JSearch</span><span style="font-size:12px;color:var(--text-muted)">Posted 5 days ago</span></div></div><span class="score score-med">78</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Engineering Manager</h4><p>Datadog &middot; New York, NY &middot; <span class="badge badge-remote">Hybrid</span></p><div class="job-card-meta"><span class="badge badge-source">Google Jobs</span><span style="font-size:12px;color:var(--text-muted)">Posted 3 days ago</span></div></div><span class="score score-med">71</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Senior Software Engineer</h4><p>Figma &middot; San Francisco, CA</p><div class="job-card-meta"><span class="badge badge-source">Greenhouse</span><span style="font-size:12px;color:var(--text-muted)">Posted 6 days ago</span></div></div><span class="score score-med">65</span></div>
+<div class="job-card" onclick="switchApp('job-detail')"><div class="job-card-info"><h4>Principal Engineer</h4><p>HashiCorp &middot; <span class="badge badge-remote">Remote</span></p><div class="job-card-meta"><span class="badge badge-source">Lever</span><span style="font-size:12px;color:var(--text-muted)">Posted 7 days ago</span></div></div><span class="score score-low">45</span></div>
+</div>
+
+<!-- JOB DETAIL -->
+<div id="app-job-detail" class="app-content">
+<div style="margin-bottom:16px"><a onclick="switchApp('jobs')" style="font-size:13px;color:var(--text-sec);cursor:pointer">&larr; Back to Job Feed</a></div>
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:24px;align-items:start">
+<div>
+<h2 style="font-size:22px;font-weight:700;color:var(--primary);margin-bottom:4px">Senior Frontend Engineer</h2>
+<p style="font-size:15px;color:var(--text-sec);margin-bottom:16px">Stripe &middot; San Francisco, CA &middot; Remote OK &middot; $190K - $240K</p>
+<div class="card">
+<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">About the Role</h3>
+<p style="font-size:14px;color:var(--text-sec)">We're looking for a Senior Frontend Engineer to join our Dashboard team. You'll build the interfaces that millions of businesses use to manage their payments, subscriptions, and financial operations. This is a high-impact role where your work directly affects how businesses interact with Stripe.</p>
+<h3 style="font-size:16px;font-weight:600;margin:20px 0 12px">Responsibilities</h3>
+<ul style="font-size:14px;color:var(--text-sec);margin-left:20px"><li>Design and implement complex, interactive UI components for the Stripe Dashboard</li><li>Collaborate with product designers to translate designs into pixel-perfect, accessible interfaces</li><li>Optimize frontend performance for large-scale data visualization</li><li>Contribute to our internal design system and component library</li><li>Mentor junior engineers and participate in code reviews</li></ul>
+<h3 style="font-size:16px;font-weight:600;margin:20px 0 12px">Requirements</h3>
+<ul style="font-size:14px;color:var(--text-sec);margin-left:20px"><li>5+ years of professional experience with React and TypeScript</li><li>Strong understanding of modern CSS, accessibility, and responsive design</li><li>Experience building and maintaining design systems</li><li>Track record of delivering complex frontend features end-to-end</li><li>Excellent communication skills and ability to work cross-functionally</li></ul>
+<h3 style="font-size:16px;font-weight:600;margin:20px 0 12px">Nice to Have</h3>
+<ul style="font-size:14px;color:var(--text-sec);margin-left:20px"><li>Experience with GraphQL and data visualization libraries</li><li>Contributions to open-source projects</li><li>Experience in fintech or payments</li></ul>
+</div>
+</div>
+<div class="eval-card">
+<div style="text-align:center;margin-bottom:16px">
+<div class="score score-high score-large" style="margin:0 auto 8px">92</div>
+<span class="rec-badge rec-strong">Strong Match</span>
+</div>
+<h4 style="font-size:14px;font-weight:600;margin-bottom:12px">Dimension Scores</h4>
+<div class="score-bar"><span class="score-bar-label">Skill</span><div class="score-bar-track"><div class="score-bar-fill" style="width:95%;background:var(--success)"></div></div><span class="score-bar-val">95</span></div>
+<div class="score-bar"><span class="score-bar-label">Experience</span><div class="score-bar-track"><div class="score-bar-fill" style="width:90%;background:var(--success)"></div></div><span class="score-bar-val">90</span></div>
+<div class="score-bar"><span class="score-bar-label">Seniority</span><div class="score-bar-track"><div class="score-bar-fill" style="width:88%;background:var(--success)"></div></div><span class="score-bar-val">88</span></div>
+<div class="score-bar"><span class="score-bar-label">Location</span><div class="score-bar-track"><div class="score-bar-fill" style="width:92%;background:var(--success)"></div></div><span class="score-bar-val">92</span></div>
+<div class="score-bar"><span class="score-bar-label">Technology</span><div class="score-bar-track"><div class="score-bar-fill" style="width:96%;background:var(--success)"></div></div><span class="score-bar-val">96</span></div>
+<h4 style="font-size:14px;font-weight:600;margin:16px 0 8px">Strengths</h4>
+<ul class="strengths"><li>7 years React/TypeScript experience exceeds 5-year requirement</li><li>Built and maintained a design system at TechCorp</li><li>Open-source component library demonstrates public work</li><li>Located in San Francisco, matching job location</li></ul>
+<h4 style="font-size:14px;font-weight:600;margin:16px 0 8px">Gaps</h4>
+<ul class="gaps"><li>No direct fintech or payments experience</li><li>Data visualization not highlighted in profile</li></ul>
+<button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="switchApp('app-detail')">Prepare Application</button>
+</div>
+</div>
+</div>
+
+<!-- REVIEW QUEUE -->
+<div id="app-queue" class="app-content">
+<div class="page-title">Review Queue</div>
+<div class="tabs">
+<div class="tab active" onclick="switchTab(this,'tab-ready')">Ready <span class="badge" style="background:var(--primary);color:#fff;margin-left:4px">3</span></div>
+<div class="tab" onclick="switchTab(this,'tab-saved')">Saved for Later</div>
+<div class="tab" onclick="switchTab(this,'tab-skipped')">Skipped</div>
+</div>
+<div id="tab-ready" class="tab-content active">
+<div class="app-card" style="border-left:4px solid var(--success)">
+<div class="app-card-top"><div><h4>Senior Frontend Engineer</h4><div class="app-card-sub">Stripe &middot; San Francisco &middot; Prepared 2 hours ago</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Resume tailored for React/TypeScript focus. Design system experience emphasized.</div></div><span class="score score-high">92</span></div>
+<div class="app-card-actions"><button class="btn btn-primary btn-sm" onclick="switchApp('app-detail')">Review</button><button class="btn btn-accent btn-sm" onclick="showModal()">Quick Approve</button><button class="btn btn-ghost btn-sm">Skip</button></div>
+</div>
+<div class="app-card" style="border-left:4px solid var(--success)">
+<div class="app-card-top"><div><h4>Lead Frontend Engineer</h4><div class="app-card-sub">Linear &middot; Remote &middot; Prepared 5 hours ago</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Leadership and mentoring experience highlighted. Open-source work featured.</div></div><span class="score score-high">88</span></div>
+<div class="app-card-actions"><button class="btn btn-primary btn-sm" onclick="switchApp('app-detail')">Review</button><button class="btn btn-accent btn-sm" onclick="showModal()">Quick Approve</button><button class="btn btn-ghost btn-sm">Skip</button></div>
+</div>
+<div class="app-card" style="border-left:4px solid var(--success)">
+<div class="app-card-top"><div><h4>Staff Software Engineer</h4><div class="app-card-sub">Vercel &middot; Remote &middot; Prepared 8 hours ago</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Next.js expertise and performance optimization work emphasized.</div></div><span class="score score-high">87</span></div>
+<div class="app-card-actions"><button class="btn btn-primary btn-sm" onclick="switchApp('app-detail')">Review</button><button class="btn btn-accent btn-sm" onclick="showModal()">Quick Approve</button><button class="btn btn-ghost btn-sm">Skip</button></div>
+</div>
+</div>
+<div id="tab-saved" class="tab-content"><div style="text-align:center;padding:48px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:8px">&#9734;</div><p>No saved applications. Click "Save for Later" to move applications here.</p></div></div>
+<div id="tab-skipped" class="tab-content"><div style="text-align:center;padding:48px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:8px">&#10005;</div><p>No skipped applications.</p></div></div>
+</div>
+
+<!-- APPLICATION DETAIL -->
+<div id="app-app-detail" class="app-content">
+<div style="margin-bottom:16px"><a onclick="switchApp('queue')" style="font-size:13px;color:var(--text-sec);cursor:pointer">&larr; Back to Review Queue</a></div>
+<div class="flex-between mb-16"><div><h2 style="font-size:22px;font-weight:700;color:var(--primary)">Senior Frontend Engineer</h2><p style="font-size:15px;color:var(--text-sec)">Stripe &middot; San Francisco, CA</p></div><span class="score score-high" style="font-size:20px;padding:8px 16px">92</span></div>
+<div class="tabs">
+<div class="tab active" onclick="switchTab(this,'detail-overview')">Overview</div>
+<div class="tab" onclick="switchTab(this,'detail-resume')">Resume</div>
+<div class="tab" onclick="switchTab(this,'detail-cover')">Cover Letter</div>
+<div class="tab" onclick="switchTab(this,'detail-answers')">Answers</div>
+<div class="tab" onclick="switchTab(this,'detail-posting')">Job Posting</div>
+</div>
+<div id="detail-overview" class="tab-content active">
+<div class="grid-2 gap-24">
+<div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Job Summary</h3><p style="font-size:14px;color:var(--text-sec)"><strong>Company:</strong> Stripe</p><p style="font-size:14px;color:var(--text-sec)"><strong>Location:</strong> San Francisco, CA (Remote OK)</p><p style="font-size:14px;color:var(--text-sec)"><strong>Salary:</strong> $190,000 - $240,000</p><p style="font-size:14px;color:var(--text-sec)"><strong>Type:</strong> Full-time</p><p style="font-size:14px;color:var(--text-sec)"><strong>Posted:</strong> 2 days ago</p></div>
+<div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Evaluation</h3><div class="flex gap-12" style="align-items:center;margin-bottom:12px"><span class="score score-high" style="font-size:20px;padding:6px 14px">92</span><span class="rec-badge rec-strong">Strong Match</span></div><p style="font-size:13px;color:var(--text-sec)">Your 7 years of React/TypeScript experience, design system expertise, and San Francisco location make this an excellent match. The only gaps are lack of fintech-specific experience and data visualization, which are listed as nice-to-haves.</p></div>
+</div>
+<div class="flex gap-12 mt-24"><button class="btn btn-primary btn-lg" onclick="showModal()">Approve Application</button><button class="btn btn-outline">Save for Later</button><button class="btn btn-ghost">Skip</button></div>
+</div>
+<div id="detail-resume" class="tab-content">
+<div class="flex-between mb-16"><div class="flex gap-8"><button class="btn btn-outline btn-sm">Download PDF</button><button class="btn btn-outline btn-sm">Download DOCX</button></div><button class="btn btn-ghost btn-sm" onclick="switchApp('resume-preview')">Full Preview</button></div>
+<div class="resume-doc">
+<h2>Sarah Chen</h2>
+<div class="resume-contact">San Francisco, CA &middot; sarah@example.com &middot; (555) 123-4567 &middot; linkedin.com/in/sarahchen &middot; github.com/sarahchen</div>
+<p style="font-size:13px;color:var(--text-sec)">Senior Software Engineer with 7 years of experience building high-performance web applications and design systems. Expert in React, TypeScript, and modern frontend architecture with a proven track record of leading migrations, building component libraries, and mentoring engineers.</p>
+<h3>Experience</h3>
+<h4>Senior Frontend Engineer &middot; TechCorp</h4>
+<div class="res-sub">San Francisco, CA &middot; 2021 &ndash; Present</div>
+<ul><li>Led migration of legacy jQuery application to React/TypeScript, reducing bundle size by 40% and improving page load by 2.3 seconds</li><li>Architected and built a company-wide component library adopted by 12 engineering teams, establishing consistent UI patterns across products</li><li>Implemented design system with full accessibility compliance (WCAG 2.1 AA), improving usability for 50K+ users</li><li>Mentored 4 junior engineers through structured onboarding program</li></ul>
+<h4>Software Engineer &middot; StartupCo</h4>
+<div class="res-sub">San Francisco, CA &middot; 2018 &ndash; 2021</div>
+<ul><li>Developed real-time collaboration features using WebSockets serving 50K daily active users</li><li>Built and maintained CI/CD pipeline reducing deployment time from 45 minutes to 8 minutes</li><li>Created performance monitoring dashboard tracking Core Web Vitals across all products</li></ul>
+<h3>Skills</h3>
+<p>React, TypeScript, JavaScript, Node.js, Next.js, GraphQL, PostgreSQL, AWS, Python, Tailwind CSS, Design Systems, Performance Optimization, Accessibility</p>
+<h3>Education</h3>
+<h4>B.S. Computer Science &middot; UC Berkeley</h4>
+<div class="res-sub">2014 &ndash; 2018 &middot; GPA 3.7 &middot; Dean's List</div>
+<h3>Projects</h3>
+<h4>Open Source Design System</h4>
+<p>React component library with 2.4K GitHub stars. Full accessibility support and Storybook documentation.</p>
+</div>
+</div>
+<div id="detail-cover" class="tab-content">
+<div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Cover Letter</h3>
+<textarea rows="18" style="font-size:14px;line-height:1.7">Dear Stripe Hiring Team,
+
+I'm writing to express my strong interest in the Senior Frontend Engineer position on the Dashboard team. As someone who has spent the last three years building the kind of complex, interactive interfaces that define great developer tools, I'm excited about the opportunity to help shape how millions of businesses interact with Stripe.
+
+At TechCorp, I led the migration of our legacy frontend to React and TypeScript — a project that reduced bundle size by 40% and improved page load times by over two seconds. More relevantly, I architected and built a company-wide component library that's now used by 12 engineering teams. This experience has given me deep insight into what it takes to build UI components that are both powerful and consistent at scale, which I understand is a core focus of the Dashboard team.
+
+What draws me most to this role is Stripe's commitment to craft in developer tools. I've admired how the Stripe Dashboard balances complexity with usability — presenting dense financial data in ways that feel intuitive. I'd love to bring my experience in design systems and accessibility (I achieved WCAG 2.1 AA compliance across TechCorp's product suite) to help push that standard even further.
+
+I'm based in San Francisco and excited about the flexibility of this role. I'd welcome the chance to discuss how my experience building large-scale React applications and design systems aligns with the Dashboard team's goals.
+
+Best regards,
+Sarah Chen</textarea>
+</div>
+</div>
+<div id="detail-answers" class="tab-content">
+<div class="card mb-16"><h4 style="font-size:14px;font-weight:600;margin-bottom:4px">Years of professional experience with React?</h4><input value="7 years" style="margin-top:8px"><p style="font-size:11px;color:var(--text-muted);margin-top:4px">Source: Work experience at TechCorp (2021-present) and StartupCo (2018-2021)</p></div>
+<div class="card mb-16"><h4 style="font-size:14px;font-weight:600;margin-bottom:4px">Are you authorized to work in the United States?</h4><input value="Yes" style="margin-top:8px"><p style="font-size:11px;color:var(--text-muted);margin-top:4px">Source: Profile data</p></div>
+<div class="card mb-16"><h4 style="font-size:14px;font-weight:600;margin-bottom:4px">What are your salary expectations?</h4><input value="$190,000 - $240,000, aligned with the posted range" style="margin-top:8px"><p style="font-size:11px;color:var(--text-muted);margin-top:4px">Source: Search preferences salary range</p></div>
+</div>
+<div id="detail-posting" class="tab-content">
+<div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Original Job Posting</h3>
+<h4 style="font-size:15px;margin-bottom:8px">Senior Frontend Engineer — Dashboard Team</h4><p style="font-size:14px;color:var(--text-sec)">Stripe &middot; San Francisco, CA (Remote OK) &middot; $190K-$240K</p>
+<p style="font-size:14px;color:var(--text-sec);margin-top:12px">We're looking for a Senior Frontend Engineer to join our Dashboard team. You'll build the interfaces that millions of businesses use to manage their payments, subscriptions, and financial operations.</p>
+<p style="font-size:14px;color:var(--text-sec)"><strong>Requirements:</strong> 5+ years React/TypeScript, design system experience, strong CSS and accessibility skills.</p>
+<p style="font-size:14px;color:var(--text-sec)"><strong>Nice to have:</strong> GraphQL, data visualization, fintech experience, open-source contributions.</p>
+</div>
+</div>
+</div>
+
+<!-- RESUME PREVIEW -->
+<div id="app-resume-preview" class="app-content">
+<div class="flex-between mb-24"><a onclick="switchApp('app-detail')" style="font-size:13px;color:var(--text-sec);cursor:pointer">&larr; Back to Application</a><div class="flex gap-8"><button class="btn btn-outline btn-sm">Download PDF</button><button class="btn btn-outline btn-sm">Download DOCX</button><button class="btn btn-ghost btn-sm">Toggle Diff View</button></div></div>
+<div class="resume-doc">
+<h2>Sarah Chen</h2>
+<div class="resume-contact">San Francisco, CA &middot; sarah@example.com &middot; (555) 123-4567 &middot; linkedin.com/in/sarahchen &middot; github.com/sarahchen</div>
+<p style="font-size:13px;color:var(--text-sec)">Senior Software Engineer with 7 years of experience building high-performance web applications and design systems. Expert in React, TypeScript, and modern frontend architecture with a proven track record of leading migrations, building component libraries, and mentoring engineers.</p>
+<h3>Experience</h3>
+<h4>Senior Frontend Engineer &middot; TechCorp</h4><div class="res-sub">2021 &ndash; Present</div>
+<ul><li>Led migration of legacy jQuery application to React/TypeScript, reducing bundle size by 40%</li><li>Architected company-wide component library adopted by 12 engineering teams</li><li>Implemented design system with WCAG 2.1 AA accessibility compliance</li><li>Mentored 4 junior engineers through onboarding program</li></ul>
+<h4>Software Engineer &middot; StartupCo</h4><div class="res-sub">2018 &ndash; 2021</div>
+<ul><li>Developed real-time collaboration features serving 50K daily active users</li><li>Built CI/CD pipeline reducing deployment time from 45 min to 8 min</li></ul>
+<h3>Skills</h3><p>React, TypeScript, JavaScript, Node.js, Next.js, GraphQL, PostgreSQL, AWS, Design Systems, Accessibility, Performance Optimization</p>
+<h3>Education</h3><h4>B.S. Computer Science &middot; UC Berkeley</h4><div class="res-sub">2014 &ndash; 2018 &middot; GPA 3.7</div>
+<h3>Projects</h3><h4>Open Source Design System</h4><p>React component library with 2.4K GitHub stars, full accessibility support, Storybook docs.</p>
+</div>
+</div>
+
+<!-- TRACKER -->
+<div id="app-tracker" class="app-content">
+<div class="page-title">Application Tracker</div>
+<div class="flex-between mb-16"><div class="flex gap-16" style="font-size:13px;color:var(--text-sec)"><span><strong>3</strong> in pipeline</span><span><strong>24%</strong> response rate</span><span><strong>4.2</strong> avg days to response</span></div><input style="max-width:200px" placeholder="Search applications..."></div>
+<div class="kanban">
+<div class="kanban-col"><div class="kanban-col-title">Submitted <span class="count">1</span></div>
+<div class="kanban-card" onclick="switchApp('tracker-detail')"><h5>Senior Full-Stack Developer</h5><p>Notion &middot; 5 days ago</p><span class="score score-high" style="font-size:11px;padding:2px 6px;margin-top:4px;display:inline-block">83</span></div>
+</div>
+<div class="kanban-col"><div class="kanban-col-title">Acknowledged <span class="count">1</span></div>
+<div class="kanban-card" onclick="switchApp('tracker-detail')"><h5>Engineering Manager</h5><p>Datadog &middot; 8 days ago</p><span class="score score-med" style="font-size:11px;padding:2px 6px;margin-top:4px;display:inline-block">71</span></div>
+</div>
+<div class="kanban-col"><div class="kanban-col-title">Screening <span class="count">0</span></div><div style="text-align:center;padding:24px;font-size:12px;color:var(--text-muted)">No applications</div></div>
+<div class="kanban-col"><div class="kanban-col-title">Interviewing <span class="count">1</span></div>
+<div class="kanban-card" onclick="switchApp('tracker-detail')"><h5>Senior React Developer</h5><p>Shopify &middot; 2 days ago</p><span class="score score-med" style="font-size:11px;padding:2px 6px;margin-top:4px;display:inline-block">78</span></div>
+</div>
+<div class="kanban-col"><div class="kanban-col-title">Offer <span class="count">0</span></div><div style="text-align:center;padding:24px;font-size:12px;color:var(--text-muted)">No applications</div></div>
+<div class="kanban-col"><div class="kanban-col-title">Accepted <span class="count">0</span></div><div style="text-align:center;padding:24px;font-size:12px;color:var(--text-muted)">No applications</div></div>
+<div class="kanban-col"><div class="kanban-col-title">Rejected <span class="count">0</span></div><div style="text-align:center;padding:24px;font-size:12px;color:var(--text-muted)">No applications</div></div>
+<div class="kanban-col"><div class="kanban-col-title">Withdrawn <span class="count">0</span></div><div style="text-align:center;padding:24px;font-size:12px;color:var(--text-muted)">No applications</div></div>
+</div>
+</div>
+
+<!-- TRACKER DETAIL -->
+<div id="app-tracker-detail" class="app-content">
+<div style="margin-bottom:16px"><a onclick="switchApp('tracker')" style="font-size:13px;color:var(--text-sec);cursor:pointer">&larr; Back to Tracker</a></div>
+<div class="flex-between mb-24"><div><h2 style="font-size:22px;font-weight:700;color:var(--primary)">Senior React Developer</h2><p style="font-size:15px;color:var(--text-sec)">Shopify &middot; Remote</p></div><div class="flex gap-8"><span class="badge-status">Interviewing</span><span class="score score-med">78</span></div></div>
+<div class="grid-2 gap-24" style="align-items:start">
+<div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Timeline</h3>
+<div class="timeline-item"><div class="timeline-dot" style="background:var(--accent)"></div><div class="timeline-body"><h5>Technical Interview Scheduled</h5><p>Round 2 with the frontend team lead. Focus on system design.</p><time>Mar 10, 2026</time></div></div>
+<div class="timeline-item"><div class="timeline-dot" style="background:var(--success)"></div><div class="timeline-body"><h5>Phone Screen Completed</h5><p>30 min call with recruiter. Went well, moving to technical round.</p><time>Mar 5, 2026</time></div></div>
+<div class="timeline-item"><div class="timeline-dot" style="background:var(--info)"></div><div class="timeline-body"><h5>Application Acknowledged</h5><p>Received confirmation email from Shopify recruiting.</p><time>Mar 3, 2026</time></div></div>
+<div class="timeline-item"><div class="timeline-dot" style="background:var(--primary)"></div><div class="timeline-body"><h5>Application Submitted</h5><p>Submitted via Shopify careers portal.</p><time>Mar 1, 2026</time></div></div>
+</div>
+<div>
+<div class="card mb-16"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Quick Actions</h3>
+<div class="form-group"><label>Update Status</label><select><option>Interviewing</option><option>Offer</option><option>Accepted</option><option>Rejected</option><option>Withdrawn</option></select></div>
+<div class="form-group"><label>Set Follow-up Reminder</label><input type="date" value="2026-03-12"></div>
+</div>
+<div class="card mb-16"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Notes</h3>
+<div style="font-size:13px;color:var(--text-sec);padding:8px 0;border-bottom:1px solid var(--border)">Recruiter mentioned they're looking to fill this role quickly. Prep for system design around React component architecture. <span style="color:var(--text-muted)">Mar 5</span></div>
+<textarea rows="3" placeholder="Add a note..." style="margin-top:12px"></textarea><button class="btn btn-outline btn-sm mt-8">Add Note</button>
+</div>
+<div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Materials</h3>
+<div style="font-size:13px;color:var(--text-sec)"><a>Download Resume (PDF)</a> &middot; <a>Download Resume (DOCX)</a></div>
+<div style="font-size:13px;color:var(--text-sec);margin-top:4px"><a onclick="switchApp('app-detail')">View Cover Letter &amp; Answers</a></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ADD JOB -->
+<div id="app-add-job" class="app-content">
+<div class="page-title">Add Job</div>
+<div class="tabs">
+<div class="tab active" onclick="switchTab(this,'add-url')">Paste URL</div>
+<div class="tab" onclick="switchTab(this,'add-manual')">Manual Entry</div>
+</div>
+<div id="add-url" class="tab-content active" style="max-width:600px">
+<div class="form-group"><label>Job Posting URL</label><div class="flex gap-8"><input placeholder="https://jobs.lever.co/company/..."><button class="btn btn-primary" onclick="simulateParse()">Fetch &amp; Parse</button></div></div>
+<div id="parse-result" style="display:none" class="card mt-16">
+<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Parsed Job Data</h3>
+<div class="form-group"><label>Title</label><input value="Senior Backend Engineer"></div>
+<div class="form-group"><label>Company</label><input value="Coinbase"></div>
+<div class="form-row"><div class="form-group"><label>Location</label><input value="Remote"></div><div class="form-group"><label>Job Type</label><input value="Full-time"></div></div>
+<div class="form-group"><label>Description</label><textarea rows="4">Join Coinbase's platform engineering team to build scalable backend services handling millions of transactions daily...</textarea></div>
+<button class="btn btn-accent" style="width:100%">Save &amp; Evaluate</button>
+</div>
+</div>
+<div id="add-manual" class="tab-content" style="max-width:600px">
+<div class="form-group"><label>Job Title</label><input placeholder="e.g. Senior Software Engineer"></div>
+<div class="form-group"><label>Company</label><input placeholder="e.g. Stripe"></div>
+<div class="form-row"><div class="form-group"><label>Location</label><input placeholder="e.g. San Francisco, CA"></div><div class="form-group"><label>Remote?</label><select><option>Remote OK</option><option>Remote Only</option><option>On-site</option><option>Hybrid</option></select></div></div>
+<div class="form-group"><label>Description</label><textarea rows="6" placeholder="Paste the full job description..."></textarea></div>
+<div class="form-group"><label>Application URL</label><input placeholder="https://..."></div>
+<button class="btn btn-accent" style="width:100%">Save &amp; Evaluate</button>
+</div>
+</div>
+
+<!-- SETTINGS: PROFILE -->
+<div id="app-settings-profile" class="app-content">
+<div class="page-title">Profile Settings</div>
+<div class="card mb-16"><div class="flex-between"><h3 style="font-size:16px;font-weight:600">Basic Information</h3><button class="btn btn-ghost btn-sm">Edit</button></div><div class="mt-8" style="font-size:14px;color:var(--text-sec)"><p><strong>Name:</strong> Sarah Chen</p><p><strong>Location:</strong> San Francisco, CA</p><p><strong>LinkedIn:</strong> linkedin.com/in/sarahchen</p><p><strong>GitHub:</strong> github.com/sarahchen</p></div></div>
+<div class="card mb-16"><div class="flex-between"><h3 style="font-size:16px;font-weight:600">Professional Summary</h3><button class="btn btn-ghost btn-sm">Edit</button></div><p class="mt-8" style="font-size:14px;color:var(--text-sec)">Senior Software Engineer with 7 years of experience building high-performance web applications. Specializing in React, TypeScript, and Node.js.</p></div>
+<div class="card mb-16"><div class="flex-between"><h3 style="font-size:16px;font-weight:600">Work Experience</h3><button class="btn btn-ghost btn-sm">Edit</button></div><div class="mt-8" style="font-size:14px;color:var(--text-sec)"><p><strong>Senior Frontend Engineer</strong> at TechCorp (2021-Present)</p><p><strong>Software Engineer</strong> at StartupCo (2018-2021)</p></div></div>
+<div class="card mb-16"><div class="flex-between"><h3 style="font-size:16px;font-weight:600">Skills</h3><button class="btn btn-ghost btn-sm">Edit</button></div><div class="mt-8" style="display:flex;flex-wrap:wrap;gap:6px"><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">React</span><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">TypeScript</span><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">Node.js</span><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">Next.js</span><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">Python</span><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">AWS</span><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">PostgreSQL</span><span class="badge" style="background:var(--surface-alt);color:var(--text-sec);padding:4px 10px;font-size:13px">GraphQL</span></div></div>
+</div>
+
+<!-- SETTINGS: PREFERENCES -->
+<div id="app-settings-prefs" class="app-content">
+<div class="page-title">Search Preferences</div>
+<div style="max-width:600px">
+<div class="form-group"><label>Target Roles</label><input value="Senior Frontend Engineer, Staff Engineer, Lead Frontend Developer"></div>
+<div class="form-row"><div class="form-group"><label>Locations</label><input value="San Francisco, New York, Remote"></div><div class="form-group"><label>Remote Preference</label><select><option>Remote OK</option></select></div></div>
+<div class="form-row"><div class="form-group"><label>Min Salary</label><input value="$180,000"></div><div class="form-group"><label>Max Salary</label><input value="$250,000"></div></div>
+<div class="form-group"><label>Match Threshold</label><div class="slider-wrap"><input type="range" min="0" max="100" value="70"></div><div class="slider-labels"><span>50 &mdash; Wide net</span><span>70 &mdash; Balanced</span><span>90 &mdash; Strong only</span></div></div>
+<button class="btn btn-primary mt-16">Save Preferences</button>
+<hr style="margin:32px 0;border:none;border-top:1px solid var(--border)">
+<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Tracked Company Boards</h3>
+<div style="font-size:13px;color:var(--text-sec);margin-bottom:12px">
+<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--border)"><span>boards.greenhouse.io/stripe</span><button class="btn btn-ghost btn-sm" style="color:var(--error);padding:4px 8px">Remove</button></div>
+<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--border)"><span>jobs.lever.co/vercel</span><button class="btn btn-ghost btn-sm" style="color:var(--error);padding:4px 8px">Remove</button></div>
+</div>
+<div class="flex gap-8"><input placeholder="Board URL (Greenhouse or Lever)"><button class="btn btn-outline btn-sm">Add Board</button></div>
+<hr style="margin:32px 0;border:none;border-top:1px solid var(--border)">
+<h3 style="font-size:16px;font-weight:600;margin-bottom:8px">Email Forwarding</h3>
+<div class="flex gap-8 mb-16"><input value="jobs+sc7k2@inbound.woodhouse.app" readonly style="background:var(--surface-alt)"><button class="btn btn-outline btn-sm" onclick="showToast('Copied to clipboard')">Copy</button></div>
+<p style="font-size:13px;color:var(--text-muted)">Forward job alert emails to this address. Woodhouse will parse and evaluate them.</p>
+<hr style="margin:32px 0;border:none;border-top:1px solid var(--border)">
+<div class="flex-between"><div><h3 style="font-size:16px;font-weight:600">Scan Frequency</h3><p style="font-size:13px;color:var(--text-sec)">Every 6 hours (Pro plan)</p></div><button class="btn btn-ghost btn-sm" style="color:var(--accent)">Upgrade for hourly scans</button></div>
+</div>
+</div>
+
+<!-- SETTINGS: SUBSCRIPTION -->
+<div id="app-settings-subscription" class="app-content">
+<div class="page-title">Subscription</div>
+<div class="card mb-24" style="max-width:400px">
+<div class="flex-between mb-8"><h3 style="font-size:18px;font-weight:700;color:var(--primary)">Pro Plan</h3><span class="badge" style="background:var(--success-bg);color:var(--success)">Active</span></div>
+<p style="font-size:14px;color:var(--text-sec);margin-bottom:12px">$19/month &middot; Renews Mar 15, 2026</p>
+<div class="flex-between mb-4"><span style="font-size:13px;color:var(--text-sec)">Applications used</span><span style="font-size:13px;font-weight:600">12 / 50</span></div>
+<div class="progress-track"><div class="progress-fill" style="width:24%;background:var(--accent)"></div></div>
+<p style="font-size:12px;color:var(--text-muted);margin-top:8px">Resets in 8 days</p>
+<div class="flex gap-8 mt-16"><button class="btn btn-accent btn-sm">Upgrade to Premium</button><button class="btn btn-outline btn-sm">Manage Billing</button></div>
+</div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Compare Plans</h3>
+<div class="pricing-grid" style="max-width:800px">
+<div class="pricing-card"><h3>Free</h3><div class="price">$0<span>/mo</span></div><ul><li>5 apps/month</li><li>Every 12 hours</li><li>PDF only</li><li>Basic tracker</li></ul></div>
+<div class="pricing-card featured"><h3>Pro</h3><div class="price">$19<span>/mo</span></div><ul><li>50 apps/month</li><li>Every 6 hours</li><li>PDF + DOCX</li><li>Cover letters</li><li>Full tracker</li></ul></div>
+<div class="pricing-card"><h3>Premium</h3><div class="price">$39<span>/mo</span></div><ul><li>200 apps/month</li><li>Every hour</li><li>Everything in Pro</li><li>Full analytics</li><li>Priority support</li></ul></div>
+</div>
+</div>
+
+<!-- SETTINGS: ACCOUNT -->
+<div id="app-settings-account" class="app-content">
+<div class="page-title">Account Settings</div>
+<div style="max-width:500px">
+<div class="card mb-16"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Change Email</h3><div class="form-group"><label>New Email</label><input value="sarah@example.com"></div><button class="btn btn-outline btn-sm">Update Email</button></div>
+<div class="card mb-16"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Change Password</h3><div class="form-group"><label>Current Password</label><input type="password" placeholder="Current password"></div><div class="form-group"><label>New Password</label><input type="password" placeholder="New password"></div><button class="btn btn-outline btn-sm">Update Password</button></div>
+<div class="card mb-16"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Notification Preferences</h3>
+<div style="font-size:14px;color:var(--text-sec)">
+<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--border)"><span>New matches found</span><label style="display:inline"><input type="checkbox" checked> In-app</label></div>
+<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--border)"><span>Applications ready</span><label style="display:inline"><input type="checkbox" checked> In-app</label></div>
+<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--border)"><span>Follow-up reminders</span><label style="display:inline"><input type="checkbox" checked> In-app</label></div>
+<div class="flex-between" style="padding:8px 0"><span>Email digest</span><select style="width:120px"><option>Daily</option><option>Weekly</option><option>None</option></select></div>
+</div></div>
+<div class="card" style="border-color:var(--error)"><h3 style="font-size:16px;font-weight:600;color:var(--error);margin-bottom:8px">Danger Zone</h3><p style="font-size:13px;color:var(--text-sec);margin-bottom:12px">Permanently delete your account and all data. This cannot be undone.</p><button class="btn btn-danger btn-sm">Delete Account</button></div>
+</div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div id="app-notifications" class="app-content">
+<div class="flex-between mb-24"><div class="page-title" style="margin-bottom:0">Notifications</div><button class="btn btn-ghost btn-sm" onclick="showToast('All notifications marked as read')">Mark all read</button></div>
+<div class="card" style="padding:0;overflow:hidden">
+<div class="notif-item unread"><div class="notif-dot"></div><div class="notif-body"><h5>Application Ready: Stripe</h5><p>Your application for Senior Frontend Engineer at Stripe is ready for review.</p><time>2 hours ago</time></div></div>
+<div class="notif-item unread"><div class="notif-dot"></div><div class="notif-body"><h5>Application Ready: Linear</h5><p>Your application for Lead Frontend Engineer at Linear is ready for review.</p><time>5 hours ago</time></div></div>
+<div class="notif-item unread"><div class="notif-dot"></div><div class="notif-body"><h5>New Matches Found</h5><p>14 new jobs discovered, 5 matched your criteria. Check your Job Feed.</p><time>6 hours ago</time></div></div>
+<div class="notif-item"><div class="notif-dot"></div><div class="notif-body"><h5>Follow-Up Reminder: Shopify</h5><p>It's been 7 days since your phone screen with Shopify. Consider following up.</p><time>1 day ago</time></div></div>
+<div class="notif-item"><div class="notif-dot"></div><div class="notif-body"><h5>Application Ready: Vercel</h5><p>Your application for Staff Software Engineer at Vercel is ready for review.</p><time>1 day ago</time></div></div>
+<div class="notif-item"><div class="notif-dot"></div><div class="notif-body"><h5>Status Update: Datadog</h5><p>Your Datadog application has been in "Submitted" for 8 days with no update.</p><time>2 days ago</time></div></div>
+<div class="notif-item"><div class="notif-dot"></div><div class="notif-body"><h5>New Matches Found</h5><p>11 new jobs discovered, 3 matched your criteria.</p><time>2 days ago</time></div></div>
+<div class="notif-item"><div class="notif-dot"></div><div class="notif-body"><h5>Application Submitted: Notion</h5><p>You marked your Notion application as submitted.</p><time>5 days ago</time></div></div>
+</div>
+</div>
+
+<!-- PIPELINE ADMIN -->
+<div id="app-admin" class="app-content">
+<div style="margin:-32px -32px 0;padding:0">
+<div class="admin-nav"><span class="logo">Woodhouse Admin</span><a onclick="switchApp('dashboard')">Back to Dashboard</a></div>
+</div>
+<div style="padding:32px 0">
+<h2 style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:20px">Pipeline Health</h2>
+<div class="grid-4 mb-24">
+<div class="card stat-card"><div class="stat-num">142</div><div class="stat-label">Pending</div></div>
+<div class="card stat-card"><div class="stat-num" style="color:var(--accent)">3</div><div class="stat-label">Processing</div></div>
+<div class="card stat-card"><div class="stat-num" style="color:var(--error)">7</div><div class="stat-label">Failed (24h)</div></div>
+<div class="card stat-card"><div class="stat-num" style="color:var(--success)">0</div><div class="stat-label">Zombie</div></div>
+</div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Jobs by Step</h3>
+<div class="card mb-24" style="padding:0;overflow:hidden">
+<table style="width:100%;border-collapse:collapse;font-size:13px">
+<thead style="background:var(--primary);color:#fff"><tr><th style="padding:10px 14px;text-align:left">Step</th><th style="padding:10px 14px">Pending</th><th style="padding:10px 14px">Processing</th><th style="padding:10px 14px">Completed</th><th style="padding:10px 14px">Failed</th></tr></thead>
+<tbody>
+<tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px;font-weight:500">pre_screen</td><td style="padding:10px 14px;text-align:center">52</td><td style="padding:10px 14px;text-align:center">1</td><td style="padding:10px 14px;text-align:center">1,847</td><td style="padding:10px 14px;text-align:center;color:var(--error)">3</td></tr>
+<tr style="border-bottom:1px solid var(--border);background:var(--surface-alt)"><td style="padding:10px 14px;font-weight:500">evaluate</td><td style="padding:10px 14px;text-align:center">38</td><td style="padding:10px 14px;text-align:center">1</td><td style="padding:10px 14px;text-align:center">612</td><td style="padding:10px 14px;text-align:center;color:var(--error)">2</td></tr>
+<tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px;font-weight:500">tailor</td><td style="padding:10px 14px;text-align:center">28</td><td style="padding:10px 14px;text-align:center">1</td><td style="padding:10px 14px;text-align:center">287</td><td style="padding:10px 14px;text-align:center;color:var(--error)">1</td></tr>
+<tr style="border-bottom:1px solid var(--border);background:var(--surface-alt)"><td style="padding:10px 14px;font-weight:500">generate_materials</td><td style="padding:10px 14px;text-align:center">16</td><td style="padding:10px 14px;text-align:center">0</td><td style="padding:10px 14px;text-align:center">285</td><td style="padding:10px 14px;text-align:center;color:var(--error)">1</td></tr>
+<tr><td style="padding:10px 14px;font-weight:500">generate_files</td><td style="padding:10px 14px;text-align:center">8</td><td style="padding:10px 14px;text-align:center">0</td><td style="padding:10px 14px;text-align:center">283</td><td style="padding:10px 14px;text-align:center;color:var(--error)">0</td></tr>
+</tbody>
+</table>
+</div>
+<h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Recent Errors</h3>
+<div class="card" style="padding:0;overflow:hidden;font-size:13px">
+<div class="error-row" style="font-weight:600;background:var(--surface-alt)"><span>Timestamp</span><span>Step</span><span>Error</span><span>Attempts</span></div>
+<div class="error-row"><span style="color:var(--text-muted)">Mar 7, 14:23</span><span>pre_screen</span><span style="color:var(--error)">Anthropic API rate limit (429)</span><span>2/3</span></div>
+<div class="error-row"><span style="color:var(--text-muted)">Mar 7, 13:45</span><span>evaluate</span><span style="color:var(--error)">Zod validation: missing dimension scores</span><span>3/3</span></div>
+<div class="error-row"><span style="color:var(--text-muted)">Mar 7, 12:01</span><span>tailor</span><span style="color:var(--error)">Invalid source_id reference in output</span><span>3/3</span></div>
+</div>
+</div>
+</div>
+
+</main>
+</div>
+
+<!-- APPROVAL MODAL -->
+<div id="modal-approve" class="modal-overlay" onclick="if(event.target===this)hideModal()">
+<div class="modal">
+<div id="modal-confirm">
+<h3>Ready to approve?</h3>
+<p>Resume files (PDF &amp; DOCX) will be generated. The application link will open in a new tab so you can submit.</p>
+<div class="modal-actions"><button class="btn btn-outline" onclick="hideModal()">Cancel</button><button class="btn btn-primary" onclick="approveApp()">Confirm &amp; Approve</button></div>
+</div>
+<div id="modal-success" style="display:none">
+<h3 style="color:var(--success)">Application Approved!</h3>
+<p>Your tailored resume and cover letter are ready. The application page has been opened in a new tab.</p>
+<div class="flex gap-8 mb-16"><button class="btn btn-outline btn-sm">Download PDF</button><button class="btn btn-outline btn-sm">Download DOCX</button></div>
+<div style="font-size:13px;color:var(--text-sec);margin-bottom:12px">
+<div class="flex-between" style="padding:6px 0"><span>Cover letter</span><button class="btn btn-ghost btn-sm" onclick="showToast('Copied to clipboard')">Copy</button></div>
+<div class="flex-between" style="padding:6px 0"><span>Years of experience answer</span><button class="btn btn-ghost btn-sm" onclick="showToast('Copied to clipboard')">Copy</button></div>
+</div>
+<div class="modal-actions"><button class="btn btn-primary" onclick="hideModal()">Done</button></div>
+</div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script>
+// Navigation
+function navigate(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('app-layout').classList.remove('active');
+  const el = document.getElementById('screen-' + id);
+  if (el) el.classList.add('active');
+}
+
+function navigateApp(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('app-layout').classList.add('active');
+  switchApp(screen);
+}
+
+function switchApp(screen) {
+  // Ensure we're in app layout
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('app-layout').classList.add('active');
+
+  document.querySelectorAll('.app-content').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById('app-' + screen);
+  if (el) el.classList.add('active');
+
+  // Update sidebar active state
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector('.nav-item[data-screen="' + screen + '"]');
+  if (navItem) navItem.classList.add('active');
+
+  // Scroll to top
+  document.querySelector('.app-main').scrollTo(0, 0);
+}
+
+// Tab switching
+function switchTab(tabEl, contentId) {
+  const parent = tabEl.parentElement;
+  parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+
+  // Find sibling tab-contents
+  let container = parent.parentElement;
+  container.querySelectorAll(':scope > .tab-content').forEach(c => c.classList.remove('active'));
+  const content = document.getElementById(contentId);
+  if (content) content.classList.add('active');
+}
+
+// Settings toggle
+function toggleSettings() {
+  const sub = document.getElementById('settings-sub');
+  sub.classList.toggle('open');
+  const arrow = document.getElementById('settings-arrow');
+  arrow.textContent = sub.classList.contains('open') ? '\u25B2' : '\u25BC';
+}
+
+// Modal
+function showModal() {
+  document.getElementById('modal-confirm').style.display = 'block';
+  document.getElementById('modal-success').style.display = 'none';
+  document.getElementById('modal-approve').classList.add('active');
+}
+function hideModal() {
+  document.getElementById('modal-approve').classList.remove('active');
+}
+function approveApp() {
+  document.getElementById('modal-confirm').style.display = 'none';
+  document.getElementById('modal-success').style.display = 'block';
+}
+
+// Toast
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Simulate URL parse
+function simulateParse() {
+  const btn = event.target;
+  btn.textContent = 'Parsing...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = 'Fetch & Parse';
+    btn.disabled = false;
+    document.getElementById('parse-result').style.display = 'block';
+  }, 1500);
+}
+</script>
+</body>
+</html>

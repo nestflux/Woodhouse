@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Woodhouse Build Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#1e3a5f;--accent:#d97706;--bg:#fafaf9;--surface:#fff;--border:#e7e5e4;--text:#18181b;--text-sec:#52525b;--text-muted:#a1a1aa;--success:#059669;--error:#dc2626}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:16px}
+.top-bar{position:sticky;top:0;z-index:100;background:var(--primary);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.top-bar a{color:#fff;text-decoration:none;font-weight:600;font-size:15px;opacity:.85;transition:opacity .2s}
+.top-bar a:hover{opacity:1}
+.top-bar .logo{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.5px;opacity:1}
+.container{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+h1{font-size:2.25rem;font-weight:700;color:var(--primary);margin:32px 0 8px;line-height:1.2;letter-spacing:-.5px}
+h2{font-size:1.5rem;font-weight:600;color:var(--primary);margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid var(--accent)}
+h3{font-size:1.2rem;font-weight:600;color:var(--text);margin:32px 0 12px}
+h4{font-size:1.05rem;font-weight:600;color:var(--text-sec);margin:24px 0 8px}
+p{margin:0 0 16px}
+a{color:var(--primary);text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px}
+a:hover{color:var(--accent)}
+blockquote{border-left:4px solid var(--accent);padding:12px 20px;margin:16px 0;background:rgba(217,119,6,.06);border-radius:0 8px 8px 0;color:var(--text-sec);font-style:italic}
+blockquote p:last-child{margin-bottom:0}
+ul,ol{margin:0 0 16px 24px}
+li{margin-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:14px;background:var(--surface);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+thead{background:var(--primary);color:#fff}
+th{padding:10px 14px;text-align:left;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+td{padding:10px 14px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even){background:var(--bg)}
+code{font-family:'SF Mono','Fira Code',monospace;font-size:13.5px;background:#f0eded;padding:2px 6px;border-radius:4px;color:var(--primary)}
+pre{background:#1a1f36;color:#e2e8f0;padding:20px;border-radius:8px;overflow-x:auto;margin:16px 0 24px;line-height:1.5;font-size:13.5px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+strong{font-weight:600}
+.meta{color:var(--text-muted);font-size:14px;margin-bottom:32px}
+.checklist{list-style:none;margin-left:0;padding-left:0}
+.checklist li{padding:6px 0 6px 28px;position:relative;margin-bottom:2px}
+.checklist li::before{content:'';position:absolute;left:0;top:10px;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;background:var(--surface)}
+.issue-meta{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+.issue-meta .tag{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:.3px}
+.tag-type{background:rgba(30,58,95,.1);color:var(--primary)}
+.tag-depends{background:rgba(217,119,6,.1);color:var(--accent)}
+.tag-ref{background:rgba(5,150,105,.1);color:var(--success)}
+.epic-header{background:linear-gradient(135deg,var(--primary) 0%,#132843 100%);color:#fff;padding:24px;border-radius:12px;margin:48px 0 24px}
+.epic-header h2{color:#fff;border-bottom:2px solid rgba(255,255,255,.2);margin:0 0 8px;padding-bottom:8px}
+.epic-header p{color:rgba(255,255,255,.7);margin:0;font-size:.95rem}
+.critical-path{background:linear-gradient(135deg,rgba(30,58,95,.05),rgba(217,119,6,.05));border:1px solid var(--border);border-radius:12px;padding:24px;margin:24px 0}
+.critical-path h3{margin-top:0;color:var(--primary)}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:24px 0}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stat-card .number{font-size:2rem;font-weight:700;color:var(--primary);line-height:1}
+.stat-card .label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+@media(max-width:768px){.container{padding:24px 16px 60px}h1{font-size:1.75rem}h2{font-size:1.25rem}pre{font-size:12px;padding:14px}table{font-size:12px}th,td{padding:8px 10px}.epic-header{padding:16px}.stats-row{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="top-bar">
+<span class="logo">Woodhouse</span>
+<a href="index.html">&larr; Back to Dashboard</a>
+</div>
+<div class="container">
+<h1>Woodhouse &mdash; Build Plan</h1>
+<blockquote>
+<p><strong>Version:</strong> 1.0 &nbsp;
+<strong>Date:</strong> 2026-03-07 &nbsp;
+<strong>Masterplan:</strong> v1.2</p>
+</blockquote>
+
+<hr>
+
+<h2>How to Use This Document</h2>
+<ol>
+<li>Read the referenced masterplan sections (<code>MP &sect;X</code>) <strong>before writing any code</strong> for that issue.</li>
+<li>Complete <strong>all</strong> acceptance criteria before marking an issue done.</li>
+<li>Never proceed to the next issue if current acceptance criteria are not met.</li>
+<li>Issues within an epic are ordered by dependency &mdash; do not skip ahead.</li>
+<li>Run the Three-Gate Autonomous Review after each issue (see CLAUDE.md).</li>
+</ol>
+
+<hr>
+
+<h2>Epics Overview</h2>
+
+<div class="stats-row">
+<div class="stat-card"><div class="number">15</div><div class="label">Epics</div></div>
+<div class="stat-card"><div class="number">43</div><div class="label">Issues</div></div>
+<div class="stat-card"><div class="number">5</div><div class="label">Issue Types</div></div>
+<div class="stat-card"><div class="number">1</div><div class="label">Critical Path</div></div>
+</div>
+
+<table>
+<thead><tr><th>Epic</th><th>Title</th><th>Issues</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>E1</td><td>Development Environment</td><td>3</td><td>Next.js + Supabase + Tailwind project setup</td></tr>
+<tr><td>E2</td><td>Database &amp; Auth</td><td>5</td><td>All tables, RLS, triggers, auth flow, app shell</td></tr>
+<tr><td>E3</td><td>AI Pipeline Infrastructure</td><td>4</td><td>Anthropic SDK, Langfuse, Zod schemas, pipeline queue worker</td></tr>
+<tr><td>E4</td><td>Onboarding</td><td>2</td><td>8-step onboarding wizard, AI assist, resume upload</td></tr>
+<tr><td>E5</td><td>Job Discovery</td><td>3</td><td>Discovery Agent, ATS boards, cron scheduling</td></tr>
+<tr><td>E6</td><td>Job Evaluation</td><td>3</td><td>Haiku pre-screen, Sonnet evaluation, manual job input</td></tr>
+<tr><td>E7</td><td>Resume Tailoring &amp; Materials</td><td>3</td><td>Tailoring Agent, Materials Agent, end-to-end pipeline test</td></tr>
+<tr><td>E8</td><td>Review Queue &amp; File Generation</td><td>4</td><td>Resume files, review queue, application detail, approve flow</td></tr>
+<tr><td>E9</td><td>Dashboard &amp; Job Feed</td><td>3</td><td>Dashboard, job feed, job detail</td></tr>
+<tr><td>E10</td><td>Application Tracker</td><td>2</td><td>Kanban board, tracker detail</td></tr>
+<tr><td>E11</td><td>Notifications &amp; Email</td><td>3</td><td>In-app notifications, email digest, email forwarding</td></tr>
+<tr><td>E12</td><td>Subscription &amp; Payments</td><td>3</td><td>Stripe setup, subscription management, usage enforcement</td></tr>
+<tr><td>E13</td><td>Settings</td><td>2</td><td>Profile/preferences settings, account settings</td></tr>
+<tr><td>E14</td><td>Admin &amp; Observability</td><td>1</td><td>Pipeline admin dashboard</td></tr>
+<tr><td>E15</td><td>Landing Page &amp; Polish</td><td>2</td><td>Marketing page, loading/empty/error states, responsive polish</td></tr>
+</tbody>
+</table>
+
+<div class="critical-path">
+<h3>Critical Path</h3>
+<pre><code>E1-01 &rarr; E1-02 &rarr; E1-03 &rarr; E2-01 &rarr; E2-02 &rarr; E2-03 &rarr; E2-04 &rarr; E2-05
+&rarr; E3-01 &rarr; E3-02 &rarr; E3-03 &rarr; E3-04 &rarr; E4-01 &rarr; E4-02
+&rarr; E5-01 &rarr; E5-02 &rarr; E5-03 &rarr; E6-01 &rarr; E6-02 &rarr; E6-03
+&rarr; E7-01 &rarr; E7-02 &rarr; E7-03 &rarr; E8-01 &rarr; E8-02 &rarr; E8-03 &rarr; E8-04
+&rarr; E9-01 &rarr; E9-02 &rarr; E9-03 &rarr; E10-01 &rarr; E10-02
+&rarr; E11-01 &rarr; E11-02 &rarr; E11-03 &rarr; E12-01 &rarr; E12-02 &rarr; E12-03
+&rarr; E13-01 &rarr; E13-02 &rarr; E14-01 &rarr; E15-01 &rarr; E15-02</code></pre>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E1 — Development Environment                                  -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E1 &mdash; Development Environment</h2>
+<p>Next.js + Supabase + Tailwind project setup &mdash; 3 issues</p>
+</div>
+
+<h3 id="e1-01">E1-01 &mdash; Next.js Project Initialization</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Setup</span>
+<span class="tag tag-depends">Depends: Nothing</span>
+<span class="tag tag-ref">MP &sect;6 Stack</span>
+</div>
+<p>Create a new Next.js 14+ project with App Router, Tailwind CSS, and shadcn/ui. This is the foundation everything else builds on.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Use <code>npx create-next-app@latest woodhouse --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"</code>.</li>
+<li>Initialize shadcn/ui with <code>npx shadcn@latest init</code>. Select the "New York" style, slate base color, CSS variables enabled.</li>
+<li>Add the Inter font from Google Fonts via <code>next/font/google</code> in the root layout.</li>
+<li>Set up path aliases: <code>@/components</code>, <code>@/lib</code>, <code>@/app</code>, <code>@/types</code>.</li>
+<li>Create folder structure:</li>
+</ul>
+<pre><code>src/
+  app/
+    (auth)/          # Auth routes (no sidebar)
+    (app)/           # Authenticated routes (sidebar layout)
+    (marketing)/     # Public marketing pages
+    api/             # API routes (webhooks)
+  components/
+    ui/              # shadcn/ui components
+  lib/
+    supabase/        # Supabase client utilities
+    agents/          # AI agent functions
+    validators/      # Zod schemas
+  types/             # TypeScript types
+supabase/
+  functions/         # Edge Functions
+  migrations/        # SQL migrations</code></pre>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>npm run dev</code> starts the dev server without errors on <code>http://localhost:3000</code></li>
+<li>Tailwind CSS is working: a test element with <code>className="text-blue-500"</code> renders in blue</li>
+<li>shadcn/ui is initialized: <code>npx shadcn@latest add button</code> adds a working Button component</li>
+<li>Inter font is loaded via <code>next/font/google</code> and applied as the default body font</li>
+<li>The folder structure matches the specification above</li>
+<li>TypeScript strict mode is enabled in <code>tsconfig.json</code></li>
+<li><code>@/*</code> import alias resolves correctly</li>
+</ul>
+
+<hr>
+
+<h3 id="e1-02">E1-02 &mdash; Supabase Project Setup</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Setup</span>
+<span class="tag tag-depends">Depends: E1-01</span>
+<span class="tag tag-ref">MP &sect;6 Stack</span>
+</div>
+<p>Set up Supabase for local development and configure the three Supabase client patterns (server, browser, edge function) used throughout the app.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Install <code>@supabase/supabase-js</code> and <code>@supabase/ssr</code>.</li>
+<li>Install Supabase CLI: <code>npx supabase init</code> in the project root.</li>
+<li>Create three client utility files in <code>src/lib/supabase/</code>:
+<ul>
+<li><code>server.ts</code> &mdash; <code>createServerClient</code> from <code>@supabase/ssr</code> with cookie-based auth.</li>
+<li><code>client.ts</code> &mdash; <code>createBrowserClient</code> from <code>@supabase/ssr</code>.</li>
+<li><code>admin.ts</code> &mdash; <code>createClient</code> with service role key. <strong>Never import from frontend code.</strong></li>
+</ul></li>
+<li>Create middleware (<code>src/middleware.ts</code>) that refreshes the Supabase auth session on every request.</li>
+<li>Start Supabase locally with <code>npx supabase start</code>.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>npx supabase start</code> launches local Supabase (Postgres, Auth, Storage, Edge Functions)</li>
+<li><code>src/lib/supabase/server.ts</code> exports a <code>createClient()</code> function using <code>createServerClient</code> with cookies</li>
+<li><code>src/lib/supabase/client.ts</code> exports a <code>createClient()</code> function using <code>createBrowserClient</code></li>
+<li><code>src/lib/supabase/admin.ts</code> exports a <code>createClient()</code> function using the service role key</li>
+<li><code>src/middleware.ts</code> refreshes the auth session and is configured in middleware matcher</li>
+<li>A test Server Component can query <code>auth.getUser()</code> and return the session state</li>
+</ul>
+
+<hr>
+
+<h3 id="e1-03">E1-03 &mdash; Environment Variables &amp; Dev Tooling</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Setup</span>
+<span class="tag tag-depends">Depends: E1-02</span>
+<span class="tag tag-ref">MP &sect;6 Environment Variables</span>
+</div>
+<p>Configure all environment variables and development tooling (linting, formatting, Git hooks).</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create <code>.env.local</code> with all variables from MP &sect;6 Environment Variables table.</li>
+<li>Create <code>.env.example</code> with all variable names and descriptions (no values).</li>
+<li>Verify <code>.gitignore</code> excludes <code>.env.local</code>, <code>node_modules</code>, <code>.next</code>, <code>supabase/.temp</code>.</li>
+<li>Add Prettier with Tailwind plugin (<code>prettier-plugin-tailwindcss</code>).</li>
+<li>Configure ESLint with Next.js recommended rules.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>.env.local</code> contains all 15 environment variables from MP &sect;6</li>
+<li><code>.env.example</code> documents every variable with its purpose</li>
+<li><code>.env.local</code> is in <code>.gitignore</code></li>
+<li><code>NEXT_PUBLIC_*</code> variables are accessible in client components</li>
+<li>Non-<code>NEXT_PUBLIC_*</code> variables are NOT accessible in client components</li>
+<li>Prettier formats on save with Tailwind class sorting</li>
+<li><code>npm run lint</code> passes with zero warnings</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E2 — Database & Auth                                          -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E2 &mdash; Database &amp; Auth</h2>
+<p>All 18 tables, RLS, triggers, auth flow, app shell &mdash; 5 issues</p>
+</div>
+
+<h3 id="e2-01">E2-01 &mdash; Core Profile Schema</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Schema</span>
+<span class="tag tag-depends">Depends: E1-03</span>
+<span class="tag tag-ref">MP &sect;7 Profiles, Work Exp, Achievements, Education, Skills, Projects, Certs</span>
+</div>
+<p>Create the user profile and knowledge base tables. These store everything about a user&rsquo;s professional background &mdash; the foundation for all AI operations.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create a Supabase migration for all 7 tables: <code>profiles</code>, <code>work_experiences</code>, <code>achievements</code>, <code>education</code>, <code>skills</code>, <code>projects</code>, <code>certifications</code>.</li>
+<li>Copy the exact SQL from MP &sect;7 &mdash; column names, types, constraints, CHECK constraints, defaults.</li>
+<li>Include all RLS policies exactly as specified.</li>
+<li>Include all indexes.</li>
+<li>Do NOT include triggers or functions yet (E2-03).</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Migration creates all 7 tables with exact columns, types, and constraints from MP &sect;7</li>
+<li>RLS is enabled on all 7 tables</li>
+<li>RLS policies enforce user-can-only-access-own-data on all tables</li>
+<li><code>profiles.id</code> is a FK referencing <code>auth.users(id)</code> with <code>ON DELETE CASCADE</code></li>
+<li><code>achievements.work_experience_id</code> cascades deletes from <code>work_experiences</code></li>
+<li>All CHECK constraints are present: <code>remote_preference</code>, <code>category</code>, <code>proficiency</code>, <code>email_digest</code></li>
+<li>All indexes from MP &sect;7 are created</li>
+<li>Migration applies cleanly: <code>npx supabase db reset</code> succeeds without errors</li>
+</ul>
+
+<hr>
+
+<h3 id="e2-02">E2-02 &mdash; Application &amp; Pipeline Schema</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Schema</span>
+<span class="tag tag-depends">Depends: E2-01</span>
+<span class="tag tag-ref">MP &sect;7 Search Prefs, Tracked Boards, Jobs, Evals, Apps, Resume Versions, Events, Pipeline, Discovery Runs</span>
+</div>
+<p>Create the job discovery, evaluation, application pipeline, and queue tables. These power the entire automated workflow.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create a migration for all 9 tables: <code>search_preferences</code>, <code>tracked_boards</code>, <code>job_postings</code>, <code>job_evaluations</code>, <code>applications</code>, <code>resume_versions</code>, <code>application_events</code>, <code>pipeline_jobs</code>, <code>discovery_runs</code>.</li>
+<li><code>job_postings</code> has NO RLS &mdash; shared across users.</li>
+<li><code>pipeline_jobs</code> has NO RLS &mdash; managed by Edge Functions with service role key.</li>
+<li><code>search_preferences</code> includes <code>next_discovery_at TIMESTAMPTZ DEFAULT now()</code>.</li>
+<li><code>pipeline_jobs.step</code> CHECK includes: <code>'pre_screen'</code>, <code>'evaluate'</code>, <code>'tailor'</code>, <code>'generate_materials'</code>, <code>'generate_files'</code>.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Migration creates all 9 tables with exact columns, types, and constraints from MP &sect;7</li>
+<li><code>job_postings</code> and <code>pipeline_jobs</code> have RLS enabled but NO restrictive policies</li>
+<li>All other tables have RLS with user-scoped policies</li>
+<li><code>search_preferences</code> has <code>UNIQUE(profile_id)</code> and <code>next_discovery_at</code> column</li>
+<li><code>tracked_boards</code> has <code>UNIQUE(profile_id, board_url)</code></li>
+<li><code>pipeline_jobs</code> has partial indexes for queue and zombie detection</li>
+<li><code>applications</code> status CHECK includes all 12 statuses from MP &sect;7</li>
+<li><code>job_postings</code> source CHECK includes all 10 sources from MP &sect;7</li>
+<li><code>UNIQUE(source, external_id)</code> on <code>job_postings</code></li>
+<li><code>UNIQUE(profile_id, job_posting_id)</code> on <code>job_evaluations</code> and <code>applications</code></li>
+<li>Migration applies cleanly on top of E2-01 migration</li>
+</ul>
+
+<hr>
+
+<h3 id="e2-03">E2-03 &mdash; Subscriptions, Notifications, Functions &amp; Triggers</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Schema</span>
+<span class="tag tag-depends">Depends: E2-02</span>
+<span class="tag tag-ref">MP &sect;7 Subscriptions, Notifications, Database Functions</span>
+</div>
+<p>Create the remaining tables (subscriptions, notifications) and all database functions and triggers that automate state management.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create <code>subscriptions</code> and <code>notifications</code> tables per MP &sect;7.</li>
+<li>Create all functions and triggers from MP &sect;7:
+<ul>
+<li><code>handle_updated_at()</code> + triggers on all tables with <code>updated_at</code></li>
+<li><code>handle_new_user()</code> &mdash; auto-creates profile + subscription on signup</li>
+<li><code>handle_application_approved()</code> &mdash; increments <code>applications_used</code></li>
+<li><code>claim_pipeline_job()</code> &mdash; atomic job claim with <code>SKIP LOCKED</code> + zombie reclaim</li>
+<li><code>fail_pipeline_job(p_job_id, p_error)</code> &mdash; exponential backoff retry</li>
+<li><code>handle_application_status_change()</code> &mdash; logs to <code>application_events</code></li>
+</ul></li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>subscriptions</code> and <code>notifications</code> tables created with all columns and constraints</li>
+<li><code>handle_updated_at()</code> trigger fires on UPDATE for all 10 specified tables</li>
+<li>Creating a user in <code>auth.users</code> auto-creates a <code>profiles</code> row and a <code>subscriptions</code> row</li>
+<li>Updating an application to status=&lsquo;approved&rsquo; increments <code>subscriptions.applications_used</code></li>
+<li><code>claim_pipeline_job()</code> returns a single pending job with status changed to &lsquo;processing&rsquo;</li>
+<li><code>claim_pipeline_job()</code> reclaims zombie jobs (processing &gt; 5 minutes)</li>
+<li>Two concurrent calls to <code>claim_pipeline_job()</code> never return the same job</li>
+<li><code>fail_pipeline_job()</code> sets exponential <code>next_retry_at</code> when attempts &lt; max_attempts</li>
+<li><code>fail_pipeline_job()</code> sets status to &lsquo;failed&rsquo; when attempts &gt;= max_attempts</li>
+<li>Changing application status logs an event to <code>application_events</code></li>
+</ul>
+
+<hr>
+
+<h3 id="e2-04">E2-04 &mdash; Auth Screens</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E2-03</span>
+<span class="tag tag-ref">MP &sect;3 Flow 1, MP &sect;9 Screens 2-4, MP &sect;10</span>
+</div>
+<p>Build the sign up, sign in, and forgot password screens using Supabase Auth.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>These screens live in the <code>(auth)</code> route group &mdash; no sidebar, centered card layout.</li>
+<li>Use Supabase Auth client library methods: <code>signUp</code>, <code>signInWithPassword</code>, <code>signOut</code>, <code>resetPasswordForEmail</code>.</li>
+<li>After sign up, redirect to email verification notice. After verification, redirect to <code>/onboarding/basics</code>.</li>
+<li>After sign in, redirect to <code>/dashboard</code> (or <code>/onboarding/basics</code> if <code>onboarding_complete</code> is false).</li>
+<li>Use shadcn/ui <code>Card</code>, <code>Input</code>, <code>Button</code>, <code>Label</code> components.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/signup</code> renders a centered card with name, email, password, confirm password fields</li>
+<li>Submitting sign-up creates a user in Supabase Auth with <code>full_name</code> in metadata</li>
+<li>After sign-up, a profile row and subscription row exist in the database</li>
+<li><code>/signin</code> renders a centered card with email and password fields</li>
+<li>Signing in with valid credentials redirects to <code>/dashboard</code></li>
+<li>Signing in when <code>onboarding_complete</code> is false redirects to <code>/onboarding/basics</code></li>
+<li><code>/forgot-password</code> sends a password reset email</li>
+<li>Invalid credentials show an error message (not a crash)</li>
+<li>All three screens use the design system from MP &sect;10</li>
+<li>Links between the three auth screens work</li>
+</ul>
+
+<hr>
+
+<h3 id="e2-05">E2-05 &mdash; App Shell &amp; Navigation</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E2-04</span>
+<span class="tag tag-ref">MP &sect;9 Screen 13, MP &sect;10 Sidebar Navigation</span>
+</div>
+<p>Build the authenticated app shell with persistent sidebar navigation. Every authenticated page after onboarding uses this layout.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>The app shell is the layout for the <code>(app)</code> route group.</li>
+<li>Sidebar: 240px wide, <code>--surface-alt</code> background, <code>--border</code> right border.</li>
+<li>Sidebar items: Dashboard, Job Feed, Review Queue, Tracker, Add Job, Settings (expandable).</li>
+<li>Collapsed mode on screens &lt; 1280px (icon only, 64px). Bottom nav on mobile (&lt; 768px).</li>
+<li>Use Lucide icons for nav items.</li>
+<li>Protect the <code>(app)</code> route group: redirect to <code>/signin</code> if no session.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>(app)</code> layout renders a 240px sidebar on the left with main content on the right</li>
+<li>Sidebar contains all nav items: Dashboard, Job Feed, Review Queue, Tracker, Add Job, Settings</li>
+<li>Active route is highlighted with <code>--primary</code> background and white text</li>
+<li>Clicking a nav item navigates to the correct route</li>
+<li>Sidebar collapses to 64px (icons only) between 768px and 1280px</li>
+<li>Below 768px, sidebar becomes a bottom navigation bar</li>
+<li>Unauthenticated users are redirected to <code>/signin</code></li>
+<li>Sign out button calls <code>supabase.auth.signOut()</code> and redirects to <code>/signin</code></li>
+<li>Sidebar uses correct design system colors, typography, and spacing</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E3 — AI Pipeline Infrastructure                               -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E3 &mdash; AI Pipeline Infrastructure</h2>
+<p>Anthropic SDK, Langfuse, Zod schemas, pipeline queue worker &mdash; 4 issues</p>
+</div>
+
+<h3 id="e3-01">E3-01 &mdash; Anthropic SDK, Langfuse &amp; Sentry Setup</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Setup</span>
+<span class="tag tag-depends">Depends: E2-05</span>
+<span class="tag tag-ref">MP &sect;5 Agent Execution, MP &sect;6 Stack, MP &sect;6 LLM Observability</span>
+</div>
+<p>Set up the Anthropic TypeScript SDK, Langfuse observability, and Sentry error tracking in Supabase Edge Functions.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create a base Edge Function structure in <code>supabase/functions/</code>.</li>
+<li>Create shared modules: <code>anthropic.ts</code>, <code>langfuse.ts</code> (with <code>callAgent()</code> wrapper), <code>sentry.ts</code>, <code>supabase.ts</code>.</li>
+<li>Deploy a test Edge Function that calls Claude Haiku and verifies Langfuse receives the trace.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>_shared/anthropic.ts</code> exports a configured Anthropic client</li>
+<li><code>_shared/langfuse.ts</code> exports a <code>callAgent()</code> function wrapping LLM calls with tracing</li>
+<li>The wrapper records: agent type, duration_ms, tokens, model, cache stats, success boolean</li>
+<li><code>_shared/sentry.ts</code> exports an error capture function</li>
+<li><code>_shared/supabase.ts</code> exports an admin Supabase client</li>
+<li>A test Edge Function successfully calls Claude Haiku and returns a valid response</li>
+<li>The test call appears in Langfuse with all metadata fields</li>
+<li>Edge Functions use Deno runtime (no Node.js-only dependencies)</li>
+</ul>
+
+<hr>
+
+<h3 id="e3-02">E3-02 &mdash; Zod Validation Schemas</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E3-01</span>
+<span class="tag tag-ref">MP &sect;5 Agent Design Principles, MP &sect;5 Output Schemas</span>
+</div>
+<p>Define Zod schemas for every AI agent output. These schemas validate all LLM responses before they reach the database.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create <code>src/lib/validators/</code> with one file per agent: <code>evaluation.ts</code>, <code>pre-screen.ts</code>, <code>tailored-resume.ts</code>, <code>materials.ts</code>, <code>discovery.ts</code>, <code>job-parsing.ts</code>.</li>
+<li>Also create as Deno-compatible exports in <code>supabase/functions/_shared/validators/</code>.</li>
+<li>Each schema file exports: the Zod schema, the inferred TypeScript type, and a <code>validate(data)</code> function.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>EvaluationSchema</code> validates: 6 scores (0-100), recommendation enum, reasoning, strengths, gaps</li>
+<li><code>PreScreenSchema</code> validates: pass boolean, reason string, disqualifiers array</li>
+<li><code>TailoredResumeSchema</code> validates: work_experience items have <code>source_id</code> UUIDs</li>
+<li><code>MaterialsSchema</code> validates: cover_letter, why_interested, application_answers array</li>
+<li><code>DiscoveryPostingSchema</code> validates: external_id, source enum, company_name, job_title, description_raw</li>
+<li>All schemas export both a Zod schema object and a TypeScript type</li>
+<li>Each <code>validate()</code> throws <code>ValidationError</code> with descriptive message on failure</li>
+<li>Schemas are importable from both Next.js and Edge Functions</li>
+</ul>
+
+<hr>
+
+<h3 id="e3-03">E3-03 &mdash; Pipeline Queue System</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E3-02</span>
+<span class="tag tag-ref">MP &sect;5 Orchestrator, MP &sect;7 Pipeline Jobs, MP &sect;8 process-pipeline</span>
+</div>
+<p>Build the <code>process-pipeline</code> Edge Function &mdash; the worker that claims and processes pipeline jobs in a loop.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create <code>supabase/functions/process-pipeline/index.ts</code>.</li>
+<li>Worker loop: claim job &rarr; dispatch to handler &rarr; on success: complete + enqueue next &rarr; on failure: <code>fail_pipeline_job()</code> &rarr; break if &gt; 120 seconds elapsed.</li>
+<li>Create step handler stubs that log "Not yet implemented."</li>
+<li>Create helpers: <code>enqueueNextStep()</code>, <code>completeJob()</code>.</li>
+<li>Set up pg_cron to call this function every 30 seconds.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>process-pipeline</code> starts, calls <code>claim_pipeline_job()</code>, and exits when queue is empty</li>
+<li>Worker claims a job, calls the stub handler, and marks it completed</li>
+<li><code>enqueueNextStep()</code> inserts a new pipeline_jobs row correctly</li>
+<li>The worker loop processes multiple jobs per invocation (not just one)</li>
+<li>The worker loop exits after 120 seconds of elapsed time</li>
+<li>On handler error, <code>fail_pipeline_job()</code> is called with exponential backoff</li>
+<li>A job that has failed 3 times is marked as <code>status='failed'</code></li>
+<li>pg_cron SQL is documented to invoke the function every 30 seconds</li>
+<li>The worker logs each step it processes (step, job_id, profile_id, duration)</li>
+</ul>
+
+<hr>
+
+<h3 id="e3-04">E3-04 &mdash; Prompt Caching &amp; Agent Call Pattern</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E3-03</span>
+<span class="tag tag-ref">MP &sect;5 Cost Management, MP &sect;6 LLM Observability</span>
+</div>
+<p>Implement the standard agent call pattern with Anthropic prompt caching and Langfuse observability that all agents will use.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Create <code>_shared/agent-call.ts</code> exporting <code>callClaude(options)</code>.</li>
+<li>When <code>cacheableContext</code> is provided, use <code>cache_control: { type: 'ephemeral' }</code> on system message blocks.</li>
+<li>Wrap calls with Langfuse <code>callAgent</code> wrapper.</li>
+<li>Handle API errors: rate limits (429) &rarr; retryable, server errors (500, 529) &rarr; retryable, validation errors (400) &rarr; non-retryable.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>callClaude()</code> successfully calls Claude Sonnet and Haiku models</li>
+<li>When <code>cacheableContext</code> is provided, the request uses <code>cache_control</code> on system message blocks</li>
+<li>Every call is wrapped with Langfuse tracing (agent type, user ID, tokens, duration, cache stats)</li>
+<li>Rate limit errors (429) are thrown as retryable errors</li>
+<li>Server errors (500, 529) are thrown as retryable errors</li>
+<li>Bad request errors (400) are thrown as non-retryable errors</li>
+<li>Response content text is returned as a string (caller validates)</li>
+<li>A test call with Haiku returns valid JSON and appears in Langfuse</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E4 — Onboarding                                               -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E4 &mdash; Onboarding</h2>
+<p>8-step onboarding wizard, AI assist, resume upload &mdash; 2 issues</p>
+</div>
+
+<h3 id="e4-01">E4-01 &mdash; Onboarding Wizard</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E3-04</span>
+<span class="tag tag-ref">MP &sect;3 Flow 1, MP &sect;9 Screens 5-12, MP &sect;10</span>
+</div>
+<p>Build the 8-step onboarding wizard that guides new users through profile creation.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Steps: basics &rarr; headline &rarr; experience &rarr; education &rarr; skills &rarr; projects &rarr; preferences &rarr; upload.</li>
+<li>Each step is a separate route. Progress bar shows 8 steps.</li>
+<li>All data saves via Server Actions on "Continue" &mdash; progress preserved if user abandons.</li>
+<li>Step 7 (Preferences): match threshold slider (0-100), target roles, locations, remote preference, salary range, excluded companies/keywords.</li>
+<li>On completion, set <code>profiles.onboarding_complete = true</code> and redirect to <code>/dashboard</code>.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>8 onboarding steps render at their respective routes with a progress bar</li>
+<li>Step 1 (Basic Info): saves name, phone, location, LinkedIn, portfolio, GitHub</li>
+<li>Step 2 (Headline): saves headline and summary</li>
+<li>Step 3 (Work Experience): multiple entries with achievements</li>
+<li>Step 4 (Education): saves to education table</li>
+<li>Step 5 (Skills): saves with category and proficiency</li>
+<li>Step 6 (Projects &amp; Certs): saves to projects and certifications tables</li>
+<li>Step 7 (Preferences): saves to search_preferences table</li>
+<li>Step 8 (Resume Upload): accepts PDF and DOCX files</li>
+<li>"Back" and "Continue" buttons work correctly</li>
+<li>Abandoning mid-onboarding preserves all entered data</li>
+<li>Completing step 8 sets <code>onboarding_complete = true</code> and redirects to <code>/dashboard</code></li>
+</ul>
+
+<hr>
+
+<h3 id="e4-02">E4-02 &mdash; AI Assist &amp; Resume Parsing</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E4-01</span>
+<span class="tag tag-ref">MP &sect;3 Flow 1, MP &sect;5 Model Routing, MP &sect;8 AI Assist</span>
+</div>
+<p>Add AI-powered features to the onboarding flow: summary generation, skill suggestions, achievement improvement, and resume parsing.</p>
+<h4>Implementation Notes</h4>
+<ul>
+<li>Three AI assist Server Actions: <code>generateSummary()</code> (Sonnet), <code>suggestSkills()</code> (Haiku), <code>improveAchievement()</code> (Sonnet).</li>
+<li>UI: sparkle icon buttons next to relevant fields with "Accept" / "Dismiss" options.</li>
+<li>Resume parsing (Step 8): upload to Supabase Storage, call Haiku to extract structured data, display for user review with checkboxes.</li>
+</ul>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>"Help me write this" generates a professional summary from profile data</li>
+<li>"Suggest skills" returns skills extracted from work history</li>
+<li>"Improve this bullet" returns an improved achievement version</li>
+<li>All three AI features show a loading spinner while processing</li>
+<li>AI suggestions are proposals &mdash; user must click "Accept" to save</li>
+<li>Resume upload accepts PDF and DOCX files up to 5MB</li>
+<li>Parsed resume data is displayed in a review screen with checkboxes</li>
+<li>Confirming parsed data merges into the profile without overwriting</li>
+<li>All AI calls appear in Langfuse with correct agent type labels</li>
+<li>AI errors show a user-friendly message (not a crash)</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E5 — Job Discovery                                            -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E5 &mdash; Job Discovery</h2>
+<p>Discovery Agent, ATS boards, cron scheduling &mdash; 3 issues</p>
+</div>
+
+<h3 id="e5-01">E5-01 &mdash; Discovery Agent (Aggregator APIs)</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E4-02</span>
+<span class="tag tag-ref">MP &sect;5 Discovery Agent, MP &sect;5 Model Routing</span>
+</div>
+<p>Build the Discovery Agent that fetches and normalizes job postings from aggregator APIs (SerpAPI Google Jobs, JSearch).</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>searchGoogleJobs()</code> calls SerpAPI and returns normalized postings</li>
+<li><code>searchJSearch()</code> calls JSearch API and returns normalized postings</li>
+<li>Each posting has structured fields extracted by Haiku</li>
+<li>All postings pass <code>DiscoveryPostingSchema</code> validation</li>
+<li>Duplicate postings (same source + external_id) are skipped</li>
+<li>Cross-source duplicates (same company + title + location) are detected</li>
+<li>New postings are saved to <code>job_postings</code></li>
+<li>API errors are caught and logged (partial results saved)</li>
+<li>All Haiku parsing calls appear in Langfuse</li>
+</ul>
+
+<hr>
+
+<h3 id="e5-02">E5-02 &mdash; ATS Board Monitoring &amp; Tracked Boards</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E5-01</span>
+<span class="tag tag-ref">MP &sect;5 Discovery Agent, MP &sect;7 Tracked Boards, MP &sect;8</span>
+</div>
+<p>Add Greenhouse and Lever board monitoring to the Discovery Agent, and build the tracked boards CRUD interface.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>scrapeGreenhouseBoard()</code> fetches and parses Greenhouse job board JSON</li>
+<li><code>scrapeLeverBoard()</code> fetches and parses Lever job board JSON</li>
+<li>Board results are filtered by the user&rsquo;s search keywords</li>
+<li><code>tracked_boards.last_checked_at</code> is updated after each check</li>
+<li><code>createTrackedBoard</code> Server Action validates URL format and saves to database</li>
+<li><code>deleteTrackedBoard</code> Server Action removes the board entry</li>
+<li><code>getTrackedBoards</code> returns all boards for the authenticated user</li>
+<li>Board fetch errors (404, timeout) are caught and logged</li>
+</ul>
+
+<hr>
+
+<h3 id="e5-03">E5-03 &mdash; Discovery Edge Functions &amp; Cron Scheduling</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E5-02</span>
+<span class="tag tag-ref">MP &sect;5 Orchestrator, MP &sect;8 Edge Functions, MP &sect;8 pg_cron</span>
+</div>
+<p>Build the <code>discover-jobs</code> and <code>trigger-discoveries</code> Edge Functions and configure pg_cron scheduling.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>discover-jobs</code> creates a <code>discovery_runs</code> record, runs discovery, and updates with final counts</li>
+<li><code>discover-jobs</code> enqueues <code>pipeline_jobs</code> with <code>step='pre_screen'</code> for each new posting</li>
+<li><code>discover-jobs</code> updates <code>next_discovery_at</code> based on subscription tier</li>
+<li><code>discover-jobs</code> handles partial failures gracefully</li>
+<li><code>trigger-discoveries</code> finds and triggers users due for discovery</li>
+<li><code>trigger-discoveries</code> only triggers active users where <code>next_discovery_at &lt;= now()</code></li>
+<li>pg_cron SQL provided for: <code>process-pipeline</code> every 30s, <code>trigger-discoveries</code> every hour</li>
+<li>End-to-end test: trigger discovery &rarr; new postings &rarr; pipeline_jobs enqueued</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E6 — Job Evaluation                                           -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E6 &mdash; Job Evaluation</h2>
+<p>Haiku pre-screen, Sonnet evaluation, manual job input &mdash; 3 issues</p>
+</div>
+
+<h3 id="e6-01">E6-01 &mdash; Haiku Pre-Screen Agent</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E5-03</span>
+<span class="tag tag-ref">MP &sect;3 Flow 3, MP &sect;5 Two-Stage Evaluation, MP &sect;5 Model Routing</span>
+</div>
+<p>Build the Haiku pre-screen that quickly filters out obvious mismatches before the expensive Sonnet evaluation.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Pre-screen agent calls Haiku with user preferences and job posting summary</li>
+<li>Output is validated against <code>PreScreenSchema</code></li>
+<li>A clearly mismatched job returns <code>pass: false</code> with disqualifiers</li>
+<li>A reasonable match returns <code>pass: true</code></li>
+<li>When <code>pass = false</code>, pipeline job is marked completed with output_data</li>
+<li>When <code>pass = false</code>, NO evaluation record is created</li>
+<li>When <code>pass = true</code>, a new <code>step='evaluate'</code> pipeline job is enqueued</li>
+<li>Pre-screen calls appear in Langfuse with agent type "pre_screen"</li>
+<li>Average pre-screen cost is under $0.002 per call</li>
+</ul>
+
+<hr>
+
+<h3 id="e6-02">E6-02 &mdash; Sonnet Full Evaluation Agent</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E6-01</span>
+<span class="tag tag-ref">MP &sect;3 Flow 3, MP &sect;5 Evaluation Agent, MP &sect;5 Scoring Rubric</span>
+</div>
+<p>Build the full evaluation agent that scores jobs against user profiles on five dimensions using Claude Sonnet.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Evaluation agent calls Sonnet with the full job posting and user profile</li>
+<li>User profile is sent using prompt caching (<code>cache_control</code>)</li>
+<li>Output includes all 6 dimension scores (0-100), overall score, recommendation, reasoning, strengths, gaps</li>
+<li>Output is validated against <code>EvaluationSchema</code></li>
+<li>Evaluation is saved to <code>job_evaluations</code></li>
+<li>When score &gt;= match_threshold: application created, <code>step='tailor'</code> enqueued</li>
+<li>When score &lt; match_threshold: evaluation saved with <code>passes_threshold = false</code></li>
+<li>Prompt caching is working (second evaluation shows <code>cache_read_input_tokens &gt; 0</code>)</li>
+<li>Evaluation calls appear in Langfuse with agent type "evaluation"</li>
+</ul>
+
+<hr>
+
+<h3 id="e6-03">E6-03 &mdash; Manual Job Addition</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E6-02</span>
+<span class="tag tag-ref">MP &sect;3 Flow 7, MP &sect;8, MP &sect;9 Screen 21</span>
+</div>
+<p>Build the manual job addition flow: user pastes a URL or description, system parses it and sends it through the pipeline.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>parse-job-url</code> Edge Function fetches a URL and returns structured job data</li>
+<li>Parsed data includes: job_title, company_name, location, description_raw, application_url</li>
+<li><code>/jobs/add</code> renders two tabs: "Paste URL" and "Manual Entry"</li>
+<li>Pasting a URL and clicking "Fetch &amp; Parse" shows extracted data</li>
+<li>User can review and edit extracted data before saving</li>
+<li>Manual entry form has all required fields with validation</li>
+<li>Saving creates a <code>job_postings</code> record with source=&lsquo;manual&rsquo;</li>
+<li>Saving enqueues a <code>pipeline_jobs</code> row with <code>step='pre_screen'</code></li>
+<li>URL behind a login wall shows an error prompting Manual Entry</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E7 — Resume Tailoring & Materials                             -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E7 &mdash; Resume Tailoring &amp; Materials</h2>
+<p>Tailoring Agent, Materials Agent, end-to-end pipeline test &mdash; 3 issues</p>
+</div>
+
+<h3 id="e7-01">E7-01 &mdash; Tailoring Agent</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E6-03</span>
+<span class="tag tag-ref">MP &sect;5 Tailoring Agent, MP &sect;3 Flow 4</span>
+</div>
+<p>Build the Tailoring Agent that generates a customized resume from the knowledge base for a specific job posting.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Tailoring agent calls Sonnet with job posting, evaluation, and full knowledge base</li>
+<li>Output is validated against <code>TailoredResumeSchema</code></li>
+<li>Every <code>source_id</code> in the output references a real entry in the knowledge base</li>
+<li>Invalid <code>source_id</code> values cause a validation failure (pipeline retries)</li>
+<li>Resume includes: header, summary, reordered work experience, selected skills, education</li>
+<li>Output does not include companies, achievements, or skills not in the knowledge base</li>
+<li>Resume version is saved to <code>resume_versions</code></li>
+<li>Pipeline enqueues <code>step='generate_materials'</code> on success</li>
+<li>Knowledge base is sent using prompt caching</li>
+<li>Tailoring calls appear in Langfuse with agent type "tailoring"</li>
+</ul>
+
+<hr>
+
+<h3 id="e7-02">E7-02 &mdash; Materials Agent</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E7-01</span>
+<span class="tag tag-ref">MP &sect;5 Materials Agent, MP &sect;5 Model Routing</span>
+</div>
+<p>Build the Materials Agent that generates a cover letter, "why interested" answer (Sonnet), and extraction-based application answers (Haiku).</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Materials agent makes two LLM calls: Sonnet (cover letter + why interested) and Haiku (extraction answers)</li>
+<li>Cover letter is 3-4 paragraphs, references specific details from the job posting</li>
+<li>"Why interested" answer draws from evaluation strengths and job posting specifics</li>
+<li>Extraction answers include: years of experience, work authorization, salary, start date</li>
+<li>All outputs validated against <code>MaterialsSchema</code></li>
+<li>Application record is updated with cover_letter and application_answers JSONB</li>
+<li>Pipeline enqueues <code>step='generate_files'</code> on success</li>
+<li>Both calls appear in Langfuse with agent types "materials_sonnet" and "materials_haiku"</li>
+</ul>
+
+<hr>
+
+<h3 id="e7-03">E7-03 &mdash; End-to-End Pipeline Integration Test</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E7-02</span>
+<span class="tag tag-ref">MP &sect;5 Orchestrator</span>
+</div>
+<p>Verify the complete pipeline works end-to-end: discovery &rarr; pre-screen &rarr; evaluate &rarr; tailor &rarr; materials &rarr; file generation (stub).</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>A test user with a complete profile can trigger discovery</li>
+<li>New job postings are discovered and saved</li>
+<li>Pipeline jobs are created with <code>step='pre_screen'</code> for each new posting</li>
+<li>Worker processes: pre_screen &rarr; evaluate &rarr; tailor &rarr; generate_materials &rarr; generate_files (stub)</li>
+<li>Some postings are filtered out at pre_screen (not all pass)</li>
+<li>Passing postings have evaluations, applications, and resume_versions created</li>
+<li>Application status progresses from &lsquo;draft&rsquo; &rarr; &lsquo;ready&rsquo;</li>
+<li><code>pipeline_jobs</code> table shows completed jobs for each step</li>
+<li>Failed pipeline jobs show correct error messages and retry state</li>
+<li>End-to-end pipeline completes within 5 minutes for 10 discovered postings</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E8 — Review Queue & File Generation                           -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E8 &mdash; Review Queue &amp; File Generation</h2>
+<p>Resume files, review queue, application detail, approve flow &mdash; 4 issues</p>
+</div>
+
+<h3 id="e8-01">E8-01 &mdash; Resume File Generation (PDF + DOCX)</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E7-03</span>
+<span class="tag tag-ref">MP &sect;6 Stack, MP &sect;8 generate-resume-files</span>
+</div>
+<p>Build the Edge Function that generates PDF and DOCX files from a tailored resume&rsquo;s structured JSON.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Edge Function reads resume content_json and generates a PDF file</li>
+<li>Edge Function generates a DOCX file with matching content</li>
+<li>PDF renders a professional, ATS-friendly resume layout</li>
+<li>DOCX has equivalent content and formatting</li>
+<li>Both files are uploaded to Supabase Storage under <code>resumes/{profile_id}/</code></li>
+<li><code>resume_versions</code> row is updated with signed download URLs</li>
+<li>Application status is set to &lsquo;ready&rsquo; after file generation</li>
+<li>A notification is created for the user</li>
+<li>Files are accessible via the signed URLs</li>
+</ul>
+
+<hr>
+
+<h3 id="e8-02">E8-02 &mdash; Review Queue Screen</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E8-01</span>
+<span class="tag tag-ref">MP &sect;3 Flow 5, MP &sect;9 Screen 16, MP &sect;10</span>
+</div>
+<p>Build the Review Queue screen where users see their prepared applications awaiting approval.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/queue</code> renders a list of applications with status=&lsquo;ready&rsquo;, sorted by match score</li>
+<li>Each card shows: company, title, match score badge, time since prepared, tailoring notes</li>
+<li>Match score badge is color-coded: green (80+), yellow (60-79), red (&lt;60)</li>
+<li>Three tabs filter by status: Ready, Saved for Later, Skipped</li>
+<li>"Review" navigates to <code>/queue/:id</code></li>
+<li>"Quick Approve" triggers the approve flow</li>
+<li>"Skip" sets application status to &lsquo;skipped&rsquo;</li>
+<li>Empty state message displays when no applications are in the current tab</li>
+<li>New applications appear without page refresh (Realtime)</li>
+<li>Pagination works for users with many queued applications</li>
+</ul>
+
+<hr>
+
+<h3 id="e8-03">E8-03 &mdash; Application Detail Screen</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E8-02</span>
+<span class="tag tag-ref">MP &sect;3 Flow 5, MP &sect;9 Screens 17-18, MP &sect;10</span>
+</div>
+<p>Build the application detail screen with tabs for overview, resume, cover letter, answers, and job posting.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/queue/:id</code> renders with 5 tabs: Overview, Resume, Cover Letter, Answers, Job Posting</li>
+<li>Overview tab shows job details and evaluation breakdown</li>
+<li>Resume tab renders the tailored resume as formatted content</li>
+<li>Resume tab has a "Toggle Diff View" showing changes from base profile</li>
+<li>Cover Letter tab shows editable full text</li>
+<li>Application Answers tab shows editable Q&amp;A pairs</li>
+<li>Job Posting tab shows the full original description</li>
+<li>Inline edits save via Server Actions with success toast</li>
+<li>Action buttons (Approve, Skip, Save for Later) are visible</li>
+<li>"Back to Queue" link returns to <code>/queue</code></li>
+</ul>
+
+<hr>
+
+<h3 id="e8-04">E8-04 &mdash; Approve Flow &amp; File Downloads</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E8-03</span>
+<span class="tag tag-ref">MP &sect;3 Flow 5, MP &sect;8 approve endpoint</span>
+</div>
+<p>Build the approve flow: check subscription limits, generate final files, open application URL, provide clipboard functionality.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Approving checks the subscription limit before proceeding</li>
+<li>If limit exceeded, user sees an upgrade prompt</li>
+<li>Successful approval sets application status to &lsquo;approved&rsquo;</li>
+<li><code>subscriptions.applications_used</code> is incremented by 1</li>
+<li>Resume PDF and DOCX download URLs are returned and functional</li>
+<li>Application URL opens in a new browser tab</li>
+<li>"Copy to clipboard" buttons work for cover letter and answers</li>
+<li>Confirmation modal appears before approval</li>
+<li>"I&rsquo;ve submitted" button sets status to &lsquo;submitted&rsquo; with timestamp</li>
+<li>Approved application moves from Review Queue to Tracker</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E9 — Dashboard & Job Feed                                     -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E9 &mdash; Dashboard &amp; Job Feed</h2>
+<p>Dashboard, job feed, job detail &mdash; 3 issues</p>
+</div>
+
+<h3 id="e9-01">E9-01 &mdash; Dashboard Screen</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E8-04</span>
+<span class="tag tag-ref">MP &sect;3, MP &sect;8, MP &sect;9 Screen 13</span>
+</div>
+<p>Build the main dashboard with key metrics, recent matches, and activity feed.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/dashboard</code> renders four stat cards: Applications Ready, Used This Month, Submitted, Response Rate</li>
+<li>"Used This Month" shows a progress bar (X of Y)</li>
+<li>Recent Matches section shows up to 5 recent matched jobs with score badges</li>
+<li>Clicking a recent match navigates to job detail</li>
+<li>Activity Feed shows recent events in chronological order</li>
+<li>Discovery Status Card shows last scan time and next scheduled scan</li>
+<li>Realtime subscription updates dashboard when new applications become ready</li>
+<li>Empty states render correctly for new users</li>
+</ul>
+
+<hr>
+
+<h3 id="e9-02">E9-02 &mdash; Job Feed Screen</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E9-01</span>
+<span class="tag tag-ref">MP &sect;9 Screen 14, MP &sect;8</span>
+</div>
+<p>Build the job feed showing all discovered jobs with filters, search, and sorting.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/jobs</code> renders a list of discovered job postings</li>
+<li>Each card shows: company, title, location, remote badge, source badge, match score, posted date</li>
+<li>Match score badge is color-coded: green 80+, yellow 60-79, red &lt;60, gray if not evaluated</li>
+<li>Filters work: search, source, score range, location, remote, status</li>
+<li>"Clear Filters" resets all filters</li>
+<li>Sort works: by match score, newest, company name</li>
+<li>Pagination loads next/previous pages</li>
+<li>"View Details" navigates to <code>/jobs/:id</code></li>
+<li>"Add to Queue" for below-threshold jobs creates an application and enqueues tailoring</li>
+<li>Empty state message displays</li>
+</ul>
+
+<hr>
+
+<h3 id="e9-03">E9-03 &mdash; Job Detail Screen</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E9-02</span>
+<span class="tag tag-ref">MP &sect;9 Screen 15</span>
+</div>
+<p>Build the job detail screen showing the full job posting and evaluation breakdown.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/jobs/:id</code> renders two-column layout with job description and evaluation card</li>
+<li>Job description shows all structured sections</li>
+<li>Evaluation card shows overall score, recommendation, 5 dimension score bars</li>
+<li>Score bars are visually proportional (0-100 scale)</li>
+<li>Strengths show with green checkmarks, gaps with orange warning icons</li>
+<li>"Prepare Application" button enqueues the tailoring pipeline</li>
+<li>"View Application" navigates to <code>/queue/:applicationId</code> when application exists</li>
+<li>"Prepare Anyway" creates an application for below-threshold jobs</li>
+<li>Loading skeleton shows while data is being fetched</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E10 — Application Tracker                                     -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E10 &mdash; Application Tracker</h2>
+<p>Kanban board, tracker detail &mdash; 2 issues</p>
+</div>
+
+<h3 id="e10-01">E10-01 &mdash; Tracker Kanban Board</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E9-03</span>
+<span class="tag tag-ref">MP &sect;3 Flow 6, MP &sect;9 Screen 19</span>
+</div>
+<p>Build the application tracker with a kanban board for tracking submitted applications.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/tracker</code> renders a kanban board with 8 status columns</li>
+<li>Cards show: company, title, days since last update, match score badge</li>
+<li>Dragging a card between columns updates the application status</li>
+<li>Status change is logged as an <code>application_events</code> entry</li>
+<li>Search filters cards by company name or job title</li>
+<li>Stats summary shows: total in pipeline, response rate, avg days to response</li>
+<li>Empty state displays when no submitted applications exist</li>
+</ul>
+
+<hr>
+
+<h3 id="e10-02">E10-02 &mdash; Tracker Detail Screen</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E10-01</span>
+<span class="tag tag-ref">MP &sect;9 Screen 20</span>
+</div>
+<p>Build the tracker detail screen with timeline, notes, and reminders.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/tracker/:id</code> shows header with company, title, status badge, match score</li>
+<li>Timeline displays all application events in reverse chronological order</li>
+<li>"Update Status" dropdown changes status and logs an event</li>
+<li>"Add Note" saves a note and creates an application_event</li>
+<li>Materials section shows downloadable resume, cover letter, application answers</li>
+<li>"Set Reminder" saves a date to <code>next_step_date</code></li>
+<li>Reminder date is displayed if set</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E11 — Notifications & Email                                   -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E11 &mdash; Notifications &amp; Email</h2>
+<p>In-app notifications, email digest, email forwarding &mdash; 3 issues</p>
+</div>
+
+<h3 id="e11-01">E11-01 &mdash; In-App Notification System</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E10-02</span>
+<span class="tag tag-ref">MP &sect;4, MP &sect;7, MP &sect;8, MP &sect;9 Screen 24</span>
+</div>
+<p>Build the in-app notification system: creation, display, and management.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>createNotification()</code> helper creates notification records</li>
+<li>Pipeline creates notifications when applications become &lsquo;ready&rsquo;</li>
+<li><code>/notifications</code> shows all notifications sorted by date</li>
+<li>Unread notifications are visually distinct from read ones</li>
+<li>Clicking a notification marks it as read</li>
+<li>"Mark all as read" button works</li>
+<li>Notification bell in the sidebar shows unread count</li>
+<li>Unread count updates in real-time via Realtime</li>
+<li>Follow-up reminders fire when <code>next_step_date</code> passes</li>
+<li>Status stale warnings fire after 14 days on &lsquo;submitted&rsquo;</li>
+</ul>
+
+<hr>
+
+<h3 id="e11-02">E11-02 &mdash; Email Digest</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Backend</span>
+<span class="tag tag-depends">Depends: E11-01</span>
+<span class="tag tag-ref">MP &sect;4, MP &sect;7 Profiles</span>
+</div>
+<p>Build the email digest system that sends daily or weekly summaries.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Edge Function sends emails to users with <code>email_digest = 'daily'</code> once per day</li>
+<li>Weekly digest sends on Mondays to users with <code>email_digest = 'weekly'</code></li>
+<li>Email includes: new matches count, applications ready, stale applications</li>
+<li>Email has a professional HTML template with Woodhouse branding</li>
+<li>Unsubscribe link sets <code>email_digest = 'none'</code></li>
+<li>Users with <code>email_digest = 'none'</code> receive no emails</li>
+<li>pg_cron SQL is provided for daily scheduling</li>
+</ul>
+
+<hr>
+
+<h3 id="e11-03">E11-03 &mdash; Email Forwarding Inbound Parse</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E11-02</span>
+<span class="tag tag-ref">MP &sect;3 Flow 2, MP &sect;6, MP &sect;8</span>
+</div>
+<p>Build the email forwarding system that lets users forward job alert emails to Woodhouse for parsing and ingestion.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Each user gets a unique forwarding address stored in <code>profiles.forwarding_address</code></li>
+<li><code>POST /api/webhooks/email-inbound</code> validates SendGrid webhook signature</li>
+<li>Webhook identifies the user by matching the recipient address</li>
+<li>Haiku parses the email HTML to extract job posting details</li>
+<li>Parsed posting is saved to <code>job_postings</code> with source=&lsquo;email&rsquo;</li>
+<li>A pipeline job with <code>step='pre_screen'</code> is enqueued</li>
+<li>Unrecognized forwarding addresses are logged and discarded</li>
+<li>Parse failures save the raw email and create a notification</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E12 — Subscription & Payments                                 -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E12 &mdash; Subscription &amp; Payments</h2>
+<p>Stripe setup, subscription management, usage enforcement &mdash; 3 issues</p>
+</div>
+
+<h3 id="e12-01">E12-01 &mdash; Stripe Setup</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Setup</span>
+<span class="tag tag-depends">Depends: E11-03</span>
+<span class="tag tag-ref">MP &sect;6 Stack, MP &sect;11 Revenue Model</span>
+</div>
+<p>Set up Stripe products, prices, and the customer portal for subscription billing.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Stripe products and prices exist for Pro and Premium tiers (monthly + annual)</li>
+<li><code>src/lib/stripe.ts</code> exports a configured Stripe client (server-side only)</li>
+<li><code>POST /api/webhooks/stripe</code> validates Stripe webhook signatures</li>
+<li>Webhook handles <code>checkout.session.completed</code></li>
+<li>Webhook handles <code>customer.subscription.updated</code></li>
+<li>Webhook handles <code>customer.subscription.deleted</code>: sets plan to &lsquo;free&rsquo;</li>
+<li>Webhook handles <code>invoice.payment_failed</code>: sets status to &lsquo;past_due&rsquo;</li>
+<li>Stripe Customer Portal is configured</li>
+</ul>
+
+<hr>
+
+<h3 id="e12-02">E12-02 &mdash; Subscription Management Screen</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E12-01</span>
+<span class="tag tag-ref">MP &sect;9 Screen 25, MP &sect;11</span>
+</div>
+<p>Build the subscription management screen showing current plan, usage, and upgrade/downgrade options.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/settings/subscription</code> shows the current plan name and status</li>
+<li>Usage bar shows applications used vs. limit with visual progress</li>
+<li>Period reset date is displayed</li>
+<li>"Upgrade to Pro" creates a Stripe Checkout session and redirects</li>
+<li>"Upgrade to Premium" creates a Stripe Checkout session and redirects</li>
+<li>"Manage Billing" (paid plans only) opens Stripe Customer Portal</li>
+<li>Pricing comparison table shows all three tiers</li>
+<li>Free users see a compelling upgrade prompt</li>
+</ul>
+
+<hr>
+
+<h3 id="e12-03">E12-03 &mdash; Usage Enforcement &amp; Feature Gating</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Integration</span>
+<span class="tag tag-depends">Depends: E12-02</span>
+<span class="tag tag-ref">MP &sect;11 Billing, MP &sect;11 Expansion Motion</span>
+</div>
+<p>Enforce subscription limits and gate features by tier across the application.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Free users are blocked from approving more than 5 applications per period</li>
+<li>Blocked applications show materials blurred/locked with upgrade CTA</li>
+<li>Cover letter is not generated for free-tier users</li>
+<li>Free users get 3 application answer fields; Pro/Premium get all</li>
+<li>Email forwarding is hidden/disabled for free users</li>
+<li>Free tracker shows status only; Pro/Premium shows full timeline</li>
+<li>Free resume download offers PDF only; Pro/Premium offers PDF + DOCX</li>
+<li><code>applications_used</code> resets to 0 at the start of each billing period</li>
+<li>All feature checks use the centralized <code>checkSubscription()</code> utility</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E13 — Settings                                                -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E13 &mdash; Settings</h2>
+<p>Profile/preferences settings, account settings &mdash; 2 issues</p>
+</div>
+
+<h3 id="e13-01">E13-01 &mdash; Profile &amp; Preferences Settings</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E12-03</span>
+<span class="tag tag-ref">MP &sect;9 Screens 22-23</span>
+</div>
+<p>Build the profile settings and search preferences screens for editing after onboarding.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/settings/profile</code> shows all knowledge base fields in collapsible, editable sections</li>
+<li>Editing and saving profile fields updates the database</li>
+<li>AI assist buttons work from settings</li>
+<li><code>/settings/preferences</code> shows all search preference fields</li>
+<li>Tracked boards section allows adding Greenhouse/Lever board URLs</li>
+<li>Adding a board validates URL format</li>
+<li>Removing a board deletes it from the database</li>
+<li>Email forwarding address is displayed with a copy button</li>
+<li>Scan frequency shows the tier-derived interval with upgrade prompt for free users</li>
+<li>Email digest dropdown saves preference changes</li>
+</ul>
+
+<hr>
+
+<h3 id="e13-02">E13-02 &mdash; Account Settings</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E13-01</span>
+<span class="tag tag-ref">MP &sect;9 Screen 26</span>
+</div>
+<p>Build the account settings screen for email, password, notification preferences, and account deletion.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>Change email sends a verification email and updates on confirmation</li>
+<li>Change password requires current password and updates on success</li>
+<li>Notification preference toggles save to the database</li>
+<li>"Delete Account" shows a confirmation modal with warning text</li>
+<li>Confirming deletion deletes the auth user and all associated data (CASCADE)</li>
+<li>After deletion, user is redirected to the landing page</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E14 — Admin & Observability                                   -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E14 &mdash; Admin &amp; Observability</h2>
+<p>Pipeline admin dashboard &mdash; 1 issue</p>
+</div>
+
+<h3 id="e14-01">E14-01 &mdash; Pipeline Admin Dashboard</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E13-02</span>
+<span class="tag tag-ref">MP &sect;9 Screen 27</span>
+</div>
+<p>Build the internal admin dashboard for monitoring pipeline health, costs, and error rates.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/admin/pipeline</code> is only accessible to admin users (non-admins see 403)</li>
+<li>Pipeline Health shows: pending count, processing count, failed (24h), zombie count</li>
+<li>Jobs by Step table shows counts for each of the 5 steps &times; 4 statuses</li>
+<li>Error Log shows recent failures with timestamp, step, error message, attempt count</li>
+<li>Clicking an error log entry shows full input_data and output_data</li>
+<li>Per-User Cost section shows top users by estimated API cost</li>
+<li>Validation Failure Rate shows failure % by agent type</li>
+<li>Page auto-refreshes data every 30 seconds</li>
+</ul>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- E15 — Landing Page & Polish                                   -->
+<!-- ============================================================ -->
+
+<div class="epic-header">
+<h2>E15 &mdash; Landing Page &amp; Polish</h2>
+<p>Marketing page, loading/empty/error states, responsive polish &mdash; 2 issues</p>
+</div>
+
+<h3 id="e15-01">E15-01 &mdash; Marketing Landing Page</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Frontend</span>
+<span class="tag tag-depends">Depends: E14-01</span>
+<span class="tag tag-ref">MP &sect;9 Screen 1, MP &sect;10, MP &sect;11, MP &sect;12</span>
+</div>
+<p>Build the public marketing landing page with hero, features, pricing, and CTAs.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li><code>/</code> renders the marketing landing page (no auth required)</li>
+<li>Hero section with headline, subheading, and "Get Started Free" CTA</li>
+<li>"Get Started Free" navigates to <code>/signup</code></li>
+<li>How It Works section shows 3 steps with icons and descriptions</li>
+<li>Features Grid shows 6 feature cards</li>
+<li>Pricing table shows all three tiers with features and buttons</li>
+<li>Footer with relevant links</li>
+<li>Page is fully responsive: mobile, tablet, desktop</li>
+<li>Design matches MP &sect;10 colors, typography, and spacing</li>
+<li>Page loads in under 2 seconds</li>
+</ul>
+
+<hr>
+
+<h3 id="e15-02">E15-02 &mdash; Loading States, Empty States &amp; Final Polish</h3>
+<div class="issue-meta">
+<span class="tag tag-type">Polish</span>
+<span class="tag tag-depends">Depends: E15-01</span>
+<span class="tag tag-ref">MP &sect;10 Design System</span>
+</div>
+<p>Add loading skeletons, empty states, error states, and final polish across all screens.</p>
+<h4>Acceptance Criteria</h4>
+<ul class="checklist">
+<li>All data-loading screens show skeleton loaders while fetching</li>
+<li>All list views have specific empty state messages</li>
+<li>Route-level error boundaries catch and display user-friendly error messages</li>
+<li>Toast notifications appear for successful actions, errors, and status changes</li>
+<li>Optimistic updates work for: approve, skip, mark notification read</li>
+<li>All interactive elements are keyboard-accessible (Tab, Enter, Escape)</li>
+<li>All 27 screens render correctly at desktop, tablet, and mobile breakpoints</li>
+<li>No console errors or TypeScript compilation errors</li>
+<li>No broken links or dead routes</li>
+<li>Sidebar collapses correctly on tablet and becomes bottom nav on mobile</li>
+</ul>
+
+<hr>
+<p style="text-align:center;color:var(--text-muted);font-size:14px;margin-top:48px"><em>End of Build Plan</em></p>
+</div>
+</body>
+</html>
