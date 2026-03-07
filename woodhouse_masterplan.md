@@ -1,9 +1,11 @@
 # Woodhouse — Masterplan
 
-> **Version:** 1.1
+> **Version:** 1.2
 > **Date:** 2026-03-07
-> **Status:** Draft
-> **Changelog:** v1.1 — Integrated AI architecture research findings: pipeline queue table, concurrency control, exponential backoff, Zod validation, Anthropic prompt caching, Haiku pre-screen, Langfuse observability, Premium tier soft cap.
+> **Status:** Final Draft
+> **Changelog:**
+> - v1.2 — Worker loop pattern for throughput, tracked_boards table, per-user cron scheduling via next_discovery_at, pre-screen failure handling (Option B), Materials Agent split (Sonnet + Haiku), scan interval tier enforcement, updated architecture diagram, flow consistency with queue pattern.
+> - v1.1 — Integrated AI architecture research findings: pipeline queue table, concurrency control, exponential backoff, Zod validation, Anthropic prompt caching, Haiku pre-screen, Langfuse observability, Premium tier soft cap.
 
 ---
 
@@ -114,9 +116,9 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 4. **Source: Email Forwarding** — System checks for any forwarded job alert emails since the last run. Parses email content to extract job posting details.
 5. Each discovered posting is deduplicated against existing postings (by source URL and external ID).
 6. New postings are saved to the database with status "active."
-7. For each new posting, the Evaluation Agent is triggered (see Flow 3).
-8. Discovery run is logged: sources scanned, jobs found, new jobs, matched jobs.
-9. If any jobs pass the user's match threshold, a notification is sent (in-app + optional email digest).
+7. For each new posting, a pipeline job is **enqueued** in the `pipeline_jobs` table with `step='pre_screen'`. The evaluation does not run inline — the `process-pipeline` worker picks it up asynchronously (see Flow 3).
+8. Discovery run is logged: sources scanned, jobs found, new jobs.
+9. As pipeline jobs complete and applications reach "ready" status, notifications are sent (in-app + optional email digest).
 
 **Edge cases:**
 - API rate limits hit: system backs off and resumes on next scheduled run. Partial results are saved.
@@ -125,11 +127,19 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 
 ---
 
-### Flow 3: Job Evaluation
+### Flow 3: Job Evaluation (Pre-Screen + Full Evaluation)
 
-**Trigger:** New job posting discovered or user manually adds a job URL.
+**Trigger:** Pipeline job with `step='pre_screen'` is claimed by the worker.
 
-1. Evaluation Agent reads the full job description and the user's complete profile (work history, skills, achievements, education).
+**Stage 1 — Haiku Pre-Screen (fast, ~$0.001):**
+1. Haiku checks the job posting against the user's profile for basic disqualifiers: title mismatch, location incompatibility, seniority mismatch, salary range mismatch.
+2. If the job fails the pre-screen (obvious mismatch):
+   - Pipeline job is marked as completed. **No evaluation record is created.** The pre-screen result is stored in `pipeline_jobs.output_data` for audit purposes. The job is invisible to the user — it never appears in their feed.
+3. If the job passes the pre-screen:
+   - A new pipeline job is enqueued with `step='evaluate'`.
+
+**Stage 2 — Sonnet Full Evaluation (~$0.02):**
+1. Evaluation Agent reads the full job description and the user's complete profile (work history, skills, achievements, education). The user's profile is sent using Anthropic's prompt caching (see §5).
 2. Agent scores the job on five dimensions (each 0-100):
    - **Skill alignment:** How many required/preferred skills does the user have?
    - **Experience match:** Does the user's years of experience and depth match the role?
@@ -142,19 +152,20 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
    - A reasoning paragraph explaining the score
    - A list of strengths (why the user is a good fit)
    - A list of gaps (where the user may fall short)
-5. If the overall score meets or exceeds the user's match threshold:
+5. Output is validated against `EvaluationSchema` (Zod). If validation fails, the pipeline job retries with exponential backoff.
+6. If the overall score meets or exceeds the user's match threshold:
    - Evaluation is saved with `passes_threshold = true`
    - Application record is created with status "draft"
-   - Tailoring pipeline is triggered (Flow 4)
-6. If the score is below threshold:
+   - Pipeline job enqueued with `step='tailor'` (Flow 4)
+7. If the score is below threshold:
    - Evaluation is saved with `passes_threshold = false`
    - Job appears in the "Below Threshold" section of the dashboard (user can still manually approve)
-7. User can view the full evaluation breakdown for any job from the dashboard.
+8. User can view the full evaluation breakdown for any job from the dashboard.
 
 **Edge cases:**
 - Job description is too vague to score meaningfully: agent flags this in reasoning and assigns a conservative score.
-- Job is clearly a scam or spam: agent flags it and skips evaluation.
-- User manually overrides threshold for a specific job: application is created regardless of score.
+- Job is clearly a scam or spam: agent flags it and skips evaluation (pre-screen catches most of these).
+- User manually overrides threshold for a specific job: application is created regardless of score, pipeline jobs enqueued for tailoring.
 
 ---
 
@@ -388,9 +399,11 @@ The Orchestrator is not an AI agent — it is a pair of control functions backed
 
 **Two Edge Functions handle all orchestration:**
 
-1. **`discover-jobs`** — Triggered by pg_cron per user (every 6h for Pro, every 1h for Premium, every 12h for Free). Creates a `discovery_run` record, invokes the Discovery Agent for each configured source in parallel, deduplicates results, saves new postings, and **enqueues evaluation jobs** in the `pipeline_jobs` table for each new posting. Does NOT call the Evaluation Agent directly.
+1. **`trigger-discoveries`** → **`discover-jobs`** — A `trigger-discoveries` Edge Function runs every hour via pg_cron. It queries all users where `search_preferences.next_discovery_at <= now()`, then invokes `discover-jobs` for each. The `discover-jobs` function creates a `discovery_run` record, invokes the Discovery Agent for each configured source (including `tracked_boards`) in parallel, deduplicates results, saves new postings, and **enqueues pre-screen jobs** in the `pipeline_jobs` table for each new posting. After completion, `next_discovery_at` is updated based on the user's subscription tier (free=+12h, pro=+6h, premium=+1h). Does NOT call the Evaluation Agent directly.
 
-2. **`process-pipeline`** — Triggered by pg_cron every 30 seconds. Claims ONE pending job from the `pipeline_jobs` table using `SELECT FOR UPDATE SKIP LOCKED`, processes it (calls the appropriate agent), and enqueues the next step on success. This is the execution engine of the entire pipeline.
+2. **`process-pipeline`** — Triggered by pg_cron every 30 seconds. Runs a **loop** that claims and processes jobs from the `pipeline_jobs` table using `SELECT FOR UPDATE SKIP LOCKED` until either: (a) no pending jobs remain, or (b) 120 seconds of the 150-second Edge Function timeout have elapsed. Each iteration claims one job, processes it, and enqueues the next step. This is the execution engine of the entire pipeline.
+
+   **Throughput math:** If each LLM call takes ~10 seconds, the worker processes ~12 jobs per invocation. With invocations every 30 seconds (overlapping is safe due to `SKIP LOCKED`), throughput is ~1,400+ jobs/hour — sufficient for MVP scale (100 users × ~250 pipeline jobs per discovery cycle = ~25,000 jobs, cleared in ~18 hours across staggered user schedules).
 
 **Pipeline job lifecycle:**
 ```
@@ -401,15 +414,19 @@ pending → processing → completed (enqueues next step)
 
 **Queue-based step sequencing:**
 ```
-discover-jobs creates: pipeline_job(step='evaluate', status='pending')
-    → process-pipeline claims and runs evaluation
-    → IF passes_threshold: creates pipeline_job(step='tailor', status='pending')
-        → process-pipeline claims and runs tailoring
-        → creates pipeline_job(step='generate_materials', status='pending')
-            → process-pipeline claims and runs materials generation
-            → creates pipeline_job(step='generate_files', status='pending')
-                → process-pipeline claims and generates PDF/DOCX
-                → creates notification
+discover-jobs creates: pipeline_job(step='pre_screen', status='pending')
+    → process-pipeline claims and runs Haiku pre-screen
+    → IF fail: mark completed, no evaluation record (invisible to user)
+    → IF pass: enqueue pipeline_job(step='evaluate')
+        → process-pipeline claims and runs Sonnet evaluation
+        → IF below threshold: save evaluation only (visible in dashboard)
+        → IF passes_threshold: create application, enqueue pipeline_job(step='tailor')
+            → process-pipeline claims and runs tailoring
+            → enqueue pipeline_job(step='generate_materials')
+                → process-pipeline claims and runs materials generation (Sonnet + Haiku)
+                → enqueue pipeline_job(step='generate_files')
+                    → process-pipeline claims and generates PDF/DOCX
+                    → set application status='ready', create notification
 ```
 
 **Concurrency control — `SELECT FOR UPDATE SKIP LOCKED`:**
@@ -631,13 +648,16 @@ Every item includes a `source_id` tracing back to the knowledge base entry it wa
 
 ### Materials Agent — Detail
 
-**System prompt context:**
-- The full job posting
-- The evaluation results
-- The tailored resume (so the cover letter complements rather than repeats)
-- The user's profile data for application answers
+The Materials Agent makes **two LLM calls** — one Sonnet call for quality writing, one Haiku call for data extraction:
 
-**Cover letter generation rules:**
+**Call 1 — Sonnet: Cover letter + "Why interested" answer**
+
+System prompt context:
+- The full job posting
+- The evaluation results (strengths, gaps, reasoning)
+- The tailored resume (so the cover letter complements rather than repeats)
+
+Cover letter generation rules:
 - 3-4 paragraphs maximum
 - First paragraph: why this company/role specifically (not generic)
 - Middle paragraphs: 2-3 specific examples from the user's experience that map to the role's key requirements
@@ -645,23 +665,30 @@ Every item includes a `source_id` tracing back to the knowledge base entry it wa
 - Tone: professional but not stiff, confident but not arrogant
 - Must reference specific details from the job posting (not a template letter)
 
-**Application answers generation:**
-Standard questions with auto-generated answers:
+The "Why are you interested in this role?" answer is generated in the same call as the cover letter — it draws from the same context (evaluation strengths + job posting specifics) and requires the same quality of writing.
 
-| Question | Source |
-|----------|--------|
-| Years of relevant experience | Calculated from work history |
-| Work authorization | From profile |
-| Salary expectations | From profile preferences |
-| Willing to relocate | Derived from location preferences |
-| Technical proficiency in [X] | From skills with proficiency level |
-| Why are you interested in this role? | Generated from evaluation strengths |
-| When can you start? | Default: "2 weeks notice" unless user specifies |
+**Call 2 — Haiku: Extraction-based application answers**
 
-**Output schema:**
+System prompt context:
+- The user's profile data (work history, skills, preferences)
+
+These are simple lookups and calculations, not writing:
+
+| Question | Source | Model |
+|----------|--------|-------|
+| Years of relevant experience | Calculated from work history | Haiku |
+| Work authorization | From profile | Haiku |
+| Salary expectations | From profile preferences | Haiku |
+| Willing to relocate | Derived from location preferences | Haiku |
+| Technical proficiency in [X] | From skills with proficiency level | Haiku |
+| When can you start? | Default: "2 weeks notice" unless user specifies | Haiku |
+| Why are you interested in this role? | Generated from evaluation strengths | **Sonnet** (Call 1) |
+
+**Combined output schema:**
 ```json
 {
   "cover_letter": "string — full cover letter text",
+  "why_interested": "string — answer to 'Why are you interested in this role?'",
   "application_answers": [
     {
       "question": "string",
@@ -771,40 +798,75 @@ const response = await anthropic.messages.create({
 ### Architecture Diagram (Conceptual)
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                        VERCEL                            │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │              Next.js App (App Router)               │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌───────────────────┐  │  │
-│  │  │  Pages/   │ │  Server  │ │    API Routes     │  │  │
-│  │  │  Layouts  │ │  Actions │ │  (webhooks, etc)  │  │  │
-│  │  └──────────┘ └──────────┘ └───────────────────┘  │  │
-│  └────────────────────────────────────────────────────┘  │
-│  ┌──────────┐                                            │
-│  │  Cron    │ ← triggers pipeline on schedule            │
-│  └──────────┘                                            │
-└──────────────────────────┬───────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                          VERCEL                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │               Next.js App (App Router)                  │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌────────────────────────┐ │  │
+│  │  │  Pages/   │ │  Server  │ │     API Routes         │ │  │
+│  │  │  Layouts  │ │  Actions │ │ (Stripe/Email webhooks)│ │  │
+│  │  └──────────┘ └──────────┘ └────────────────────────┘ │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────┬───────────────────────────────────┘
                            │
                            ▼
-┌──────────────────────────────────────────────────────────┐
-│                       SUPABASE                           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
-│  │ Postgres │ │   Auth   │ │ Storage  │ │   Edge    │  │
-│  │   (DB)   │ │          │ │ (files)  │ │ Functions │  │
-│  └──────────┘ └──────────┘ └──────────┘ └─────┬─────┘  │
-│                                                │         │
-│  ┌──────────┐                                  │         │
-│  │ Realtime │ ← push notifications to client   │         │
-│  └──────────┘                                  │         │
-└────────────────────────────────────────────────┼─────────┘
-                                                 │
-                           ┌─────────────────────┤
-                           ▼                     ▼
-                    ┌──────────┐          ┌──────────────┐
-                    │ Anthropic│          │  External    │
-                    │   API    │          │  Job APIs    │
-                    │ (Claude) │          │ SerpAPI, etc │
-                    └──────────┘          └──────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                         SUPABASE                              │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │                    Postgres (DB)                          │ │
+│  │  ┌────────────────┐  ┌────────────┐  ┌───────────────┐  │ │
+│  │  │ pipeline_jobs  │  │  profiles,  │  │ discovery_runs│  │ │
+│  │  │ (queue table)  │  │  postings,  │  │ tracked_boards│  │ │
+│  │  │                │  │  evals,     │  │               │  │ │
+│  │  │ pending →      │  │  apps,      │  │               │  │ │
+│  │  │ processing →   │  │  resumes    │  │               │  │ │
+│  │  │ completed      │  │             │  │               │  │ │
+│  │  └───────┬────────┘  └─────────────┘  └───────────────┘  │ │
+│  │          │                                                 │ │
+│  │  ┌───────┴────────┐                                       │ │
+│  │  │    pg_cron      │                                      │ │
+│  │  │ • Every 30s:    │                                      │ │
+│  │  │   process-      │                                      │ │
+│  │  │   pipeline      │                                      │ │
+│  │  │ • Every 1h:     │                                      │ │
+│  │  │   trigger-      │                                      │ │
+│  │  │   discoveries   │                                      │ │
+│  │  └───────┬────────┘                                       │ │
+│  └──────────┼────────────────────────────────────────────────┘ │
+│             ▼                                                  │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │              Edge Functions (Deno)                        │ │
+│  │  ┌─────────────────┐  ┌──────────────────────────────┐  │ │
+│  │  │  discover-jobs   │  │  process-pipeline (worker)   │  │ │
+│  │  │  Fetches APIs,   │  │  Loop: claim → process →     │  │ │
+│  │  │  enqueues        │  │  enqueue next step            │  │ │
+│  │  │  pre_screen jobs │  │  (until 120s or queue empty)  │  │ │
+│  │  └─────────────────┘  └──────────────────────────────┘  │ │
+│  │  ┌─────────────────┐  ┌──────────────────────────────┐  │ │
+│  │  │  generate-files  │  │  parse-job-url               │  │ │
+│  │  │  PDF + DOCX      │  │  Manual job parsing          │  │ │
+│  │  └─────────────────┘  └──────────────────────────────┘  │ │
+│  └───────────┬──────────────────────┬───────────────────────┘ │
+│              │                      │                          │
+│  ┌───────────┘  ┌──────────┐       │                          │
+│  │  │ Realtime │  │ Storage  │       │                          │
+│  │  │ (push to │  │ (resume  │       │                          │
+│  │  │  client) │  │  files)  │       │                          │
+│  │  └──────────┘  └──────────┘       │                          │
+│  ┌──────────┐                        │                          │
+│  │   Auth   │                        │                          │
+│  └──────────┘                        │                          │
+└──────────────────────────────────────┼──────────────────────────┘
+                                       │
+                    ┌──────────────────┼──────────────────┐
+                    ▼                  ▼                  ▼
+             ┌──────────┐     ┌──────────────┐    ┌──────────┐
+             │ Anthropic│     │  External    │    │ Langfuse │
+             │   API    │     │  Job APIs    │    │  (LLM    │
+             │ (Claude) │     │ SerpAPI,     │    │  observ- │
+             │          │     │ JSearch      │    │  ability)│
+             └──────────┘     └──────────────┘    └──────────┘
 ```
 
 ### Key Architectural Decisions
@@ -1083,16 +1145,48 @@ CREATE TABLE public.search_preferences (
   min_salary INTEGER,
   max_salary INTEGER,
   job_types TEXT[] DEFAULT ARRAY['full_time'],
-  scan_interval_hours INTEGER DEFAULT 6 CHECK (scan_interval_hours BETWEEN 1 AND 24),
   is_active BOOLEAN DEFAULT TRUE,
+  next_discovery_at TIMESTAMPTZ DEFAULT now(),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   UNIQUE(profile_id)
 );
 
+-- Scan interval is NOT user-configurable. It is derived from the subscription tier:
+-- free=12h, pro=6h, premium=1h. Enforced by the trigger-discoveries cron job.
+-- next_discovery_at is updated after each discovery run:
+--   next_discovery_at = now() + interval based on subscription.plan
+
 ALTER TABLE public.search_preferences ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage own search preferences"
   ON public.search_preferences FOR ALL USING (profile_id = auth.uid());
+```
+
+### Tracked Boards
+
+Users can monitor specific company career pages on Greenhouse and Lever for new postings.
+
+```sql
+CREATE TABLE public.tracked_boards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL
+    CHECK (platform IN ('greenhouse', 'lever')),
+  board_url TEXT NOT NULL,
+  company_name TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  last_checked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  UNIQUE(profile_id, board_url)
+);
+
+ALTER TABLE public.tracked_boards ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own tracked boards"
+  ON public.tracked_boards FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_tracked_boards_profile ON public.tracked_boards(profile_id);
+CREATE INDEX idx_tracked_boards_active ON public.tracked_boards(is_active) WHERE is_active = TRUE;
 ```
 
 ### Job Postings
@@ -1418,6 +1512,8 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.projects
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.search_preferences
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.tracked_boards
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.job_postings
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.applications
@@ -1619,6 +1715,12 @@ Same CRUD pattern as work experience for each entity type.
 
 - `updateSearchPreferences(data)` → upserts, returns preferences
 
+### Tracked Boards (Server Actions)
+
+- `createTrackedBoard(data)` → creates entry (platform, board_url, company_name), returns it
+- `deleteTrackedBoard(id)` → deletes
+- `getTrackedBoards()` → returns all tracked boards for the user
+
 ### AI Assist (Server Actions)
 
 - `generateSummary()` → AI generates professional summary from profile data
@@ -1811,10 +1913,16 @@ Same CRUD pattern as work experience for each entity type.
 
 These are not called directly by the frontend. They are invoked by pg_cron triggers or by other server-side code.
 
+**`/functions/v1/trigger-discoveries`**
+- Input: None — queries the database.
+- Action: Finds all users where `search_preferences.is_active = true` AND `search_preferences.next_discovery_at <= now()`. For each, invokes `discover-jobs` with that user's `profile_id`. After each invocation, updates `next_discovery_at` based on the user's subscription tier (free=+12h, pro=+6h, premium=+1h).
+- Called by: pg_cron every hour.
+- This is how per-user scheduling works without creating a separate cron job per user.
+
 **`/functions/v1/discover-jobs`**
 - Input: `{ "profile_id": "uuid" }`
-- Action: Fetches jobs from all configured sources (SerpAPI, JSearch, Greenhouse, Lever, email) in parallel. Deduplicates against existing postings. Saves new postings to `job_postings`. **Enqueues `pipeline_jobs` with `step='pre_screen'`** for each new posting. Does NOT run evaluation directly.
-- Called by: pg_cron (every 12h free / 6h pro / 1h premium per user)
+- Action: Fetches jobs from all configured sources (SerpAPI, JSearch, Greenhouse boards from `tracked_boards`, Lever boards from `tracked_boards`, pending forwarded emails) in parallel. Deduplicates against existing postings. Saves new postings to `job_postings`. **Enqueues `pipeline_jobs` with `step='pre_screen'`** for each new posting. Does NOT run evaluation directly.
+- Called by: `trigger-discoveries` (or directly for manual triggers)
 
 **`/functions/v1/process-pipeline`** (the worker)
 - Input: None — it reads from the `pipeline_jobs` queue table.
@@ -1822,16 +1930,36 @@ These are not called directly by the frontend. They are invoked by pg_cron trigg
 - Called by: pg_cron every 30 seconds.
 - Worker pseudocode:
 ```
-1. SELECT * FROM claim_pipeline_job()
-2. IF no job returned: exit (nothing to do)
-3. SWITCH job.step:
-   - 'pre_screen': Run Haiku pre-screen → IF pass, enqueue 'evaluate' → IF fail, mark no_match
-   - 'evaluate': Run Sonnet evaluation → IF passes_threshold, create application, enqueue 'tailor'
-   - 'tailor': Run Sonnet tailoring → Save resume_version → Enqueue 'generate_materials'
-   - 'generate_materials': Run Sonnet/Haiku materials → Update application → Enqueue 'generate_files'
-   - 'generate_files': Generate PDF/DOCX → Upload to Storage → Set application status='ready' → Notify
-4. On success: UPDATE pipeline_jobs SET status='completed', completed_at=now()
-5. On failure: CALL fail_pipeline_job(job.id, error_message)
+const startTime = Date.now()
+WHILE (Date.now() - startTime < 120_000):  // Loop until 120s of 150s timeout
+  1. SELECT * FROM claim_pipeline_job()
+  2. IF no job returned: exit (nothing to do)
+  3. TRY:
+     SWITCH job.step:
+       'pre_screen':
+         Run Haiku pre-screen
+         IF pass → enqueue pipeline_job(step='evaluate')
+         IF fail → mark completed (no evaluation record created, invisible to user)
+       'evaluate':
+         Run Sonnet evaluation (with prompt caching)
+         Validate output with EvaluationSchema (Zod)
+         Save to job_evaluations
+         IF passes_threshold → create application, enqueue pipeline_job(step='tailor')
+       'tailor':
+         Run Sonnet tailoring
+         Validate output with TailoredResumeSchema (Zod)
+         Save resume_version → enqueue pipeline_job(step='generate_materials')
+       'generate_materials':
+         Call 1: Sonnet → cover letter + "why interested" answer
+         Call 2: Haiku → extraction-based application answers
+         Validate with MaterialsSchema (Zod)
+         Update application with materials → enqueue pipeline_job(step='generate_files')
+       'generate_files':
+         Generate PDF + DOCX → Upload to Storage
+         Set application status='ready' → create notification
+     UPDATE pipeline_jobs SET status='completed', completed_at=now()
+  4. CATCH error:
+     CALL fail_pipeline_job(job.id, error.message)
 ```
 
 **`/functions/v1/generate-resume-files`**
@@ -1853,8 +1981,14 @@ SELECT cron.schedule('process-pipeline', '30 seconds',
   )$$
 );
 
--- Discovery runs: scheduled per-user based on subscription tier
--- (Managed dynamically — see search_preferences.scan_interval_hours)
+-- Trigger discoveries for users whose next_discovery_at has passed: every hour
+SELECT cron.schedule('trigger-discoveries', '0 * * * *',
+  $$SELECT net.http_post(
+    'https://<project>.supabase.co/functions/v1/trigger-discoveries',
+    '{}',
+    '{"Authorization": "Bearer <service_role_key>"}'
+  )$$
+);
 ```
 
 ---
@@ -2047,7 +2181,7 @@ SELECT cron.schedule('process-pipeline', '30 seconds',
 
 **Profile (`/settings/profile`):** Same fields as onboarding but in an edit-in-place format. Sections: Basic Info, Professional Summary, Work Experience, Education, Skills, Projects, Certifications. Each section is a collapsible panel with an "Edit" button. AI assist buttons available.
 
-**Preferences (`/settings/preferences`):** Job search preferences form (same as onboarding step 11). Plus: email forwarding address display with copy button, scan interval dropdown (every 1/3/6/12/24 hours), email digest preference.
+**Preferences (`/settings/preferences`):** Job search preferences form (same as onboarding step 11). Plus: email forwarding address display with copy button, current scan frequency display (derived from plan — "Every 12 hours" for free, "Every 6 hours" for Pro, "Every hour" for Premium, with upgrade prompt), tracked company boards management (add/remove Greenhouse and Lever board URLs), email digest preference.
 
 **Subscription (`/settings/subscription`):** Current plan card with usage bar (X of Y applications used this period). Period reset date. Upgrade/downgrade buttons. If on paid plan: "Manage Billing" button opens Stripe Customer Portal.
 
