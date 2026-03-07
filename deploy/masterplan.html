@@ -1,0 +1,2728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Woodhouse Masterplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#1e3a5f;--accent:#d97706;--bg:#fafaf9;--surface:#fff;--border:#e7e5e4;--text:#18181b;--text-sec:#52525b;--text-muted:#a1a1aa;--success:#059669;--error:#dc2626}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:16px}
+.top-bar{position:sticky;top:0;z-index:100;background:var(--primary);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.top-bar a{color:#fff;text-decoration:none;font-weight:600;font-size:15px;opacity:.85;transition:opacity .2s}
+.top-bar a:hover{opacity:1}
+.top-bar .logo{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.5px;opacity:1}
+.container{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+h1{font-size:2.25rem;font-weight:700;color:var(--primary);margin:32px 0 8px;line-height:1.2;letter-spacing:-.5px}
+h2{font-size:1.5rem;font-weight:600;color:var(--primary);margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid var(--accent)}
+h3{font-size:1.2rem;font-weight:600;color:var(--text);margin:32px 0 12px}
+h4{font-size:1.05rem;font-weight:600;color:var(--text-sec);margin:24px 0 8px}
+p{margin:0 0 16px}
+a{color:var(--primary);text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px}
+a:hover{color:var(--accent)}
+blockquote{border-left:4px solid var(--accent);padding:12px 20px;margin:16px 0;background:rgba(217,119,6,.06);border-radius:0 8px 8px 0;color:var(--text-sec);font-style:italic}
+blockquote p:last-child{margin-bottom:0}
+ul,ol{margin:0 0 16px 24px}
+li{margin-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:14px;background:var(--surface);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+thead{background:var(--primary);color:#fff}
+th{padding:10px 14px;text-align:left;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+td{padding:10px 14px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even){background:var(--bg)}
+code{font-family:'SF Mono','Fira Code',monospace;font-size:13.5px;background:#f0eded;padding:2px 6px;border-radius:4px;color:var(--primary)}
+pre{background:#1a1f36;color:#e2e8f0;padding:20px;border-radius:8px;overflow-x:auto;margin:16px 0 24px;line-height:1.5;font-size:13.5px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+strong{font-weight:600}
+img{max-width:100%;border-radius:8px}
+.meta{color:var(--text-muted);font-size:14px;margin-bottom:32px}
+@media(max-width:768px){.container{padding:24px 16px 60px}h1{font-size:1.75rem}h2{font-size:1.25rem}pre{font-size:12px;padding:14px}table{font-size:12px}th,td{padding:8px 10px}}
+</style>
+</head>
+<body>
+<div class="top-bar">
+<span class="logo">Woodhouse</span>
+<a href="index.html">&larr; Back to Dashboard</a>
+</div>
+<div class="container">
+<h1>Woodhouse — Masterplan</h1>
+<blockquote>
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2026-03-06
+<strong>Status:</strong> Draft</p>
+</blockquote>
+<hr>
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#1-product-vision">Product Vision</a></li>
+<li><a href="#2-user-personas">User Personas</a></li>
+<li><a href="#3-core-user-flows">Core User Flows</a></li>
+<li><a href="#4-feature-set">Feature Set</a></li>
+<li><a href="#5-ai-agent-architecture">AI Agent Architecture</a></li>
+<li><a href="#6-technical-architecture">Technical Architecture</a></li>
+<li><a href="#7-database-schema">Database Schema</a></li>
+<li><a href="#8-api-design">API Design</a></li>
+<li><a href="#9-screens">Screens</a></li>
+<li><a href="#10-design-system">Design System</a></li>
+<li><a href="#11-revenue-model">Revenue Model</a></li>
+<li><a href="#12-gtm-strategy">GTM Strategy</a></li>
+<li><a href="#13-post-mvp-auto-submit-strategy">Post-MVP: Auto-Submit Strategy</a></li>
+</ol>
+<hr>
+<h2>§1 Product Vision</h2>
+<p>Job searching is broken in a specific, painful way: the work is repetitive but not automatable by the person doing it. Every job posting requires reading the description, deciding if it&#39;s a fit, tailoring a resume, writing a cover letter, filling out the same form fields, and tracking the outcome. A motivated job seeker manages 5-10 quality applications per week. The math doesn&#39;t work — the best roles receive hundreds of applications within 48 hours, and the person who applies on day five with a generic resume loses to the person who applied on day one with a tailored one.</p>
+<p>Woodhouse is a personal AI-powered recruiting agent. It continuously discovers job postings across multiple sources, evaluates each one against the user&#39;s verified professional profile, generates tailored application materials, and queues everything for human review. The user approves and submits. The system handles everything else.</p>
+<p>The unique insight: existing job tools optimize the wrong side of the equation. Job boards help companies find candidates. LinkedIn helps recruiters search. Woodhouse flips this — it gives the job seeker their own AI recruiter that works 24/7, scanning hundreds of postings and preparing personalized applications at a pace no human could match.</p>
+<p><strong>What Woodhouse is:</strong> A private AI job search agent that finds, evaluates, and prepares job applications on your behalf.</p>
+<p><strong>What Woodhouse is not:</strong> A job board. A resume builder. A networking tool. An applicant tracking system for employers.</p>
+<p><strong>Success at 6 months:</strong> 10,000 active users, with power users submitting 20+ tailored applications per week. Average match score accuracy validated by user feedback (users agree with 80%+ of the system&#39;s evaluations).</p>
+<p><strong>Success at 1 year:</strong> 50,000 active users. Auto-submit launched for major ATS platforms. Users report 3x increase in interview callbacks compared to manual applications.</p>
+<p><strong>Success at 3 years:</strong> The default way professionals manage job searches. Expanded into career intelligence — salary benchmarking, skill gap analysis, career path recommendations.</p>
+<hr>
+<h2>§2 User Personas</h2>
+<h3>Sarah Chen — Primary Persona</h3>
+<p><strong>Senior Software Engineer, 7 years experience, currently employed but exploring</strong></p>
+<p>Sarah&#39;s current process: She checks LinkedIn twice a week, skims a few postings, opens two or three that look interesting, spends 45 minutes tailoring her resume for one, gets distracted, and closes the tab. She submits maybe 2 applications per week — both slightly rushed. She has a spreadsheet tracking where she&#39;s applied but forgets to update it.</p>
+<p>With Woodhouse: Sarah sets up her profile once, defining her skills, experience, and what she&#39;s looking for. Woodhouse scans hundreds of postings daily, surfaces the 10-15 that genuinely match her background, and has tailored resumes and cover letters waiting when she opens the dashboard. She reviews five applications over coffee, approves three, and submits them before work. Her tracker updates automatically. She&#39;s applying to 15-20 well-matched roles per week without the grind.</p>
+<h3>Marcus Williams — Career Changer</h3>
+<p><strong>Marketing Manager transitioning to Product Management, 5 years experience</strong></p>
+<p>Marcus struggles most with the evaluation step. He reads PM job descriptions and can&#39;t tell if his marketing experience qualifies. He wastes time applying to roles that are too senior or too technical, and misses roles where his background is actually a strong fit.</p>
+<p>With Woodhouse: The evaluation engine breaks down exactly how his experience maps to each role — which skills transfer, where the gaps are, and which roles value his marketing-to-PM trajectory. He stops wasting time on mismatches and focuses on the roles where he has a real shot.</p>
+<h3>Priya Sharma — High-Volume Applicant</h3>
+<p><strong>Recent bootcamp graduate, actively job searching full-time</strong></p>
+<p>Priya applies to everything she can find. She sends the same resume everywhere. Her response rate is under 3%. She doesn&#39;t know which version of her resume works best or which types of roles respond most.</p>
+<p>With Woodhouse: Every application gets a tailored resume that highlights the specific technologies and projects relevant to that posting. The tracking system shows her which resume strategies generate interviews. Her response rate improves because every application is optimized, not generic.</p>
+<h3>David Okafor — Executive Passive Seeker</h3>
+<p><strong>VP of Engineering, 15 years experience, very selective</strong></p>
+<p>David isn&#39;t actively searching but wants to know when a truly exceptional opportunity appears. He doesn&#39;t want to browse job boards. He wants to be notified only when something matches his very specific criteria — VP/CTO roles, Series B+, specific tech stacks, certain metro areas.</p>
+<p>With Woodhouse: He configures tight search criteria and a high match threshold (90+). Woodhouse runs silently in the background and pings him maybe once or twice a week with a role worth considering. Each comes with a pre-tailored resume and a clear breakdown of why the system thinks it&#39;s a fit.</p>
+<p><strong>Primary target:</strong> Sarah Chen — the employed professional who wants to explore opportunities but doesn&#39;t have the time for manual job searching. This is the largest segment and the highest willingness to pay.</p>
+<hr>
+<h2>§3 Core User Flows</h2>
+<h3>Flow 1: Onboarding — Profile Setup</h3>
+<p><strong>Trigger:</strong> New user signs up.</p>
+<ol>
+<li>User lands on the sign-up page. Enters email and password. Clicks &quot;Create Account.&quot;</li>
+<li>Email verification sent. User clicks the link. Redirected to onboarding.</li>
+<li><strong>Step 1 — Basic Info:</strong> Form with fields: full name, phone (optional), location, LinkedIn URL (optional), portfolio URL (optional), GitHub URL (optional). User fills in and clicks &quot;Continue.&quot;</li>
+<li><strong>Step 2 — Professional Headline:</strong> Single field: &quot;How would you describe your role?&quot; (e.g., &quot;Senior Software Engineer&quot;). Below it, a textarea for professional summary (2-3 sentences). AI assist button available: &quot;Help me write this&quot; — generates a summary from what the user has entered so far. User clicks &quot;Continue.&quot;</li>
+<li><strong>Step 3 — Work Experience:</strong> User adds work experience entries one at a time. Each entry: company name, job title, location, start date, end date (or &quot;I currently work here&quot; toggle), description. For each entry, user adds achievement bullets. AI assist available: &quot;Improve this bullet&quot; — rewrites for impact and clarity. User can add multiple entries. Clicks &quot;Continue&quot; when done.</li>
+<li><strong>Step 4 — Education:</strong> User adds education entries. Each: institution, degree, field of study, start/end dates, GPA (optional), achievements/honors. Clicks &quot;Continue.&quot;</li>
+<li><strong>Step 5 — Skills:</strong> User adds skills. Each skill has a name, category (technical, soft, language, certification, tool, framework), proficiency level (beginner through expert), and years of experience. AI assist: &quot;Suggest skills from my experience&quot; — analyzes work history and suggests skills to add. Clicks &quot;Continue.&quot;</li>
+<li><strong>Step 6 — Projects &amp; Certifications (optional):</strong> User adds portfolio projects and certifications. Clicks &quot;Continue.&quot;</li>
+<li><strong>Step 7 — Job Search Preferences:</strong> Form with: target role titles (multi-select/free text), target locations (multi-select), remote preference (remote only, hybrid, onsite, flexible), salary range, job types (full-time, part-time, contract), preferred industries, preferred company sizes, keywords to search for, keywords to exclude, companies to exclude. Match threshold slider (default 70%). Clicks &quot;Continue.&quot;</li>
+<li><strong>Step 8 — Resume Upload (optional):</strong> User can upload an existing resume (PDF or DOCX). The system parses it and pre-fills any missing profile fields. User reviews and confirms extracted data.</li>
+<li><strong>Onboarding complete.</strong> User sees dashboard with a message: &quot;Woodhouse is now scanning for jobs matching your profile. You&#39;ll see results within the next few hours.&quot;</li>
+</ol>
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li>User abandons onboarding midway: progress is saved. They can resume from where they left off.</li>
+<li>Resume upload parsing fails: user is notified and asked to enter data manually.</li>
+<li>User has no work experience (new grad): work experience step shows a &quot;No work experience yet&quot; option that adjusts the profile accordingly.</li>
+</ul>
+<hr>
+<h3>Flow 2: Job Discovery (Automated)</h3>
+<p><strong>Trigger:</strong> Scheduled discovery run (runs every 6 hours per user, configurable).</p>
+<ol>
+<li>System checks user&#39;s search preferences: keywords, target roles, locations, excluded companies/keywords.</li>
+<li><strong>Source: Aggregator APIs</strong> — System queries Google Jobs (via SerpAPI) and JSearch with the user&#39;s keywords and location. Results are normalized into the standard job posting format.</li>
+<li><strong>Source: ATS Boards</strong> — System checks tracked company career pages on Greenhouse and Lever. New postings matching keywords are captured.</li>
+<li><strong>Source: Email Forwarding</strong> — System checks for any forwarded job alert emails since the last run. Parses email content to extract job posting details.</li>
+<li>Each discovered posting is deduplicated against existing postings (by source URL and external ID).</li>
+<li>New postings are saved to the database with status &quot;active.&quot;</li>
+<li>For each new posting, the Evaluation Agent is triggered (see Flow 3).</li>
+<li>Discovery run is logged: sources scanned, jobs found, new jobs, matched jobs.</li>
+<li>If any jobs pass the user&#39;s match threshold, a notification is sent (in-app + optional email digest).</li>
+</ol>
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li>API rate limits hit: system backs off and resumes on next scheduled run. Partial results are saved.</li>
+<li>Duplicate posting from different sources: deduplicated by company name + job title + location similarity.</li>
+<li>Job posting has expired since discovery: marked as expired during evaluation.</li>
+</ul>
+<hr>
+<h3>Flow 3: Job Evaluation</h3>
+<p><strong>Trigger:</strong> New job posting discovered or user manually adds a job URL.</p>
+<ol>
+<li>Evaluation Agent reads the full job description and the user&#39;s complete profile (work history, skills, achievements, education).</li>
+<li>Agent scores the job on five dimensions (each 0-100):<ul>
+<li><strong>Skill alignment:</strong> How many required/preferred skills does the user have?</li>
+<li><strong>Experience match:</strong> Does the user&#39;s years of experience and depth match the role?</li>
+<li><strong>Seniority fit:</strong> Is the role&#39;s level (junior/mid/senior/lead) appropriate?</li>
+<li><strong>Location compatibility:</strong> Does the location match the user&#39;s preferences (including remote)?</li>
+<li><strong>Technology overlap:</strong> Do the user&#39;s known technologies match the posting&#39;s stack?</li>
+</ul>
+</li>
+<li>Agent calculates an overall weighted score (0-100).</li>
+<li>Agent generates:<ul>
+<li>A recommendation label: strong_match, good_match, possible_match, weak_match, no_match</li>
+<li>A reasoning paragraph explaining the score</li>
+<li>A list of strengths (why the user is a good fit)</li>
+<li>A list of gaps (where the user may fall short)</li>
+</ul>
+</li>
+<li>If the overall score meets or exceeds the user&#39;s match threshold:<ul>
+<li>Evaluation is saved with <code>passes_threshold = true</code></li>
+<li>Application record is created with status &quot;draft&quot;</li>
+<li>Tailoring pipeline is triggered (Flow 4)</li>
+</ul>
+</li>
+<li>If the score is below threshold:<ul>
+<li>Evaluation is saved with <code>passes_threshold = false</code></li>
+<li>Job appears in the &quot;Below Threshold&quot; section of the dashboard (user can still manually approve)</li>
+</ul>
+</li>
+<li>User can view the full evaluation breakdown for any job from the dashboard.</li>
+</ol>
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li>Job description is too vague to score meaningfully: agent flags this in reasoning and assigns a conservative score.</li>
+<li>Job is clearly a scam or spam: agent flags it and skips evaluation.</li>
+<li>User manually overrides threshold for a specific job: application is created regardless of score.</li>
+</ul>
+<hr>
+<h3>Flow 4: Resume Tailoring &amp; Material Generation</h3>
+<p><strong>Trigger:</strong> Job passes evaluation threshold (or user manually triggers for a below-threshold job).</p>
+<ol>
+<li>Tailoring Agent reads:<ul>
+<li>The full job description</li>
+<li>The evaluation (strengths and gaps)</li>
+<li>The user&#39;s complete knowledge base (all work experience, achievements, skills, projects, education)</li>
+</ul>
+</li>
+<li>Agent generates a tailored resume by:<ul>
+<li>Selecting the most relevant work experience entries</li>
+<li>Reordering achievement bullets to prioritize those matching the job&#39;s requirements</li>
+<li>Adjusting phrasing to incorporate keywords from the job description</li>
+<li>Emphasizing technologies and skills mentioned in the posting</li>
+<li>Selecting relevant projects to include</li>
+<li><strong>Never inventing experience, companies, achievements, or metrics that don&#39;t exist in the knowledge base</strong></li>
+</ul>
+</li>
+<li>Tailored resume is saved as structured JSON and markdown.</li>
+<li>Materials Agent generates:<ul>
+<li><strong>Cover letter</strong> (optional, user-configurable): Personalized to the role, referencing specific aspects of the company and how the user&#39;s experience maps to the requirements.</li>
+<li><strong>Standard application answers:</strong> Pre-filled answers to common application questions (years of experience, work authorization, salary expectations, technical stack familiarity, etc.) — all grounded in verified profile data.</li>
+</ul>
+</li>
+<li>All materials are attached to the application record.</li>
+<li>Application status updated from &quot;draft&quot; to &quot;ready.&quot;</li>
+<li>Application appears in the user&#39;s Review Queue.</li>
+</ol>
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li>Knowledge base is thin (new user with minimal experience entered): agent works with what&#39;s available, flags to the user that adding more detail would improve tailoring.</li>
+<li>Job requires cover letter but user has disabled cover letter generation: field is left empty, user is prompted to write one or enable generation.</li>
+<li>Tailoring would require fabricating experience to be competitive: agent notes this in the tailoring notes and works only with verified data.</li>
+</ul>
+<hr>
+<h3>Flow 5: Review &amp; Approval</h3>
+<p><strong>Trigger:</strong> User opens the Review Queue (from dashboard or notification).</p>
+<ol>
+<li>User sees a list of prepared applications, sorted by match score (highest first). Each card shows: company name, role title, match score badge, time since prepared.</li>
+<li>User clicks an application to expand it.</li>
+<li>Expanded view shows:<ul>
+<li><strong>Job Details panel:</strong> Company, role, location, salary range, key requirements, application link.</li>
+<li><strong>Evaluation panel:</strong> Overall score, dimension scores, strengths, gaps, reasoning.</li>
+<li><strong>Resume Preview:</strong> The tailored resume rendered as it would appear in the final document. User can toggle between viewing the tailored version and their base resume to see what changed.</li>
+<li><strong>Cover Letter Preview:</strong> If generated. Editable inline.</li>
+<li><strong>Application Answers:</strong> Pre-filled answers. Each editable inline.</li>
+</ul>
+</li>
+<li>User can:<ul>
+<li><strong>Approve:</strong> Marks the application as approved. System generates the final resume file (DOCX and PDF). Opens the application URL in a new tab. Copies relevant data to clipboard (or shows a &quot;copy&quot; button next to each field).</li>
+<li><strong>Edit &amp; Approve:</strong> Make inline changes to any material, then approve.</li>
+<li><strong>Skip:</strong> Removes from queue. Application status set to &quot;skipped.&quot; Won&#39;t reappear.</li>
+<li><strong>Save for Later:</strong> Keeps in queue but moves to a &quot;Saved&quot; section.</li>
+</ul>
+</li>
+<li>After approval, application status becomes &quot;submitted&quot; (user confirms they&#39;ve submitted it externally).</li>
+<li>Application moves to the Tracker.</li>
+</ol>
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li>Application URL is no longer valid (posting removed): user is notified. Application can still be saved for reference.</li>
+<li>User edits the tailored resume: changes are saved to the resume version but do NOT modify the knowledge base (the knowledge base is the source of truth).</li>
+</ul>
+<hr>
+<h3>Flow 6: Application Tracking</h3>
+<p><strong>Trigger:</strong> User visits the Tracker, or an application status changes.</p>
+<ol>
+<li>Tracker displays all submitted applications in a kanban-style board with columns: Submitted, Acknowledged, Screening, Interviewing, Offer, Accepted, Rejected, Withdrawn.</li>
+<li>Each card shows: company, role, date submitted, days since last update.</li>
+<li>User clicks a card to see full details: all materials sent, the evaluation, a timeline of events, and notes.</li>
+<li>User manually updates status as they hear back (e.g., &quot;Got a phone screen scheduled for Tuesday&quot;).</li>
+<li>User can add notes and set reminders for follow-ups.</li>
+<li>Dashboard shows aggregate stats: total applications, response rate, interview rate, offers, average time to response.</li>
+</ol>
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li>User forgets to update status: system sends a gentle reminder after 14 days of no update on a &quot;Submitted&quot; application (&quot;Any updates on your application to [Company]?&quot;).</li>
+<li>Company ghosts the user: after 30 days with no update, application is suggested for &quot;Withdrawn&quot; status.</li>
+</ul>
+<hr>
+<h3>Flow 7: Manual Job Addition</h3>
+<p><strong>Trigger:</strong> User finds a job posting outside of Woodhouse and wants to use the tailoring pipeline.</p>
+<ol>
+<li>User clicks &quot;Add Job&quot; from the dashboard.</li>
+<li>User pastes the job posting URL.</li>
+<li>System fetches and parses the page content, extracting: title, company, location, description, requirements, application link.</li>
+<li>User reviews the extracted data and corrects any parsing errors.</li>
+<li>Job is saved and immediately sent through the Evaluation → Tailoring pipeline (Flows 3 and 4).</li>
+<li>Application appears in the Review Queue once materials are generated.</li>
+</ol>
+<p><strong>Edge cases:</strong></p>
+<ul>
+<li>URL is behind a login wall: system cannot access it. User is prompted to paste the job description text directly.</li>
+<li>Parsing extracts incorrect data: user corrects it in the review step before evaluation begins.</li>
+</ul>
+<hr>
+<h2>§4 Feature Set</h2>
+<h3>Launch Features (MVP)</h3>
+<p><strong>Job Discovery</strong></p>
+<ul>
+<li>Automated job scanning via aggregator APIs (Google Jobs via SerpAPI, JSearch) — runs on a configurable schedule per user.</li>
+<li>ATS board monitoring for Greenhouse and Lever career pages.</li>
+<li>Email forwarding: users forward job alert emails to a unique inbox address; system parses and ingests postings.</li>
+<li>Manual job URL input with automatic parsing.</li>
+<li>Deduplication across all sources.</li>
+<li>Configurable search preferences: keywords, locations, remote preference, excluded companies, excluded keywords, salary range, job types, industries, company sizes.</li>
+</ul>
+<p><strong>Job Evaluation</strong></p>
+<ul>
+<li>AI-powered match scoring on five dimensions: skill alignment, experience match, seniority fit, location compatibility, technology overlap.</li>
+<li>Configurable match threshold per user.</li>
+<li>Detailed evaluation breakdown with strengths, gaps, and reasoning.</li>
+<li>Manual override: users can force-evaluate or force-approve below-threshold jobs.</li>
+</ul>
+<p><strong>Resume Knowledge Base</strong></p>
+<ul>
+<li>Structured profile: work history, achievements, education, skills, projects, certifications.</li>
+<li>AI-assisted profile building: bullet improvement, skill suggestion, summary generation.</li>
+<li>Optional resume upload with parsing to pre-fill profile.</li>
+<li>Knowledge base is the single source of truth — no fabrication.</li>
+</ul>
+<p><strong>Resume Tailoring</strong></p>
+<ul>
+<li>Per-job tailored resumes generated from the knowledge base.</li>
+<li>Keyword optimization matching the job description.</li>
+<li>Achievement reordering and emphasis based on relevance.</li>
+<li>Output in DOCX and PDF formats.</li>
+<li>Side-by-side diff view: tailored vs. base resume.</li>
+</ul>
+<p><strong>Application Materials</strong></p>
+<ul>
+<li>AI-generated cover letters personalized to each role.</li>
+<li>Pre-filled standard application answers grounded in profile data.</li>
+<li>Inline editing of all generated materials before approval.</li>
+</ul>
+<p><strong>Review Queue</strong></p>
+<ul>
+<li>List of prepared applications sorted by match score.</li>
+<li>Expand to view full job details, evaluation, resume preview, cover letter, and answers.</li>
+<li>Actions: Approve, Edit &amp; Approve, Skip, Save for Later.</li>
+<li>On approval: generates final resume files, opens application URL, provides copy-to-clipboard for form fields.</li>
+</ul>
+<p><strong>Application Tracker</strong></p>
+<ul>
+<li>Kanban board: Submitted → Acknowledged → Screening → Interviewing → Offer → Accepted / Rejected / Withdrawn.</li>
+<li>Timeline of events per application.</li>
+<li>Notes and follow-up reminders.</li>
+<li>Aggregate statistics: response rate, interview rate, time to response.</li>
+</ul>
+<p><strong>Notifications</strong></p>
+<ul>
+<li>In-app notifications for new matched jobs and prepared applications.</li>
+<li>Optional email digest (daily or weekly) summarizing new matches and queue status.</li>
+</ul>
+<p><strong>Settings</strong></p>
+<ul>
+<li>Profile management (all knowledge base fields).</li>
+<li>Search preference configuration.</li>
+<li>Notification preferences.</li>
+<li>Account management (email, password).</li>
+<li>Subscription management.</li>
+</ul>
+<h3>Explicitly Not in MVP</h3>
+<ul>
+<li><strong>Auto-submit:</strong> MVP is open-link-and-copy. Auto-submit is Phase 2 (see §13).</li>
+<li><strong>LinkedIn integration:</strong> No LinkedIn API integration at launch (API access is restricted).</li>
+<li><strong>Interview preparation:</strong> No mock interviews or prep materials.</li>
+<li><strong>Salary negotiation:</strong> No negotiation tools or salary benchmarking.</li>
+<li><strong>Team/enterprise features:</strong> No shared accounts or team dashboards.</li>
+<li><strong>Mobile app:</strong> Web only. Responsive design for mobile browsers.</li>
+<li><strong>Browser extension:</strong> No extension for scraping jobs from other sites.</li>
+<li><strong>AI chat interface:</strong> No conversational interface. All interactions are through structured UI.</li>
+</ul>
+<h3>Post-MVP Roadmap</h3>
+<ul>
+<li><strong>Phase 2:</strong> Auto-submit for major ATS platforms (see §13).</li>
+<li><strong>Phase 3:</strong> Analytics and optimization — which resume versions generate interviews, which roles respond most, A/B testing resume strategies.</li>
+<li><strong>Phase 4:</strong> Career intelligence — skill gap analysis, career path recommendations, salary benchmarking.</li>
+<li><strong>Phase 5:</strong> Browser extension for one-click job capture from any site.</li>
+<li><strong>Phase 6:</strong> Interview preparation — AI mock interviews based on the specific role and company.</li>
+</ul>
+<hr>
+<h2>§5 AI Agent Architecture</h2>
+<p>Woodhouse uses a pipeline of specialized AI agents, each responsible for a discrete step in the job application workflow. Agents are implemented as Supabase Edge Functions that call the Anthropic API (Claude) with task-specific system prompts and structured outputs.</p>
+<h3>Agent Overview</h3>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Role</th>
+<th>Trigger</th>
+<th>Input</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Discovery Agent</td>
+<td>Find and normalize job postings</td>
+<td>Scheduled (cron)</td>
+<td>Search preferences, source configs</td>
+<td>Normalized job postings</td>
+</tr>
+<tr>
+<td>Evaluation Agent</td>
+<td>Score job fit</td>
+<td>New posting discovered</td>
+<td>Job posting + user profile</td>
+<td>Match scores, reasoning, recommendation</td>
+</tr>
+<tr>
+<td>Tailoring Agent</td>
+<td>Generate customized resume</td>
+<td>Job passes threshold</td>
+<td>Job posting + evaluation + knowledge base</td>
+<td>Tailored resume (JSON + markdown)</td>
+</tr>
+<tr>
+<td>Materials Agent</td>
+<td>Generate cover letter + answers</td>
+<td>After tailoring</td>
+<td>Job posting + evaluation + knowledge base + tailored resume</td>
+<td>Cover letter, application answers</td>
+</tr>
+<tr>
+<td>Orchestrator</td>
+<td>Manage pipeline execution</td>
+<td>Discovery run trigger</td>
+<td>Pipeline state</td>
+<td>Status updates, error handling</td>
+</tr>
+</tbody></table>
+<h3>Agent Design Principles</h3>
+<ol>
+<li><p><strong>Single responsibility:</strong> Each agent does one thing well. The Evaluation Agent only evaluates. It does not tailor resumes. The Tailoring Agent does not decide which jobs to apply to.</p>
+</li>
+<li><p><strong>Stateless execution:</strong> Agents read all context from the database at invocation time. They do not maintain state between runs. This makes them idempotent and retryable.</p>
+</li>
+<li><p><strong>Structured output:</strong> Every agent returns structured JSON, not free-form text. This ensures downstream agents and the UI can reliably parse results.</p>
+</li>
+<li><p><strong>Truthfulness constraint:</strong> The Tailoring and Materials agents operate under a hard constraint: they may only use information present in the user&#39;s knowledge base. This is enforced in the system prompt and validated post-generation.</p>
+</li>
+<li><p><strong>Graceful degradation:</strong> If an agent fails (API timeout, malformed response), the pipeline marks that step as failed and moves on. Failed items can be retried without re-running the entire pipeline.</p>
+</li>
+</ol>
+<h3>Orchestrator</h3>
+<p>The Orchestrator is not an AI agent — it is a control function (Supabase Edge Function) that manages the pipeline for each discovery run.</p>
+<p><strong>Orchestrator flow:</strong></p>
+<ol>
+<li>Triggered by cron schedule (every 6 hours per user, configurable).</li>
+<li>Creates a <code>discovery_run</code> record with status &quot;running.&quot;</li>
+<li>Invokes the Discovery Agent for each configured source.</li>
+<li>For each new posting returned, invokes the Evaluation Agent.</li>
+<li>For each posting that passes the threshold, invokes the Tailoring Agent.</li>
+<li>For each tailored resume, invokes the Materials Agent.</li>
+<li>Updates the discovery run record with counts and status.</li>
+<li>Triggers notifications if new applications are ready for review.</li>
+</ol>
+<p><strong>Error handling:</strong></p>
+<ul>
+<li>If a single job fails at any stage, it is logged and skipped. The pipeline continues for other jobs.</li>
+<li>If a source API is completely down, the orchestrator logs the failure and continues with other sources.</li>
+<li>Failed items are flagged for retry on the next run.</li>
+</ul>
+<p><strong>Concurrency:</strong></p>
+<ul>
+<li>Each user&#39;s pipeline runs independently.</li>
+<li>Within a pipeline, evaluation of multiple jobs can run concurrently (up to a concurrency limit to manage API costs).</li>
+<li>Tailoring and materials generation run sequentially per job (tailoring must complete before materials generation).</li>
+</ul>
+<h3>Discovery Agent — Detail</h3>
+<p><strong>System prompt context:</strong></p>
+<ul>
+<li>User&#39;s search preferences (keywords, locations, exclusions)</li>
+<li>Source configuration (API keys, board URLs)</li>
+</ul>
+<p><strong>Tools available:</strong></p>
+<ul>
+<li><code>search_google_jobs(query, location, radius)</code> — Calls SerpAPI Google Jobs endpoint</li>
+<li><code>search_jsearch(query, location, job_type)</code> — Calls JSearch API on RapidAPI</li>
+<li><code>scrape_greenhouse_board(board_url)</code> — Fetches and parses Greenhouse job board JSON</li>
+<li><code>scrape_lever_board(board_url)</code> — Fetches and parses Lever job board JSON</li>
+<li><code>parse_email_content(email_raw)</code> — Extracts job posting data from forwarded email HTML</li>
+</ul>
+<p><strong>Output schema:</strong></p>
+<pre><code class="language-json">{
+  &quot;postings&quot;: [
+    {
+      &quot;external_id&quot;: &quot;string&quot;,
+      &quot;source&quot;: &quot;google_jobs | jsearch | greenhouse | lever | email&quot;,
+      &quot;source_url&quot;: &quot;string&quot;,
+      &quot;company_name&quot;: &quot;string&quot;,
+      &quot;job_title&quot;: &quot;string&quot;,
+      &quot;location&quot;: &quot;string&quot;,
+      &quot;is_remote&quot;: &quot;boolean&quot;,
+      &quot;job_type&quot;: &quot;full_time | part_time | contract | freelance | internship&quot;,
+      &quot;experience_level&quot;: &quot;entry | mid | senior | lead | director | executive&quot;,
+      &quot;salary_min&quot;: &quot;number | null&quot;,
+      &quot;salary_max&quot;: &quot;number | null&quot;,
+      &quot;description_raw&quot;: &quot;string&quot;,
+      &quot;required_skills&quot;: [&quot;string&quot;],
+      &quot;preferred_skills&quot;: [&quot;string&quot;],
+      &quot;responsibilities&quot;: [&quot;string&quot;],
+      &quot;application_url&quot;: &quot;string&quot;,
+      &quot;posted_date&quot;: &quot;ISO8601 | null&quot;
+    }
+  ]
+}
+</code></pre>
+<h3>Evaluation Agent — Detail</h3>
+<p><strong>System prompt context:</strong></p>
+<ul>
+<li>The full job posting (structured)</li>
+<li>The user&#39;s complete profile: work history with achievements, skills with proficiency, education, projects, certifications</li>
+<li>Scoring rubric with dimension definitions and weight guidelines</li>
+</ul>
+<p><strong>Scoring rubric:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Weight</th>
+<th>What it measures</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Skill alignment</td>
+<td>30%</td>
+<td>Percentage of required skills the user possesses, weighted by proficiency</td>
+</tr>
+<tr>
+<td>Experience match</td>
+<td>25%</td>
+<td>Years of experience vs. requirement, depth of relevant experience</td>
+</tr>
+<tr>
+<td>Seniority fit</td>
+<td>15%</td>
+<td>Role level vs. user&#39;s career level</td>
+</tr>
+<tr>
+<td>Location compatibility</td>
+<td>15%</td>
+<td>Location match, remote compatibility</td>
+</tr>
+<tr>
+<td>Technology overlap</td>
+<td>15%</td>
+<td>Specific tech stack match</td>
+</tr>
+</tbody></table>
+<p><strong>Output schema:</strong></p>
+<pre><code class="language-json">{
+  &quot;overall_score&quot;: 82,
+  &quot;skill_score&quot;: 85,
+  &quot;experience_score&quot;: 90,
+  &quot;seniority_score&quot;: 75,
+  &quot;location_score&quot;: 100,
+  &quot;technology_score&quot;: 70,
+  &quot;recommendation&quot;: &quot;strong_match&quot;,
+  &quot;reasoning&quot;: &quot;string — 2-3 paragraph explanation&quot;,
+  &quot;strengths&quot;: [&quot;string&quot;],
+  &quot;gaps&quot;: [&quot;string&quot;]
+}
+</code></pre>
+<h3>Tailoring Agent — Detail</h3>
+<p><strong>System prompt context:</strong></p>
+<ul>
+<li>The full job posting</li>
+<li>The evaluation results (strengths and gaps)</li>
+<li>The user&#39;s complete knowledge base</li>
+<li>Hard constraint: &quot;You may ONLY use information present in the user&#39;s profile. Do not invent, fabricate, or embellish any experience, company, achievement, metric, or skill. You may rephrase, reorder, and emphasize — but every fact must trace back to a specific entry in the knowledge base.&quot;</li>
+</ul>
+<p><strong>Tailoring operations (permitted):</strong></p>
+<ul>
+<li>Reorder work experience entries to lead with most relevant</li>
+<li>Reorder achievement bullets within an experience entry</li>
+<li>Rephrase bullets to incorporate keywords from the job description</li>
+<li>Select which skills to highlight in a skills section</li>
+<li>Select which projects to include</li>
+<li>Adjust the professional summary to speak to this specific role</li>
+<li>Emphasize metrics and achievements that align with the posting</li>
+</ul>
+<p><strong>Tailoring operations (forbidden):</strong></p>
+<ul>
+<li>Adding experience at a company not in the knowledge base</li>
+<li>Inventing metrics or achievements</li>
+<li>Claiming skills the user hasn&#39;t listed</li>
+<li>Inflating job titles or proficiency levels</li>
+<li>Adding certifications the user doesn&#39;t hold</li>
+</ul>
+<p><strong>Output schema:</strong></p>
+<pre><code class="language-json">{
+  &quot;resume_content&quot;: {
+    &quot;header&quot;: {
+      &quot;full_name&quot;: &quot;string&quot;,
+      &quot;headline&quot;: &quot;string&quot;,
+      &quot;email&quot;: &quot;string&quot;,
+      &quot;phone&quot;: &quot;string&quot;,
+      &quot;location&quot;: &quot;string&quot;,
+      &quot;linkedin_url&quot;: &quot;string&quot;,
+      &quot;portfolio_url&quot;: &quot;string&quot;
+    },
+    &quot;summary&quot;: &quot;string — tailored professional summary&quot;,
+    &quot;work_experience&quot;: [
+      {
+        &quot;source_id&quot;: &quot;uuid — references knowledge base entry&quot;,
+        &quot;company_name&quot;: &quot;string&quot;,
+        &quot;job_title&quot;: &quot;string&quot;,
+        &quot;location&quot;: &quot;string&quot;,
+        &quot;start_date&quot;: &quot;string&quot;,
+        &quot;end_date&quot;: &quot;string | Present&quot;,
+        &quot;achievements&quot;: [
+          {
+            &quot;source_id&quot;: &quot;uuid — references knowledge base achievement&quot;,
+            &quot;text&quot;: &quot;string — potentially rephrased&quot;
+          }
+        ]
+      }
+    ],
+    &quot;skills&quot;: [&quot;string&quot;],
+    &quot;education&quot;: [
+      {
+        &quot;source_id&quot;: &quot;uuid&quot;,
+        &quot;institution&quot;: &quot;string&quot;,
+        &quot;degree&quot;: &quot;string&quot;,
+        &quot;field_of_study&quot;: &quot;string&quot;,
+        &quot;dates&quot;: &quot;string&quot;
+      }
+    ],
+    &quot;projects&quot;: [
+      {
+        &quot;source_id&quot;: &quot;uuid&quot;,
+        &quot;name&quot;: &quot;string&quot;,
+        &quot;description&quot;: &quot;string&quot;,
+        &quot;technologies&quot;: [&quot;string&quot;]
+      }
+    ],
+    &quot;certifications&quot;: [
+      {
+        &quot;source_id&quot;: &quot;uuid&quot;,
+        &quot;name&quot;: &quot;string&quot;,
+        &quot;issuer&quot;: &quot;string&quot;
+      }
+    ]
+  },
+  &quot;tailoring_notes&quot;: &quot;string — explanation of what was changed and why&quot;,
+  &quot;content_markdown&quot;: &quot;string — full resume in markdown format&quot;
+}
+</code></pre>
+<p>Every item includes a <code>source_id</code> tracing back to the knowledge base entry it was derived from. This enables the UI to show the diff between the tailored and base resume, and ensures auditability of the truthfulness constraint.</p>
+<h3>Materials Agent — Detail</h3>
+<p><strong>System prompt context:</strong></p>
+<ul>
+<li>The full job posting</li>
+<li>The evaluation results</li>
+<li>The tailored resume (so the cover letter complements rather than repeats)</li>
+<li>The user&#39;s profile data for application answers</li>
+</ul>
+<p><strong>Cover letter generation rules:</strong></p>
+<ul>
+<li>3-4 paragraphs maximum</li>
+<li>First paragraph: why this company/role specifically (not generic)</li>
+<li>Middle paragraphs: 2-3 specific examples from the user&#39;s experience that map to the role&#39;s key requirements</li>
+<li>Final paragraph: call to action, availability</li>
+<li>Tone: professional but not stiff, confident but not arrogant</li>
+<li>Must reference specific details from the job posting (not a template letter)</li>
+</ul>
+<p><strong>Application answers generation:</strong>
+Standard questions with auto-generated answers:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Years of relevant experience</td>
+<td>Calculated from work history</td>
+</tr>
+<tr>
+<td>Work authorization</td>
+<td>From profile</td>
+</tr>
+<tr>
+<td>Salary expectations</td>
+<td>From profile preferences</td>
+</tr>
+<tr>
+<td>Willing to relocate</td>
+<td>Derived from location preferences</td>
+</tr>
+<tr>
+<td>Technical proficiency in [X]</td>
+<td>From skills with proficiency level</td>
+</tr>
+<tr>
+<td>Why are you interested in this role?</td>
+<td>Generated from evaluation strengths</td>
+</tr>
+<tr>
+<td>When can you start?</td>
+<td>Default: &quot;2 weeks notice&quot; unless user specifies</td>
+</tr>
+</tbody></table>
+<p><strong>Output schema:</strong></p>
+<pre><code class="language-json">{
+  &quot;cover_letter&quot;: &quot;string — full cover letter text&quot;,
+  &quot;application_answers&quot;: [
+    {
+      &quot;question&quot;: &quot;string&quot;,
+      &quot;answer&quot;: &quot;string&quot;,
+      &quot;source&quot;: &quot;string — where this data came from in the profile&quot;
+    }
+  ]
+}
+</code></pre>
+<h3>Agent Execution Environment</h3>
+<p>All agents run as <strong>Supabase Edge Functions</strong> (Deno runtime).</p>
+<p><strong>Why Supabase Edge Functions over Next.js API routes:</strong></p>
+<ul>
+<li>150-second execution timeout (vs. 10s on Vercel Hobby, 60s on Vercel Pro)</li>
+<li>Direct access to Supabase database without network hop</li>
+<li>Can run background/scheduled work via pg_cron triggers</li>
+<li>Isolates AI workload from the user-facing web app</li>
+</ul>
+<p><strong>API call pattern:</strong></p>
+<pre><code>Edge Function → Anthropic API (Claude Sonnet for evaluation/tailoring, Haiku for parsing/normalization)
+</code></pre>
+<p><strong>Model selection:</strong></p>
+<ul>
+<li><strong>Claude Haiku 4.5:</strong> Job description parsing, email parsing, data normalization — fast, cheap, structured extraction tasks.</li>
+<li><strong>Claude Sonnet 4.6:</strong> Evaluation, resume tailoring, cover letter generation, application answers — requires reasoning and quality writing.</li>
+</ul>
+<p><strong>Cost management:</strong></p>
+<ul>
+<li>Haiku for high-volume, low-complexity tasks (discovery parsing)</li>
+<li>Sonnet for lower-volume, high-quality tasks (tailoring, evaluation)</li>
+<li>Caching: if a job posting hasn&#39;t changed, don&#39;t re-evaluate</li>
+<li>Batch processing: group multiple jobs per API call where possible</li>
+</ul>
+<hr>
+<h2>§6 Technical Architecture</h2>
+<h3>Stack</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Frontend</td>
+<td>Next.js 14+ (App Router)</td>
+<td>Server components, server actions, file-based routing. Industry standard for React apps on Vercel.</td>
+</tr>
+<tr>
+<td>Styling</td>
+<td>Tailwind CSS 3+</td>
+<td>Utility-first, rapid UI development, consistent design system implementation.</td>
+</tr>
+<tr>
+<td>UI Components</td>
+<td>shadcn/ui</td>
+<td>High-quality, accessible, customizable components built on Radix UI. Not a dependency — components are copied into the project.</td>
+</tr>
+<tr>
+<td>Backend/Database</td>
+<td>Supabase (PostgreSQL)</td>
+<td>Auth, database, storage, edge functions, realtime — single platform for all backend needs.</td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>Supabase Auth</td>
+<td>Email/password authentication. Integrated with RLS for row-level security.</td>
+</tr>
+<tr>
+<td>AI</td>
+<td>Anthropic API (Claude)</td>
+<td>Sonnet 4.6 for reasoning tasks, Haiku 4.5 for parsing tasks.</td>
+</tr>
+<tr>
+<td>File Storage</td>
+<td>Supabase Storage</td>
+<td>Generated resume files (PDF, DOCX).</td>
+</tr>
+<tr>
+<td>Resume Generation</td>
+<td><code>docx</code> (npm) for DOCX, <code>@react-pdf/renderer</code> for PDF</td>
+<td>Serverless-compatible document generation without browser dependencies.</td>
+</tr>
+<tr>
+<td>Job API</td>
+<td>SerpAPI (Google Jobs), JSearch (RapidAPI)</td>
+<td>Broad job posting coverage across sources.</td>
+</tr>
+<tr>
+<td>Email Ingestion</td>
+<td>SendGrid Inbound Parse (or Resend)</td>
+<td>Webhook-based email receiving for forwarded job alerts.</td>
+</tr>
+<tr>
+<td>Payments</td>
+<td>Stripe</td>
+<td>Subscription billing, customer portal, webhook-based status sync.</td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td>Vercel</td>
+<td>Optimized for Next.js. Automatic deployments, edge network, analytics.</td>
+</tr>
+<tr>
+<td>Cron/Scheduling</td>
+<td>Supabase pg_cron + Vercel Cron</td>
+<td>pg_cron for database-triggered jobs, Vercel Cron for HTTP-triggered schedules.</td>
+</tr>
+</tbody></table>
+<h3>Architecture Diagram (Conceptual)</h3>
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│                        VERCEL                            │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │              Next.js App (App Router)               │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌───────────────────┐  │  │
+│  │  │  Pages/   │ │  Server  │ │    API Routes     │  │  │
+│  │  │  Layouts  │ │  Actions │ │  (webhooks, etc)  │  │  │
+│  │  └──────────┘ └──────────┘ └───────────────────┘  │  │
+│  └────────────────────────────────────────────────────┘  │
+│  ┌──────────┐                                            │
+│  │  Cron    │ ← triggers pipeline on schedule            │
+│  └──────────┘                                            │
+└──────────────────────────┬───────────────────────────────┘
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│                       SUPABASE                           │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
+│  │ Postgres │ │   Auth   │ │ Storage  │ │   Edge    │  │
+│  │   (DB)   │ │          │ │ (files)  │ │ Functions │  │
+│  └──────────┘ └──────────┘ └──────────┘ └─────┬─────┘  │
+│                                                │         │
+│  ┌──────────┐                                  │         │
+│  │ Realtime │ ← push notifications to client   │         │
+│  └──────────┘                                  │         │
+└────────────────────────────────────────────────┼─────────┘
+                                                 │
+                           ┌─────────────────────┤
+                           ▼                     ▼
+                    ┌──────────┐          ┌──────────────┐
+                    │ Anthropic│          │  External    │
+                    │   API    │          │  Job APIs    │
+                    │ (Claude) │          │ SerpAPI, etc │
+                    └──────────┘          └──────────────┘
+</code></pre>
+<h3>Key Architectural Decisions</h3>
+<p><strong>Server Components by default.</strong> All pages use React Server Components unless client-side interactivity is required. This minimizes client bundle size and keeps data fetching on the server.</p>
+<p><strong>Supabase client usage:</strong></p>
+<ul>
+<li><strong>Server-side (Server Components, Server Actions, API Routes):</strong> Use <code>createServerClient</code> from <code>@supabase/ssr</code> with cookie-based auth.</li>
+<li><strong>Client-side (Client Components):</strong> Use <code>createBrowserClient</code> from <code>@supabase/ssr</code> for realtime subscriptions and optimistic updates only.</li>
+<li><strong>Edge Functions:</strong> Use <code>createClient</code> from <code>@supabase/supabase-js</code> with the service role key for admin-level access.</li>
+</ul>
+<p><strong>Row Level Security (RLS):</strong> Every table has RLS enabled. Users can only read/write their own data. Edge Functions use the service role key to bypass RLS when operating on behalf of users (e.g., writing discovery results).</p>
+<p><strong>AI calls are server-side only.</strong> The Anthropic API key is never exposed to the client. All AI operations happen in Supabase Edge Functions. The frontend never calls Claude directly.</p>
+<p><strong>File generation happens in Edge Functions.</strong> Resume PDF/DOCX files are generated in Supabase Edge Functions and uploaded to Supabase Storage. The frontend receives a signed URL to download the file.</p>
+<p><strong>Email forwarding architecture:</strong> Users receive a unique forwarding address (e.g., <code>jobs+{user_id_short}@inbound.woodhouse.app</code>). Emails sent to this address hit a SendGrid Inbound Parse webhook → Next.js API route → saved to database → triggers discovery pipeline for that email.</p>
+<p><strong>Realtime for pipeline status:</strong> The frontend subscribes to Supabase Realtime on the <code>applications</code> and <code>discovery_runs</code> tables. When the pipeline creates new evaluations or prepared applications, the dashboard updates without polling.</p>
+<h3>Environment Variables</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+<th>Where used</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NEXT_PUBLIC_SUPABASE_URL</code></td>
+<td>Supabase project URL</td>
+<td>Client + Server</td>
+</tr>
+<tr>
+<td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td>
+<td>Supabase anonymous key (RLS-restricted)</td>
+<td>Client + Server</td>
+</tr>
+<tr>
+<td><code>SUPABASE_SERVICE_ROLE_KEY</code></td>
+<td>Supabase admin key (bypasses RLS)</td>
+<td>Edge Functions only</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td>Claude API access</td>
+<td>Edge Functions only</td>
+</tr>
+<tr>
+<td><code>SERPAPI_API_KEY</code></td>
+<td>Google Jobs search</td>
+<td>Edge Functions only</td>
+</tr>
+<tr>
+<td><code>JSEARCH_API_KEY</code></td>
+<td>JSearch (RapidAPI)</td>
+<td>Edge Functions only</td>
+</tr>
+<tr>
+<td><code>STRIPE_SECRET_KEY</code></td>
+<td>Stripe billing</td>
+<td>Server Actions / API Routes</td>
+</tr>
+<tr>
+<td><code>STRIPE_WEBHOOK_SECRET</code></td>
+<td>Stripe webhook verification</td>
+<td>API Routes</td>
+</tr>
+<tr>
+<td><code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code></td>
+<td>Stripe client-side</td>
+<td>Client</td>
+</tr>
+<tr>
+<td><code>SENDGRID_WEBHOOK_SECRET</code></td>
+<td>Email inbound verification</td>
+<td>API Routes</td>
+</tr>
+<tr>
+<td><code>NEXT_PUBLIC_APP_URL</code></td>
+<td>Application base URL</td>
+<td>Client + Server</td>
+</tr>
+</tbody></table>
+<p><strong>Never expose</strong> <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>SERPAPI_API_KEY</code>, <code>JSEARCH_API_KEY</code>, or <code>STRIPE_SECRET_KEY</code> to the client. These are server/edge-only.</p>
+<hr>
+<h2>§7 Database Schema</h2>
+<p>All tables live in the <code>public</code> schema. Supabase Auth manages the <code>auth.users</code> table. RLS is enabled on every table.</p>
+<h3>Profiles</h3>
+<pre><code class="language-sql">CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  location TEXT,
+  linkedin_url TEXT,
+  portfolio_url TEXT,
+  github_url TEXT,
+  headline TEXT,
+  summary TEXT,
+  target_roles TEXT[] DEFAULT &#39;{}&#39;,
+  target_locations TEXT[] DEFAULT &#39;{}&#39;,
+  remote_preference TEXT DEFAULT &#39;flexible&#39;
+    CHECK (remote_preference IN (&#39;remote_only&#39;, &#39;hybrid&#39;, &#39;onsite&#39;, &#39;flexible&#39;)),
+  min_salary INTEGER,
+  max_salary INTEGER,
+  salary_currency TEXT DEFAULT &#39;USD&#39;,
+  experience_years INTEGER,
+  work_authorization TEXT,
+  match_threshold INTEGER DEFAULT 70 CHECK (match_threshold BETWEEN 0 AND 100),
+  cover_letter_enabled BOOLEAN DEFAULT TRUE,
+  email_digest TEXT DEFAULT &#39;daily&#39;
+    CHECK (email_digest IN (&#39;none&#39;, &#39;daily&#39;, &#39;weekly&#39;)),
+  forwarding_address TEXT UNIQUE,
+  onboarding_complete BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- RLS: users can only access their own profile
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can view own profile&quot;
+  ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY &quot;Users can update own profile&quot;
+  ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY &quot;Users can insert own profile&quot;
+  ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+</code></pre>
+<h3>Work Experiences</h3>
+<pre><code class="language-sql">CREATE TABLE public.work_experiences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  company_name TEXT NOT NULL,
+  job_title TEXT NOT NULL,
+  location TEXT,
+  start_date DATE NOT NULL,
+  end_date DATE,
+  is_current BOOLEAN DEFAULT FALSE,
+  description TEXT,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.work_experiences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own work experiences&quot;
+  ON public.work_experiences FOR ALL USING (
+    profile_id = auth.uid()
+  );
+
+CREATE INDEX idx_work_experiences_profile ON public.work_experiences(profile_id);
+</code></pre>
+<h3>Achievements</h3>
+<pre><code class="language-sql">CREATE TABLE public.achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  work_experience_id UUID NOT NULL REFERENCES public.work_experiences(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  metrics TEXT,
+  skills TEXT[] DEFAULT &#39;{}&#39;,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.achievements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own achievements&quot;
+  ON public.achievements FOR ALL USING (
+    work_experience_id IN (
+      SELECT id FROM public.work_experiences WHERE profile_id = auth.uid()
+    )
+  );
+
+CREATE INDEX idx_achievements_work_experience ON public.achievements(work_experience_id);
+</code></pre>
+<h3>Education</h3>
+<pre><code class="language-sql">CREATE TABLE public.education (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  institution TEXT NOT NULL,
+  degree TEXT NOT NULL,
+  field_of_study TEXT NOT NULL,
+  start_date DATE,
+  end_date DATE,
+  gpa NUMERIC(3,2),
+  achievements TEXT[] DEFAULT &#39;{}&#39;,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.education ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own education&quot;
+  ON public.education FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_education_profile ON public.education(profile_id);
+</code></pre>
+<h3>Skills</h3>
+<pre><code class="language-sql">CREATE TABLE public.skills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  category TEXT DEFAULT &#39;other&#39;
+    CHECK (category IN (&#39;technical&#39;, &#39;soft&#39;, &#39;language&#39;, &#39;certification&#39;, &#39;tool&#39;, &#39;framework&#39;, &#39;other&#39;)),
+  proficiency TEXT DEFAULT &#39;intermediate&#39;
+    CHECK (proficiency IN (&#39;beginner&#39;, &#39;intermediate&#39;, &#39;advanced&#39;, &#39;expert&#39;)),
+  years_experience INTEGER,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own skills&quot;
+  ON public.skills FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_skills_profile ON public.skills(profile_id);
+</code></pre>
+<h3>Projects</h3>
+<pre><code class="language-sql">CREATE TABLE public.projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  url TEXT,
+  technologies TEXT[] DEFAULT &#39;{}&#39;,
+  start_date DATE,
+  end_date DATE,
+  highlights TEXT[] DEFAULT &#39;{}&#39;,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own projects&quot;
+  ON public.projects FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_projects_profile ON public.projects(profile_id);
+</code></pre>
+<h3>Certifications</h3>
+<pre><code class="language-sql">CREATE TABLE public.certifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  issuing_organization TEXT NOT NULL,
+  issue_date DATE,
+  expiry_date DATE,
+  credential_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.certifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own certifications&quot;
+  ON public.certifications FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_certifications_profile ON public.certifications(profile_id);
+</code></pre>
+<h3>Search Preferences</h3>
+<pre><code class="language-sql">CREATE TABLE public.search_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  keywords TEXT[] NOT NULL DEFAULT &#39;{}&#39;,
+  excluded_keywords TEXT[] DEFAULT &#39;{}&#39;,
+  excluded_companies TEXT[] DEFAULT &#39;{}&#39;,
+  preferred_company_sizes TEXT[] DEFAULT &#39;{}&#39;,
+  preferred_industries TEXT[] DEFAULT &#39;{}&#39;,
+  min_salary INTEGER,
+  max_salary INTEGER,
+  job_types TEXT[] DEFAULT ARRAY[&#39;full_time&#39;],
+  scan_interval_hours INTEGER DEFAULT 6 CHECK (scan_interval_hours BETWEEN 1 AND 24),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  UNIQUE(profile_id)
+);
+
+ALTER TABLE public.search_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own search preferences&quot;
+  ON public.search_preferences FOR ALL USING (profile_id = auth.uid());
+</code></pre>
+<h3>Job Postings</h3>
+<pre><code class="language-sql">CREATE TABLE public.job_postings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  external_id TEXT,
+  source TEXT NOT NULL
+    CHECK (source IN (&#39;google_jobs&#39;, &#39;jsearch&#39;, &#39;greenhouse&#39;, &#39;lever&#39;, &#39;workday&#39;, &#39;manual&#39;, &#39;email&#39;, &#39;linkedin&#39;, &#39;indeed&#39;, &#39;other&#39;)),
+  source_url TEXT NOT NULL,
+  company_name TEXT NOT NULL,
+  company_logo_url TEXT,
+  job_title TEXT NOT NULL,
+  location TEXT,
+  is_remote BOOLEAN DEFAULT FALSE,
+  job_type TEXT
+    CHECK (job_type IN (&#39;full_time&#39;, &#39;part_time&#39;, &#39;contract&#39;, &#39;freelance&#39;, &#39;internship&#39;)),
+  experience_level TEXT
+    CHECK (experience_level IN (&#39;entry&#39;, &#39;mid&#39;, &#39;senior&#39;, &#39;lead&#39;, &#39;director&#39;, &#39;executive&#39;)),
+  salary_min INTEGER,
+  salary_max INTEGER,
+  salary_currency TEXT DEFAULT &#39;USD&#39;,
+  description_raw TEXT NOT NULL,
+  description_structured JSONB,
+  required_skills TEXT[] DEFAULT &#39;{}&#39;,
+  preferred_skills TEXT[] DEFAULT &#39;{}&#39;,
+  responsibilities TEXT[] DEFAULT &#39;{}&#39;,
+  benefits TEXT[] DEFAULT &#39;{}&#39;,
+  application_url TEXT,
+  application_method TEXT DEFAULT &#39;url&#39;
+    CHECK (application_method IN (&#39;url&#39;, &#39;email&#39;, &#39;api&#39;, &#39;unknown&#39;)),
+  posted_date TIMESTAMPTZ,
+  expires_date TIMESTAMPTZ,
+  discovered_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  status TEXT DEFAULT &#39;active&#39;
+    CHECK (status IN (&#39;active&#39;, &#39;expired&#39;, &#39;filled&#39;, &#39;removed&#39;)),
+  raw_data JSONB,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  UNIQUE(source, external_id)
+);
+
+-- No RLS on job_postings — they are shared across users.
+-- Access is controlled through joins with user-specific evaluations and applications.
+-- Edge Functions write with service role key.
+
+CREATE INDEX idx_job_postings_source ON public.job_postings(source);
+CREATE INDEX idx_job_postings_status ON public.job_postings(status);
+CREATE INDEX idx_job_postings_company ON public.job_postings(company_name);
+CREATE INDEX idx_job_postings_discovered ON public.job_postings(discovered_at DESC);
+</code></pre>
+<h3>Job Evaluations</h3>
+<pre><code class="language-sql">CREATE TABLE public.job_evaluations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  job_posting_id UUID NOT NULL REFERENCES public.job_postings(id) ON DELETE CASCADE,
+  overall_score INTEGER NOT NULL CHECK (overall_score BETWEEN 0 AND 100),
+  skill_score INTEGER CHECK (skill_score BETWEEN 0 AND 100),
+  experience_score INTEGER CHECK (experience_score BETWEEN 0 AND 100),
+  seniority_score INTEGER CHECK (seniority_score BETWEEN 0 AND 100),
+  location_score INTEGER CHECK (location_score BETWEEN 0 AND 100),
+  technology_score INTEGER CHECK (technology_score BETWEEN 0 AND 100),
+  reasoning TEXT,
+  strengths TEXT[] DEFAULT &#39;{}&#39;,
+  gaps TEXT[] DEFAULT &#39;{}&#39;,
+  recommendation TEXT
+    CHECK (recommendation IN (&#39;strong_match&#39;, &#39;good_match&#39;, &#39;possible_match&#39;, &#39;weak_match&#39;, &#39;no_match&#39;)),
+  passes_threshold BOOLEAN NOT NULL,
+  evaluated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  UNIQUE(profile_id, job_posting_id)
+);
+
+ALTER TABLE public.job_evaluations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can view own evaluations&quot;
+  ON public.job_evaluations FOR SELECT USING (profile_id = auth.uid());
+
+CREATE INDEX idx_evaluations_profile ON public.job_evaluations(profile_id);
+CREATE INDEX idx_evaluations_job ON public.job_evaluations(job_posting_id);
+CREATE INDEX idx_evaluations_score ON public.job_evaluations(overall_score DESC);
+</code></pre>
+<h3>Applications</h3>
+<pre><code class="language-sql">CREATE TABLE public.applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  job_posting_id UUID NOT NULL REFERENCES public.job_postings(id) ON DELETE CASCADE,
+  job_evaluation_id UUID REFERENCES public.job_evaluations(id),
+  status TEXT DEFAULT &#39;draft&#39;
+    CHECK (status IN (
+      &#39;draft&#39;, &#39;ready&#39;, &#39;approved&#39;, &#39;submitted&#39;, &#39;acknowledged&#39;,
+      &#39;screening&#39;, &#39;interviewing&#39;, &#39;offer&#39;, &#39;accepted&#39;, &#39;rejected&#39;,
+      &#39;withdrawn&#39;, &#39;skipped&#39;
+    )),
+  cover_letter TEXT,
+  application_answers JSONB DEFAULT &#39;[]&#39;,
+  notes TEXT,
+  submitted_at TIMESTAMPTZ,
+  response_received_at TIMESTAMPTZ,
+  next_step TEXT,
+  next_step_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  UNIQUE(profile_id, job_posting_id)
+);
+
+ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own applications&quot;
+  ON public.applications FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_applications_profile ON public.applications(profile_id);
+CREATE INDEX idx_applications_status ON public.applications(status);
+CREATE INDEX idx_applications_job ON public.applications(job_posting_id);
+</code></pre>
+<h3>Resume Versions</h3>
+<pre><code class="language-sql">CREATE TABLE public.resume_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  application_id UUID REFERENCES public.applications(id) ON DELETE SET NULL,
+  job_posting_id UUID REFERENCES public.job_postings(id),
+  content_json JSONB NOT NULL,
+  content_markdown TEXT,
+  file_url_pdf TEXT,
+  file_url_docx TEXT,
+  tailoring_notes TEXT,
+  is_base BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.resume_versions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own resume versions&quot;
+  ON public.resume_versions FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_resume_versions_profile ON public.resume_versions(profile_id);
+CREATE INDEX idx_resume_versions_application ON public.resume_versions(application_id);
+</code></pre>
+<h3>Application Events</h3>
+<pre><code class="language-sql">CREATE TABLE public.application_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  application_id UUID NOT NULL REFERENCES public.applications(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL
+    CHECK (event_type IN (
+      &#39;created&#39;, &#39;materials_generated&#39;, &#39;approved&#39;, &#39;submitted&#39;,
+      &#39;response_received&#39;, &#39;interview_scheduled&#39;, &#39;interview_completed&#39;,
+      &#39;offer_received&#39;, &#39;accepted&#39;, &#39;rejected&#39;, &#39;withdrawn&#39;,
+      &#39;note_added&#39;, &#39;follow_up_sent&#39;, &#39;status_changed&#39;
+    )),
+  description TEXT,
+  metadata JSONB,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.application_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can view own application events&quot;
+  ON public.application_events FOR SELECT USING (
+    application_id IN (
+      SELECT id FROM public.applications WHERE profile_id = auth.uid()
+    )
+  );
+
+CREATE INDEX idx_events_application ON public.application_events(application_id);
+CREATE INDEX idx_events_created ON public.application_events(created_at DESC);
+</code></pre>
+<h3>Discovery Runs</h3>
+<pre><code class="language-sql">CREATE TABLE public.discovery_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  status TEXT DEFAULT &#39;pending&#39;
+    CHECK (status IN (&#39;pending&#39;, &#39;running&#39;, &#39;completed&#39;, &#39;failed&#39;)),
+  sources_scanned TEXT[] DEFAULT &#39;{}&#39;,
+  jobs_found INTEGER DEFAULT 0,
+  jobs_new INTEGER DEFAULT 0,
+  jobs_matched INTEGER DEFAULT 0,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  error TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.discovery_runs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can view own discovery runs&quot;
+  ON public.discovery_runs FOR SELECT USING (profile_id = auth.uid());
+
+CREATE INDEX idx_discovery_runs_profile ON public.discovery_runs(profile_id);
+CREATE INDEX idx_discovery_runs_status ON public.discovery_runs(status);
+</code></pre>
+<h3>Subscriptions</h3>
+<pre><code class="language-sql">CREATE TABLE public.subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL DEFAULT &#39;free&#39;
+    CHECK (plan IN (&#39;free&#39;, &#39;pro&#39;, &#39;premium&#39;)),
+  status TEXT DEFAULT &#39;active&#39;
+    CHECK (status IN (&#39;active&#39;, &#39;cancelled&#39;, &#39;past_due&#39;, &#39;trialing&#39;)),
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
+  applications_used INTEGER DEFAULT 0,
+  applications_limit INTEGER NOT NULL DEFAULT 5,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  UNIQUE(profile_id)
+);
+
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can view own subscription&quot;
+  ON public.subscriptions FOR SELECT USING (profile_id = auth.uid());
+
+CREATE INDEX idx_subscriptions_profile ON public.subscriptions(profile_id);
+CREATE INDEX idx_subscriptions_stripe ON public.subscriptions(stripe_customer_id);
+</code></pre>
+<h3>Notifications</h3>
+<pre><code class="language-sql">CREATE TABLE public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  type TEXT NOT NULL
+    CHECK (type IN (
+      &#39;new_matches&#39;, &#39;applications_ready&#39;, &#39;follow_up_reminder&#39;,
+      &#39;status_stale&#39;, &#39;subscription_warning&#39;, &#39;system&#39;
+    )),
+  title TEXT NOT NULL,
+  body TEXT,
+  metadata JSONB,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY &quot;Users can manage own notifications&quot;
+  ON public.notifications FOR ALL USING (profile_id = auth.uid());
+
+CREATE INDEX idx_notifications_profile ON public.notifications(profile_id);
+CREATE INDEX idx_notifications_unread ON public.notifications(profile_id, read) WHERE read = FALSE;
+</code></pre>
+<h3>Database Functions</h3>
+<pre><code class="language-sql">-- Auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply to all tables with updated_at
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.work_experiences
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.achievements
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.education
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.projects
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.search_preferences
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.job_postings
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.applications
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Auto-create profile and subscription on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data-&gt;&gt;&#39;full_name&#39;, &#39;&#39;)
+  );
+  INSERT INTO public.subscriptions (profile_id, plan, applications_limit)
+  VALUES (NEW.id, &#39;free&#39;, 5);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Increment applications_used when an application is approved
+CREATE OR REPLACE FUNCTION public.handle_application_approved()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = &#39;approved&#39; AND (OLD.status IS NULL OR OLD.status != &#39;approved&#39;) THEN
+    UPDATE public.subscriptions
+    SET applications_used = applications_used + 1
+    WHERE profile_id = NEW.profile_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_application_approved
+  AFTER INSERT OR UPDATE ON public.applications
+  FOR EACH ROW EXECUTE FUNCTION public.handle_application_approved();
+
+-- Log application status changes
+CREATE OR REPLACE FUNCTION public.handle_application_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.status IS DISTINCT FROM NEW.status THEN
+    INSERT INTO public.application_events (application_id, event_type, description)
+    VALUES (NEW.id, &#39;status_changed&#39;, &#39;Status changed from &#39; || OLD.status || &#39; to &#39; || NEW.status);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_application_status_change
+  AFTER UPDATE ON public.applications
+  FOR EACH ROW EXECUTE FUNCTION public.handle_application_status_change();
+</code></pre>
+<hr>
+<h2>§8 API Design</h2>
+<h3>Conventions</h3>
+<ul>
+<li>All API routes are Next.js App Router route handlers (<code>app/api/...</code>) or Server Actions.</li>
+<li>Authentication: Supabase Auth session via cookies. Every authenticated request validates the session server-side.</li>
+<li>Error format: <code>{ &quot;error&quot;: { &quot;code&quot;: &quot;string&quot;, &quot;message&quot;: &quot;string&quot; } }</code></li>
+<li>Success format: <code>{ &quot;data&quot;: &lt;response&gt; }</code> or <code>{ &quot;data&quot;: &lt;response&gt;, &quot;meta&quot;: { &quot;total&quot;: number, &quot;page&quot;: number } }</code></li>
+<li>Dates: ISO 8601 format.</li>
+<li>IDs: UUID v4.</li>
+<li>Pagination: <code>?page=1&amp;limit=20</code> (default limit 20, max 100).</li>
+</ul>
+<h3>Auth Endpoints</h3>
+<p>These are handled by Supabase Auth client library, not custom endpoints:</p>
+<ul>
+<li><code>supabase.auth.signUp({ email, password, options: { data: { full_name } } })</code></li>
+<li><code>supabase.auth.signInWithPassword({ email, password })</code></li>
+<li><code>supabase.auth.signOut()</code></li>
+<li><code>supabase.auth.resetPasswordForEmail(email)</code></li>
+</ul>
+<h3>Profile</h3>
+<p><strong>GET /api/profile</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Full profile object with nested work_experiences (with achievements), education, skills, projects, certifications, search_preferences</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;id&quot;: &quot;uuid&quot;,
+    &quot;email&quot;: &quot;string&quot;,
+    &quot;full_name&quot;: &quot;string&quot;,
+    &quot;phone&quot;: &quot;string | null&quot;,
+    &quot;location&quot;: &quot;string | null&quot;,
+    &quot;headline&quot;: &quot;string | null&quot;,
+    &quot;summary&quot;: &quot;string | null&quot;,
+    &quot;target_roles&quot;: [&quot;string&quot;],
+    &quot;target_locations&quot;: [&quot;string&quot;],
+    &quot;remote_preference&quot;: &quot;string&quot;,
+    &quot;min_salary&quot;: &quot;number | null&quot;,
+    &quot;max_salary&quot;: &quot;number | null&quot;,
+    &quot;experience_years&quot;: &quot;number | null&quot;,
+    &quot;work_authorization&quot;: &quot;string | null&quot;,
+    &quot;match_threshold&quot;: 70,
+    &quot;cover_letter_enabled&quot;: true,
+    &quot;onboarding_complete&quot;: false,
+    &quot;work_experiences&quot;: [...],
+    &quot;education&quot;: [...],
+    &quot;skills&quot;: [...],
+    &quot;projects&quot;: [...],
+    &quot;certifications&quot;: [...],
+    &quot;search_preferences&quot;: {...}
+  }
+}
+</code></pre>
+<p><strong>PATCH /api/profile</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Body: Partial profile fields (top-level only)</li>
+<li>Response: Updated profile</li>
+</ul>
+<h3>Work Experience (Server Actions)</h3>
+<p>These use Next.js Server Actions for simpler CRUD:</p>
+<ul>
+<li><code>createWorkExperience(data)</code> → creates entry, returns it</li>
+<li><code>updateWorkExperience(id, data)</code> → updates, returns it</li>
+<li><code>deleteWorkExperience(id)</code> → deletes</li>
+<li><code>reorderWorkExperiences(ids[])</code> → updates sort_order</li>
+</ul>
+<h3>Achievements (Server Actions)</h3>
+<ul>
+<li><code>createAchievement(workExperienceId, data)</code> → creates</li>
+<li><code>updateAchievement(id, data)</code> → updates</li>
+<li><code>deleteAchievement(id)</code> → deletes</li>
+<li><code>reorderAchievements(workExperienceId, ids[])</code> → updates sort_order</li>
+<li><code>improveAchievement(id)</code> → calls AI to rewrite the bullet for impact, returns suggestion (does not auto-save)</li>
+</ul>
+<h3>Education, Skills, Projects, Certifications (Server Actions)</h3>
+<p>Same CRUD pattern as work experience for each entity type.</p>
+<h3>Search Preferences (Server Actions)</h3>
+<ul>
+<li><code>updateSearchPreferences(data)</code> → upserts, returns preferences</li>
+</ul>
+<h3>AI Assist (Server Actions)</h3>
+<ul>
+<li><code>generateSummary()</code> → AI generates professional summary from profile data</li>
+<li><code>suggestSkills()</code> → AI analyzes work history and suggests skills to add</li>
+<li><code>improveAchievement(achievementId)</code> → AI rewrites a single achievement bullet</li>
+</ul>
+<h3>Job Postings</h3>
+<p><strong>GET /api/jobs</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Query params: <code>?status=active&amp;page=1&amp;limit=20&amp;sort=discovered_at&amp;order=desc</code></li>
+<li>Response: Paginated list of job postings with the user&#39;s evaluation (if exists)</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;data&quot;: [
+    {
+      &quot;id&quot;: &quot;uuid&quot;,
+      &quot;company_name&quot;: &quot;string&quot;,
+      &quot;job_title&quot;: &quot;string&quot;,
+      &quot;location&quot;: &quot;string&quot;,
+      &quot;is_remote&quot;: true,
+      &quot;source&quot;: &quot;string&quot;,
+      &quot;posted_date&quot;: &quot;ISO8601&quot;,
+      &quot;evaluation&quot;: {
+        &quot;overall_score&quot;: 85,
+        &quot;recommendation&quot;: &quot;strong_match&quot;,
+        &quot;passes_threshold&quot;: true
+      } | null
+    }
+  ],
+  &quot;meta&quot;: { &quot;total&quot;: 142, &quot;page&quot;: 1, &quot;limit&quot;: 20 }
+}
+</code></pre>
+<p><strong>GET /api/jobs/:id</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Full job posting with evaluation details</li>
+</ul>
+<p><strong>POST /api/jobs/manual</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Body: <code>{ &quot;url&quot;: &quot;string&quot; }</code> or <code>{ &quot;title&quot;: &quot;string&quot;, &quot;company&quot;: &quot;string&quot;, &quot;description&quot;: &quot;string&quot;, ... }</code></li>
+<li>Action: Fetches and parses the URL (if URL provided), creates job posting, triggers evaluation pipeline.</li>
+<li>Response: Created job posting</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;id&quot;: &quot;uuid&quot;,
+    &quot;job_title&quot;: &quot;string&quot;,
+    &quot;company_name&quot;: &quot;string&quot;,
+    &quot;status&quot;: &quot;active&quot;,
+    &quot;pipeline_status&quot;: &quot;evaluating&quot;
+  }
+}
+</code></pre>
+<h3>Evaluations</h3>
+<p><strong>GET /api/evaluations</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Query: <code>?passes_threshold=true&amp;page=1&amp;limit=20&amp;sort=overall_score&amp;order=desc</code></li>
+<li>Response: Paginated evaluations with job posting summary</li>
+</ul>
+<p><strong>GET /api/evaluations/:id</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Full evaluation with all dimension scores, reasoning, strengths, gaps</li>
+</ul>
+<p><strong>POST /api/evaluations/:jobPostingId/override</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Action: Force-creates an application for a below-threshold job</li>
+<li>Response: Created application</li>
+</ul>
+<h3>Applications</h3>
+<p><strong>GET /api/applications</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Query: <code>?status=ready&amp;page=1&amp;limit=20</code></li>
+<li>Response: Paginated applications with job posting and evaluation summary</li>
+</ul>
+<p><strong>GET /api/applications/:id</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Full application with job posting, evaluation, resume version, cover letter, answers</li>
+</ul>
+<p><strong>PATCH /api/applications/:id</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Body: Partial update (status, cover_letter, application_answers, notes, next_step, next_step_date)</li>
+<li>Response: Updated application</li>
+</ul>
+<p><strong>POST /api/applications/:id/approve</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Action: Sets status to &quot;approved&quot;, generates final resume files (PDF + DOCX), returns download URLs</li>
+<li>Checks subscription limit before approving</li>
+<li>Response:</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;id&quot;: &quot;uuid&quot;,
+    &quot;status&quot;: &quot;approved&quot;,
+    &quot;resume_pdf_url&quot;: &quot;string (signed URL)&quot;,
+    &quot;resume_docx_url&quot;: &quot;string (signed URL)&quot;,
+    &quot;application_url&quot;: &quot;string&quot;,
+    &quot;cover_letter&quot;: &quot;string&quot;,
+    &quot;application_answers&quot;: [...]
+  }
+}
+</code></pre>
+<p><strong>POST /api/applications/:id/submit</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Action: Marks application as &quot;submitted&quot;, logs event with timestamp</li>
+<li>Response: Updated application</li>
+</ul>
+<p><strong>POST /api/applications/:id/skip</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Action: Sets status to &quot;skipped&quot;</li>
+</ul>
+<h3>Resume Versions</h3>
+<p><strong>GET /api/resumes/:applicationId</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Resume version with content_json, content_markdown, tailoring_notes, file URLs</li>
+</ul>
+<p><strong>GET /api/resumes/:applicationId/diff</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Side-by-side comparison of tailored resume vs. base profile data</li>
+</ul>
+<h3>Application Events</h3>
+<p><strong>GET /api/applications/:id/events</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Chronological list of events for the application</li>
+</ul>
+<p><strong>POST /api/applications/:id/events</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Body: <code>{ &quot;event_type&quot;: &quot;note_added&quot;, &quot;description&quot;: &quot;string&quot; }</code></li>
+<li>Response: Created event</li>
+</ul>
+<h3>Dashboard</h3>
+<p><strong>GET /api/dashboard</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Response: Aggregated dashboard data</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;queue_count&quot;: 12,
+    &quot;applications_this_period&quot;: 3,
+    &quot;applications_limit&quot;: 5,
+    &quot;total_submitted&quot;: 47,
+    &quot;response_rate&quot;: 0.23,
+    &quot;interview_rate&quot;: 0.12,
+    &quot;last_discovery_run&quot;: {
+      &quot;completed_at&quot;: &quot;ISO8601&quot;,
+      &quot;jobs_found&quot;: 34,
+      &quot;jobs_matched&quot;: 8
+    },
+    &quot;recent_matches&quot;: [...],
+    &quot;recent_activity&quot;: [...]
+  }
+}
+</code></pre>
+<h3>Notifications</h3>
+<p><strong>GET /api/notifications</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Query: <code>?read=false&amp;page=1&amp;limit=20</code></li>
+<li>Response: Paginated notifications</li>
+</ul>
+<p><strong>PATCH /api/notifications/:id/read</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Action: Marks notification as read</li>
+</ul>
+<p><strong>POST /api/notifications/read-all</strong></p>
+<ul>
+<li>Auth: Required</li>
+<li>Action: Marks all notifications as read</li>
+</ul>
+<h3>Webhooks</h3>
+<p><strong>POST /api/webhooks/stripe</strong></p>
+<ul>
+<li>Auth: Stripe webhook signature verification</li>
+<li>Handles: <code>checkout.session.completed</code>, <code>customer.subscription.updated</code>, <code>customer.subscription.deleted</code>, <code>invoice.payment_failed</code></li>
+<li>Updates subscription status and limits in database</li>
+</ul>
+<p><strong>POST /api/webhooks/email-inbound</strong></p>
+<ul>
+<li>Auth: SendGrid webhook signature verification</li>
+<li>Handles: Inbound email received</li>
+<li>Action: Parses email, identifies user by forwarding address, creates job posting, triggers pipeline</li>
+</ul>
+<h3>Supabase Edge Functions</h3>
+<p>These are not called directly by the frontend. They are invoked by cron triggers or by other server-side code.</p>
+<p><strong><code>/functions/v1/run-discovery</code></strong></p>
+<ul>
+<li>Input: <code>{ &quot;profile_id&quot;: &quot;uuid&quot; }</code></li>
+<li>Action: Runs the full discovery → evaluation → tailoring → materials pipeline for the user</li>
+<li>Called by: Vercel Cron or pg_cron</li>
+</ul>
+<p><strong><code>/functions/v1/evaluate-job</code></strong></p>
+<ul>
+<li>Input: <code>{ &quot;profile_id&quot;: &quot;uuid&quot;, &quot;job_posting_id&quot;: &quot;uuid&quot; }</code></li>
+<li>Action: Runs the Evaluation Agent for a single job</li>
+</ul>
+<p><strong><code>/functions/v1/tailor-resume</code></strong></p>
+<ul>
+<li>Input: <code>{ &quot;profile_id&quot;: &quot;uuid&quot;, &quot;job_posting_id&quot;: &quot;uuid&quot;, &quot;application_id&quot;: &quot;uuid&quot; }</code></li>
+<li>Action: Runs the Tailoring Agent, then the Materials Agent</li>
+</ul>
+<p><strong><code>/functions/v1/generate-resume-files</code></strong></p>
+<ul>
+<li>Input: <code>{ &quot;resume_version_id&quot;: &quot;uuid&quot; }</code></li>
+<li>Action: Generates PDF and DOCX files from the resume JSON, uploads to Supabase Storage</li>
+</ul>
+<p><strong><code>/functions/v1/parse-job-url</code></strong></p>
+<ul>
+<li>Input: <code>{ &quot;url&quot;: &quot;string&quot; }</code></li>
+<li>Action: Fetches URL, parses job posting content, returns structured data</li>
+</ul>
+<hr>
+<h2>§9 Screens</h2>
+<h3>Screen Inventory</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Screen</th>
+<th>Route</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Landing Page</td>
+<td><code>/</code></td>
+<td>No</td>
+<td>Marketing page, value prop, pricing, CTA to sign up</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Sign Up</td>
+<td><code>/signup</code></td>
+<td>No</td>
+<td>Email + password + full name registration form</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Sign In</td>
+<td><code>/signin</code></td>
+<td>No</td>
+<td>Email + password login form</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Forgot Password</td>
+<td><code>/forgot-password</code></td>
+<td>No</td>
+<td>Password reset email request</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Onboarding — Basic Info</td>
+<td><code>/onboarding/basics</code></td>
+<td>Yes</td>
+<td>Name, location, links</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Onboarding — Headline</td>
+<td><code>/onboarding/headline</code></td>
+<td>Yes</td>
+<td>Professional headline + summary with AI assist</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Onboarding — Work Experience</td>
+<td><code>/onboarding/experience</code></td>
+<td>Yes</td>
+<td>Add/edit work history + achievement bullets</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Onboarding — Education</td>
+<td><code>/onboarding/education</code></td>
+<td>Yes</td>
+<td>Add/edit education entries</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Onboarding — Skills</td>
+<td><code>/onboarding/skills</code></td>
+<td>Yes</td>
+<td>Add skills with AI suggestions</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Onboarding — Projects &amp; Certs</td>
+<td><code>/onboarding/projects</code></td>
+<td>Yes</td>
+<td>Optional projects and certifications</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Onboarding — Preferences</td>
+<td><code>/onboarding/preferences</code></td>
+<td>Yes</td>
+<td>Job search preferences and match threshold</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Onboarding — Resume Upload</td>
+<td><code>/onboarding/upload</code></td>
+<td>Yes</td>
+<td>Optional resume upload with parsing</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Dashboard</td>
+<td><code>/dashboard</code></td>
+<td>Yes</td>
+<td>Overview: queue count, stats, recent matches, activity feed</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Job Feed</td>
+<td><code>/jobs</code></td>
+<td>Yes</td>
+<td>All discovered jobs with filters, search, sort</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Job Detail</td>
+<td><code>/jobs/:id</code></td>
+<td>Yes</td>
+<td>Full job posting + evaluation breakdown</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Review Queue</td>
+<td><code>/queue</code></td>
+<td>Yes</td>
+<td>Prepared applications awaiting approval</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Application Detail</td>
+<td><code>/queue/:id</code></td>
+<td>Yes</td>
+<td>Full application: job, evaluation, resume preview, cover letter, answers</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Resume Preview</td>
+<td><code>/queue/:id/resume</code></td>
+<td>Yes</td>
+<td>Full-page tailored resume preview with base comparison</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Application Tracker</td>
+<td><code>/tracker</code></td>
+<td>Yes</td>
+<td>Kanban board of all submitted applications</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Application Tracker Detail</td>
+<td><code>/tracker/:id</code></td>
+<td>Yes</td>
+<td>Single application: timeline, notes, materials, status management</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Add Job</td>
+<td><code>/jobs/add</code></td>
+<td>Yes</td>
+<td>Manual job URL input or paste description</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Profile</td>
+<td><code>/settings/profile</code></td>
+<td>Yes</td>
+<td>Edit all knowledge base fields</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Search Preferences</td>
+<td><code>/settings/preferences</code></td>
+<td>Yes</td>
+<td>Edit search preferences</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Notifications</td>
+<td><code>/notifications</code></td>
+<td>Yes</td>
+<td>All notifications with read/unread state</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Subscription</td>
+<td><code>/settings/subscription</code></td>
+<td>Yes</td>
+<td>Current plan, usage, upgrade/downgrade</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Account Settings</td>
+<td><code>/settings/account</code></td>
+<td>Yes</td>
+<td>Email, password, delete account</td>
+</tr>
+</tbody></table>
+<h3>Screen Details</h3>
+<h4>1. Landing Page (<code>/</code>)</h4>
+<p><strong>Layout:</strong> Full-width marketing page. No sidebar. Sticky top nav with logo, &quot;Sign In&quot; link, and &quot;Get Started&quot; CTA button.</p>
+<p><strong>Sections:</strong></p>
+<ul>
+<li><strong>Hero:</strong> Headline: &quot;Your AI Recruiting Agent.&quot; Subheading: &quot;Woodhouse finds jobs, tailors your resume, and prepares applications — while you focus on what matters.&quot; CTA: &quot;Get Started Free.&quot; Hero illustration or product screenshot.</li>
+<li><strong>How It Works:</strong> Three-step visual: 1) Set up your profile, 2) Woodhouse scans and matches, 3) Review and apply. Each step has an icon, title, and one sentence.</li>
+<li><strong>Features Grid:</strong> 6 feature cards: Automated Discovery, Smart Matching, Resume Tailoring, Material Generation, Review Queue, Application Tracking. Each card: icon, title, 2-sentence description.</li>
+<li><strong>Pricing:</strong> Three-tier pricing table (Free, Pro, Premium). See §11 for tier details.</li>
+<li><strong>Footer:</strong> Links, legal, contact.</li>
+</ul>
+<h4>2-4. Auth Screens (<code>/signup</code>, <code>/signin</code>, <code>/forgot-password</code>)</h4>
+<p><strong>Layout:</strong> Centered card on a clean background. Logo above the card.</p>
+<p><strong>Sign Up form:</strong> Full name, email, password, confirm password. &quot;Create Account&quot; button. Link to Sign In.
+<strong>Sign In form:</strong> Email, password. &quot;Sign In&quot; button. Link to Forgot Password. Link to Sign Up.
+<strong>Forgot Password form:</strong> Email field. &quot;Send Reset Link&quot; button. Link back to Sign In.</p>
+<h4>5-12. Onboarding Screens (<code>/onboarding/*</code>)</h4>
+<p><strong>Layout:</strong> Centered content area with a progress bar at the top showing 8 steps. &quot;Back&quot; and &quot;Continue&quot; buttons at the bottom. Step title and description at the top.</p>
+<p><strong>Key interactions:</strong></p>
+<ul>
+<li>Step 7 (Work Experience): Each entry is a card that expands to show achievement bullets. &quot;Add Experience&quot; button at bottom. Each achievement has an &quot;Improve with AI&quot; sparkle icon button.</li>
+<li>Step 9 (Skills): Tag-style input. Category and proficiency dropdowns per skill. &quot;Suggest Skills&quot; AI button analyzes work history.</li>
+<li>Step 11 (Preferences): Match threshold is a slider (0-100) with labels: 50 = &quot;Cast a wide net&quot;, 70 = &quot;Balanced&quot; (default), 90 = &quot;Only strong matches.&quot;</li>
+<li>Step 12 (Resume Upload): Drag-and-drop zone or file picker. After upload, a parsing progress indicator, then a review screen showing extracted data with checkboxes to confirm or discard each section.</li>
+</ul>
+<h4>13. Dashboard (<code>/dashboard</code>)</h4>
+<p><strong>Layout:</strong> Sidebar navigation (persistent across all authenticated pages) + main content area.</p>
+<p><strong>Sidebar items:</strong> Dashboard, Job Feed, Review Queue, Tracker, Add Job, Settings (expandable: Profile, Preferences, Subscription, Account).</p>
+<p><strong>Main content:</strong></p>
+<ul>
+<li><strong>Top row — Key Metrics:</strong> Four stat cards in a row:<ul>
+<li>&quot;Applications Ready&quot; (number in queue)</li>
+<li>&quot;Used This Month&quot; (X of Y, with progress bar)</li>
+<li>&quot;Submitted&quot; (total count)</li>
+<li>&quot;Response Rate&quot; (percentage)</li>
+</ul>
+</li>
+<li><strong>Middle row — Recent Matches:</strong> A scrollable list of the 5 most recent jobs that passed the threshold. Each shows: company, title, match score badge, time since discovered. Click opens Job Detail.</li>
+<li><strong>Bottom row — Activity Feed:</strong> Chronological list of recent events: new jobs matched, applications prepared, status updates. Each entry has an icon, description, and timestamp.</li>
+<li><strong>Discovery Status Card:</strong> Small card showing last scan time, next scan time, jobs found/matched in last run.</li>
+</ul>
+<h4>14. Job Feed (<code>/jobs</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + main content.</p>
+<p><strong>Main content:</strong></p>
+<ul>
+<li><strong>Filter bar at top:</strong> Search input, source dropdown, score range slider, location filter, remote toggle, status filter (active/expired). &quot;Clear Filters&quot; button.</li>
+<li><strong>Sort:</strong> Dropdown: Match Score (high to low), Newest, Company Name.</li>
+<li><strong>Job list:</strong> Vertical list of job cards. Each card shows:<ul>
+<li>Company name + logo (if available)</li>
+<li>Job title</li>
+<li>Location + remote badge</li>
+<li>Source badge (Google Jobs, Greenhouse, Manual, etc.)</li>
+<li>Match score badge (color-coded: green 80+, yellow 60-79, red below 60)</li>
+<li>Posted date / discovered date</li>
+<li>Quick actions: &quot;View Details&quot;, &quot;Add to Queue&quot; (for below-threshold jobs)</li>
+</ul>
+</li>
+<li><strong>Pagination</strong> at bottom.</li>
+<li><strong>Empty state:</strong> &quot;No jobs found matching your criteria. Try adjusting your filters or search preferences.&quot;</li>
+</ul>
+<h4>15. Job Detail (<code>/jobs/:id</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + main content (full width).</p>
+<p><strong>Two-column layout:</strong></p>
+<ul>
+<li><strong>Left column (60%):</strong> Full job description. Sections: About the Role, Responsibilities, Requirements, Preferred Qualifications, Benefits, Application Link.</li>
+<li><strong>Right column (40%):</strong> Evaluation card:<ul>
+<li>Overall score (large, color-coded)</li>
+<li>Recommendation badge (Strong Match, Good Match, etc.)</li>
+<li>Dimension score bars (5 horizontal bars with labels and scores)</li>
+<li>Strengths list (green checkmarks)</li>
+<li>Gaps list (orange warning icons)</li>
+<li>Reasoning paragraph</li>
+<li>Action button: &quot;Prepare Application&quot; (triggers tailoring) or &quot;View Application&quot; (if already prepared) or &quot;Below Threshold — Prepare Anyway&quot;</li>
+</ul>
+</li>
+</ul>
+<h4>16. Review Queue (<code>/queue</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + main content.</p>
+<p><strong>Tabs:</strong> Ready (default), Saved for Later, Skipped.</p>
+<p><strong>Application cards (more prominent than job cards):</strong></p>
+<ul>
+<li>Company name + logo</li>
+<li>Job title</li>
+<li>Match score badge</li>
+<li>&quot;Prepared X hours/days ago&quot;</li>
+<li>Preview of tailoring notes (one line)</li>
+<li>Action buttons: &quot;Review&quot;, &quot;Quick Approve&quot;, &quot;Skip&quot;</li>
+</ul>
+<p><strong>Empty state:</strong> &quot;No applications waiting for review. Woodhouse will prepare new applications as matching jobs are discovered.&quot;</p>
+<h4>17. Application Detail (<code>/queue/:id</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + full-width main content. Tabbed interface within the content area.</p>
+<p><strong>Tabs:</strong></p>
+<ul>
+<li><strong>Overview:</strong> Job details summary + evaluation summary side by side. Action buttons (Approve, Edit &amp; Approve, Skip, Save for Later).</li>
+<li><strong>Resume:</strong> Tailored resume preview rendered as a document. Toggle to show &quot;Changes from base&quot; (highlighted diff). &quot;Edit&quot; button opens inline editor.</li>
+<li><strong>Cover Letter:</strong> Full cover letter text. Inline editable. &quot;Regenerate&quot; button to get a new version.</li>
+<li><strong>Application Answers:</strong> List of question-answer pairs. Each answer is inline editable. Source note shown below each (where the data came from).</li>
+<li><strong>Job Posting:</strong> Full original job description for reference.</li>
+</ul>
+<p><strong>Approve flow:</strong> User clicks &quot;Approve&quot; → confirmation modal showing what will happen (&quot;Resume files will be generated. The application link will open in a new tab.&quot;) → on confirm: generates files, opens URL, shows a toast with &quot;Copied to clipboard&quot; for the first answer field, status changes to &quot;approved.&quot;</p>
+<h4>18. Resume Preview (<code>/queue/:id/resume</code>)</h4>
+<p><strong>Layout:</strong> Full-page document preview. Top bar with: &quot;Back to Application&quot;, &quot;Download PDF&quot;, &quot;Download DOCX&quot;, &quot;Toggle Diff View.&quot;</p>
+<p><strong>Default view:</strong> Resume rendered as it would appear on paper — formatted, styled, professional.
+<strong>Diff view:</strong> Two-column: base resume on the left, tailored on the right. Changes highlighted in the tailored version (additions in green, reorderings in blue).</p>
+<h4>19. Application Tracker (<code>/tracker</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + main content (full width for kanban board).</p>
+<p><strong>Kanban columns:</strong> Submitted | Acknowledged | Screening | Interviewing | Offer | Accepted | Rejected | Withdrawn.</p>
+<p><strong>Each card:</strong> Company name, job title, days since last update, small match score badge. Cards are draggable between columns (updates status on drop).</p>
+<p><strong>Top bar:</strong> Filter by date range, search by company/title. Stats summary: total in pipeline, response rate, average days to response.</p>
+<p><strong>Empty state:</strong> &quot;No applications tracked yet. Approve applications from your Review Queue to start tracking.&quot;</p>
+<h4>20. Application Tracker Detail (<code>/tracker/:id</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + main content.</p>
+<p><strong>Sections:</strong></p>
+<ul>
+<li><strong>Header:</strong> Company, title, status badge, match score. Quick action buttons: Update Status (dropdown), Add Note, Set Reminder.</li>
+<li><strong>Timeline:</strong> Vertical timeline of all events (status changes, notes, reminders). Most recent at top.</li>
+<li><strong>Materials:</strong> Collapsible sections for: tailored resume (with download links), cover letter, application answers.</li>
+<li><strong>Evaluation:</strong> Collapsible section showing the original evaluation.</li>
+<li><strong>Notes:</strong> Free-form text area for adding notes. &quot;Add Note&quot; button.</li>
+<li><strong>Reminders:</strong> Set a follow-up reminder date. System will create a notification on that date.</li>
+</ul>
+<h4>21. Add Job (<code>/jobs/add</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + centered form.</p>
+<p><strong>Two options (tabs or toggle):</strong></p>
+<ul>
+<li><strong>Paste URL:</strong> Single URL input field. &quot;Fetch &amp; Parse&quot; button. Shows parsing progress, then displays extracted data for review before saving.</li>
+<li><strong>Manual Entry:</strong> Full form: job title, company name, location, remote toggle, job type, experience level, description (large textarea), application URL. &quot;Save &amp; Evaluate&quot; button.</li>
+</ul>
+<h4>22-26. Settings Screens (<code>/settings/*</code>)</h4>
+<p><strong>Layout:</strong> Sidebar + main content. Settings sub-navigation (Profile, Preferences, Subscription, Account) as a horizontal tab bar or vertical sub-menu within settings.</p>
+<p><strong>Profile (<code>/settings/profile</code>):</strong> Same fields as onboarding but in an edit-in-place format. Sections: Basic Info, Professional Summary, Work Experience, Education, Skills, Projects, Certifications. Each section is a collapsible panel with an &quot;Edit&quot; button. AI assist buttons available.</p>
+<p><strong>Preferences (<code>/settings/preferences</code>):</strong> Job search preferences form (same as onboarding step 11). Plus: email forwarding address display with copy button, scan interval dropdown (every 1/3/6/12/24 hours), email digest preference.</p>
+<p><strong>Subscription (<code>/settings/subscription</code>):</strong> Current plan card with usage bar (X of Y applications used this period). Period reset date. Upgrade/downgrade buttons. If on paid plan: &quot;Manage Billing&quot; button opens Stripe Customer Portal.</p>
+<p><strong>Account (<code>/settings/account</code>):</strong> Change email, change password, email digest toggle, notification preferences (in-app, email for each notification type), &quot;Delete Account&quot; danger zone at bottom.</p>
+<hr>
+<h2>§10 Design System</h2>
+<h3>Brand Identity</h3>
+<p>Woodhouse is named after the quintessential butler — efficient, reliable, working tirelessly on your behalf. The design reflects this: professional, composed, competent. Not flashy. Not playful. It communicates: &quot;Your job search is handled.&quot;</p>
+<h3>Color Palette</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Hex</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--primary</code></td>
+<td><code>#1e3a5f</code></td>
+<td>Deep navy. Primary buttons, active nav items, headings.</td>
+</tr>
+<tr>
+<td><code>--primary-light</code></td>
+<td><code>#2d5a8e</code></td>
+<td>Primary hover state, secondary emphasis.</td>
+</tr>
+<tr>
+<td><code>--primary-dark</code></td>
+<td><code>#132843</code></td>
+<td>Primary pressed state.</td>
+</tr>
+<tr>
+<td><code>--accent</code></td>
+<td><code>#d97706</code></td>
+<td>Warm amber. Accent buttons, badges, highlights, CTAs.</td>
+</tr>
+<tr>
+<td><code>--accent-light</code></td>
+<td><code>#f59e0b</code></td>
+<td>Accent hover, notification indicators.</td>
+</tr>
+<tr>
+<td><code>--background</code></td>
+<td><code>#fafaf9</code></td>
+<td>Page background. Warm off-white.</td>
+</tr>
+<tr>
+<td><code>--surface</code></td>
+<td><code>#ffffff</code></td>
+<td>Cards, panels, modals.</td>
+</tr>
+<tr>
+<td><code>--surface-alt</code></td>
+<td><code>#f5f5f4</code></td>
+<td>Alternate surface for contrast (e.g., sidebar, table rows).</td>
+</tr>
+<tr>
+<td><code>--border</code></td>
+<td><code>#e7e5e4</code></td>
+<td>Card borders, dividers, input borders.</td>
+</tr>
+<tr>
+<td><code>--border-focus</code></td>
+<td><code>#1e3a5f</code></td>
+<td>Input focus ring.</td>
+</tr>
+<tr>
+<td><code>--text-primary</code></td>
+<td><code>#18181b</code></td>
+<td>Primary text. Near-black.</td>
+</tr>
+<tr>
+<td><code>--text-secondary</code></td>
+<td><code>#52525b</code></td>
+<td>Secondary text. Descriptions, labels.</td>
+</tr>
+<tr>
+<td><code>--text-muted</code></td>
+<td><code>#a1a1aa</code></td>
+<td>Muted text. Timestamps, placeholders.</td>
+</tr>
+<tr>
+<td><code>--success</code></td>
+<td><code>#059669</code></td>
+<td>Success states, &quot;strong match&quot; badges, positive metrics.</td>
+</tr>
+<tr>
+<td><code>--success-bg</code></td>
+<td><code>#ecfdf5</code></td>
+<td>Success background (light).</td>
+</tr>
+<tr>
+<td><code>--warning</code></td>
+<td><code>#d97706</code></td>
+<td>Warning states, &quot;possible match&quot; badges.</td>
+</tr>
+<tr>
+<td><code>--warning-bg</code></td>
+<td><code>#fffbeb</code></td>
+<td>Warning background (light).</td>
+</tr>
+<tr>
+<td><code>--error</code></td>
+<td><code>#dc2626</code></td>
+<td>Error states, &quot;no match&quot; badges, destructive actions.</td>
+</tr>
+<tr>
+<td><code>--error-bg</code></td>
+<td><code>#fef2f2</code></td>
+<td>Error background (light).</td>
+</tr>
+<tr>
+<td><code>--info</code></td>
+<td><code>#2563eb</code></td>
+<td>Informational states, links.</td>
+</tr>
+<tr>
+<td><code>--info-bg</code></td>
+<td><code>#eff6ff</code></td>
+<td>Info background (light).</td>
+</tr>
+</tbody></table>
+<h3>Typography</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--font-family</code></td>
+<td><code>&#39;Inter&#39;, system-ui, sans-serif</code></td>
+<td>All text. Inter from Google Fonts.</td>
+</tr>
+<tr>
+<td><code>--font-size-xs</code></td>
+<td><code>12px / 16px</code></td>
+<td>Badges, timestamps, fine print</td>
+</tr>
+<tr>
+<td><code>--font-size-sm</code></td>
+<td><code>14px / 20px</code></td>
+<td>Secondary text, table cells, form labels</td>
+</tr>
+<tr>
+<td><code>--font-size-base</code></td>
+<td><code>16px / 24px</code></td>
+<td>Body text, form inputs</td>
+</tr>
+<tr>
+<td><code>--font-size-lg</code></td>
+<td><code>18px / 28px</code></td>
+<td>Card titles, section labels</td>
+</tr>
+<tr>
+<td><code>--font-size-xl</code></td>
+<td><code>20px / 28px</code></td>
+<td>Page section headings</td>
+</tr>
+<tr>
+<td><code>--font-size-2xl</code></td>
+<td><code>24px / 32px</code></td>
+<td>Page titles</td>
+</tr>
+<tr>
+<td><code>--font-size-3xl</code></td>
+<td><code>30px / 36px</code></td>
+<td>Hero headings, dashboard stat numbers</td>
+</tr>
+<tr>
+<td><code>--font-size-4xl</code></td>
+<td><code>36px / 40px</code></td>
+<td>Landing page hero headline</td>
+</tr>
+<tr>
+<td><code>--font-weight-normal</code></td>
+<td><code>400</code></td>
+<td>Body text</td>
+</tr>
+<tr>
+<td><code>--font-weight-medium</code></td>
+<td><code>500</code></td>
+<td>Labels, table headers, nav items</td>
+</tr>
+<tr>
+<td><code>--font-weight-semibold</code></td>
+<td><code>600</code></td>
+<td>Card titles, section headings</td>
+</tr>
+<tr>
+<td><code>--font-weight-bold</code></td>
+<td><code>700</code></td>
+<td>Page titles, stat numbers, emphasis</td>
+</tr>
+</tbody></table>
+<h3>Spacing</h3>
+<p>Base unit: <code>4px</code>. All spacing uses multiples of 4.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--space-1</code></td>
+<td><code>4px</code></td>
+<td>Tight internal padding (badge padding, icon gaps)</td>
+</tr>
+<tr>
+<td><code>--space-2</code></td>
+<td><code>8px</code></td>
+<td>Input padding, compact card padding</td>
+</tr>
+<tr>
+<td><code>--space-3</code></td>
+<td><code>12px</code></td>
+<td>Between closely related elements</td>
+</tr>
+<tr>
+<td><code>--space-4</code></td>
+<td><code>16px</code></td>
+<td>Standard card padding, form field gap</td>
+</tr>
+<tr>
+<td><code>--space-5</code></td>
+<td><code>20px</code></td>
+<td>Between card sections</td>
+</tr>
+<tr>
+<td><code>--space-6</code></td>
+<td><code>24px</code></td>
+<td>Between cards in a list, section padding</td>
+</tr>
+<tr>
+<td><code>--space-8</code></td>
+<td><code>32px</code></td>
+<td>Page section gap</td>
+</tr>
+<tr>
+<td><code>--space-10</code></td>
+<td><code>40px</code></td>
+<td>Major section separation</td>
+</tr>
+<tr>
+<td><code>--space-12</code></td>
+<td><code>48px</code></td>
+<td>Page top/bottom padding</td>
+</tr>
+</tbody></table>
+<h3>Border Radius</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--radius-sm</code></td>
+<td><code>4px</code></td>
+<td>Badges, small elements</td>
+</tr>
+<tr>
+<td><code>--radius-md</code></td>
+<td><code>8px</code></td>
+<td>Buttons, inputs, cards</td>
+</tr>
+<tr>
+<td><code>--radius-lg</code></td>
+<td><code>12px</code></td>
+<td>Modals, large cards</td>
+</tr>
+<tr>
+<td><code>--radius-full</code></td>
+<td><code>9999px</code></td>
+<td>Avatar circles, pills</td>
+</tr>
+</tbody></table>
+<h3>Shadows</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--shadow-sm</code></td>
+<td><code>0 1px 2px rgba(0,0,0,0.05)</code></td>
+<td>Subtle depth on cards</td>
+</tr>
+<tr>
+<td><code>--shadow-md</code></td>
+<td><code>0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)</code></td>
+<td>Elevated cards, dropdowns</td>
+</tr>
+<tr>
+<td><code>--shadow-lg</code></td>
+<td><code>0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)</code></td>
+<td>Modals, popovers</td>
+</tr>
+</tbody></table>
+<h3>Key Components</h3>
+<p><strong>Match Score Badge:</strong></p>
+<ul>
+<li>Circular or rounded-rectangle badge showing the score number.</li>
+<li>Color coding: <code>--success</code> for 80+, <code>--warning</code> for 60-79, <code>--error</code> for below 60.</li>
+<li>Used on: job cards, application cards, evaluation panels.</li>
+</ul>
+<p><strong>Stat Card:</strong></p>
+<ul>
+<li>White surface, <code>--shadow-sm</code>, <code>--radius-md</code>.</li>
+<li>Top: label text (muted, sm). Bottom: large number (bold, 3xl). Optional: subtitle or trend indicator.</li>
+</ul>
+<p><strong>Job Card:</strong></p>
+<ul>
+<li>White surface, <code>--shadow-sm</code>, <code>--radius-md</code>, <code>--space-4</code> padding.</li>
+<li>Left: Company logo placeholder (40x40, rounded). Right: Match score badge.</li>
+<li>Content: job title (semibold, lg), company (normal, base), location + badges (muted, sm).</li>
+<li>Bottom: source badge, posted date, quick action buttons.</li>
+</ul>
+<p><strong>Application Card:</strong></p>
+<ul>
+<li>Same base as job card but with a left accent border (color = match score color).</li>
+<li>Additional: &quot;Prepared X ago&quot; timestamp, tailoring preview line.</li>
+</ul>
+<p><strong>Sidebar Navigation:</strong></p>
+<ul>
+<li>Width: 240px. Background: <code>--surface-alt</code>. Border-right: <code>--border</code>.</li>
+<li>Logo at top. Nav items: icon + label. Active item: <code>--primary</code> background with white text. Hover: <code>--surface</code> background.</li>
+<li>Collapsed mode on smaller screens (icon only, 64px wide).</li>
+</ul>
+<p><strong>Empty State:</strong></p>
+<ul>
+<li>Centered in the content area. Illustration or icon (muted). Heading (semibold, xl). Description (normal, base, secondary text). Optional CTA button.</li>
+</ul>
+<p><strong>Loading State:</strong></p>
+<ul>
+<li>Skeleton loaders matching the shape of the content they replace. Animated shimmer. Used for cards, lists, stat values.</li>
+</ul>
+<p><strong>Toast Notifications:</strong></p>
+<ul>
+<li>Bottom-right corner. Auto-dismiss after 5 seconds. Types: success (green left border), error (red), info (blue), warning (amber).</li>
+</ul>
+<h3>Interaction Principles</h3>
+<ul>
+<li><strong>Optimistic updates:</strong> Status changes (approve, skip, mark as read) update the UI immediately. Revert on server error.</li>
+<li><strong>Keyboard navigation:</strong> All interactive elements accessible via Tab. Enter/Space to activate. Escape to close modals/dropdowns.</li>
+<li><strong>Loading indicators:</strong> Skeleton loaders for initial page loads. Spinner overlays for actions (approve, generate). Progress bars for multi-step operations (pipeline).</li>
+<li><strong>Confirmation for destructive actions:</strong> Skip, withdraw, delete account require a confirmation dialog. Approve does not (it&#39;s the primary happy path).</li>
+<li><strong>Responsive breakpoints:</strong> Desktop (1280px+), tablet (768px-1279px), mobile (below 768px). Sidebar collapses on tablet, becomes a bottom nav on mobile.</li>
+</ul>
+<hr>
+<h2>§11 Revenue Model</h2>
+<h3>Pricing Tiers</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Free</th>
+<th>Pro ($19/mo)</th>
+<th>Premium ($39/mo)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Applications per month</td>
+<td>5</td>
+<td>50</td>
+<td>Unlimited</td>
+</tr>
+<tr>
+<td>Job discovery</td>
+<td>Every 12 hours</td>
+<td>Every 6 hours</td>
+<td>Every 1 hour</td>
+</tr>
+<tr>
+<td>Sources</td>
+<td>Aggregator APIs only</td>
+<td>All sources</td>
+<td>All sources</td>
+</tr>
+<tr>
+<td>Manual job input</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Resume tailoring</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Cover letter generation</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Application answers</td>
+<td>Basic (3 fields)</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Resume output formats</td>
+<td>PDF only</td>
+<td>PDF + DOCX</td>
+<td>PDF + DOCX</td>
+</tr>
+<tr>
+<td>Application tracker</td>
+<td>Basic (status only)</td>
+<td>Full (timeline, notes, reminders)</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Email forwarding</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Email digest</td>
+<td>Weekly only</td>
+<td>Daily or weekly</td>
+<td>Daily or weekly</td>
+</tr>
+<tr>
+<td>Analytics</td>
+<td>None</td>
+<td>Basic (response rate)</td>
+<td>Full (trends, optimization insights)</td>
+</tr>
+<tr>
+<td>Priority support</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Auto-submit (Phase 2)</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+</tbody></table>
+<h3>Billing</h3>
+<ul>
+<li>Monthly billing via Stripe.</li>
+<li>Annual option: 2 months free (Pro: $190/year, Premium: $390/year).</li>
+<li>Usage counter resets on billing cycle date.</li>
+<li>When a free user hits 5 applications: they see remaining applications prepared but locked behind an upgrade prompt. Materials are visible but blurred. This creates urgency — the work is done, they just need to unlock it.</li>
+<li>No credit card required for free tier.</li>
+<li>7-day free trial of Pro for new users (optional, configurable).</li>
+</ul>
+<h3>Expansion Motion</h3>
+<p>Free → Pro: User hits the 5-application limit. Sees prepared applications they can&#39;t approve. Upgrade prompt.
+Pro → Premium: User wants faster scanning, unlimited applications, cover letters, or (later) auto-submit. The analytics in Premium show them exactly how Woodhouse is improving their job search — making the value tangible.</p>
+<hr>
+<h2>§12 GTM Strategy</h2>
+<h3>Positioning</h3>
+<p><strong>Category:</strong> AI job search agent.
+<strong>Message lead:</strong> &quot;Stop searching for jobs. Let Woodhouse find them for you.&quot;
+<strong>Words to use:</strong> Agent, automated, tailored, personal recruiter, pipeline, matches.
+<strong>Words to avoid:</strong> Bot, scraper, spam, mass-apply, AI-generated (in the negative sense). Woodhouse is a precision tool, not a spam cannon.</p>
+<h3>Target Customer</h3>
+<p>The first person to pay is Sarah Chen: an employed professional exploring new opportunities who values her time more than the subscription cost. She&#39;s currently frustrated by the manual grind of job searching and would happily pay $19/month for someone (or something) to do the legwork.</p>
+<h3>Launch Channels</h3>
+<ol>
+<li><strong>Hacker News / Product Hunt / Indie Hackers:</strong> Tech-forward audience that understands and values AI-powered tools. Launch with a &quot;Show HN&quot; post demonstrating the product on a real job search.</li>
+<li><strong>Reddit (r/jobs, r/cscareerquestions, r/experienceddevs):</strong> Active communities of job seekers. Provide genuine value in comments, share the product when relevant.</li>
+<li><strong>SEO / Content:</strong> Blog posts on job search strategy, resume optimization, ATS tips. Target long-tail keywords like &quot;how to tailor resume for specific job&quot; and &quot;automated job search tools.&quot;</li>
+</ol>
+<h3>Initial Motion</h3>
+<p>Self-serve. No sales team. Free tier drives adoption. Product-led growth: the prepared-but-locked applications create natural upgrade pressure. Word-of-mouth from users who land interviews through Woodhouse applications.</p>
+<hr>
+<h2>§13 Post-MVP: Auto-Submit Strategy</h2>
+<p>This section details the Phase 2 auto-submit capability. It is NOT part of MVP but is architecturally significant enough to document now so MVP decisions don&#39;t block it.</p>
+<h3>Overview</h3>
+<p>Auto-submit automates the final step: instead of the user opening the application link and manually filling out forms, Woodhouse fills and submits the application programmatically.</p>
+<h3>ATS Detection and Classification</h3>
+<p>Before auto-submit can work, the system must identify which ATS the company uses. This determines the submission strategy.</p>
+<p><strong>ATS identification approach:</strong></p>
+<ol>
+<li><strong>URL pattern matching:</strong> Greenhouse (<code>boards.greenhouse.io/*</code>), Lever (<code>jobs.lever.co/*</code>), Workday (<code>*.myworkdayjobs.com/*</code>), Ashby (<code>jobs.ashbyhq.com/*</code>).</li>
+<li><strong>HTML signature detection:</strong> Each ATS has characteristic HTML patterns (specific class names, meta tags, form structures) that can be detected by parsing the application page.</li>
+<li><strong>Classification storage:</strong> Each job posting gets an <code>ats_type</code> field identifying the platform. Once identified for a company, this is cached.</li>
+</ol>
+<h3>Submission Strategies by ATS</h3>
+<h4>Greenhouse</h4>
+<ul>
+<li><strong>Method:</strong> Greenhouse has a public job board API that includes application submission.</li>
+<li><strong>Endpoint:</strong> <code>POST https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs/{job_id}</code></li>
+<li><strong>Fields:</strong> First name, last name, email, phone, resume (file upload), cover letter, custom questions.</li>
+<li><strong>Approach:</strong> Direct API call. Most reliable auto-submit path.</li>
+</ul>
+<h4>Lever</h4>
+<ul>
+<li><strong>Method:</strong> Lever&#39;s application form is a standard HTML form with predictable field names.</li>
+<li><strong>Approach:</strong> Browser automation (Playwright) to fill and submit the form. Fields are mapped from the user&#39;s profile.</li>
+</ul>
+<h4>Workday</h4>
+<ul>
+<li><strong>Method:</strong> Workday applications are complex multi-step forms with dynamic rendering.</li>
+<li><strong>Approach:</strong> This is the hardest ATS to automate. Phase 2 will support &quot;assisted fill&quot; — Woodhouse opens the page and fills fields where possible, but the user completes the final submission. Full automation is a Phase 3 goal.</li>
+</ul>
+<h4>Ashby</h4>
+<ul>
+<li><strong>Method:</strong> Ashby has a relatively clean application form.</li>
+<li><strong>Approach:</strong> Browser automation (Playwright) similar to Lever.</li>
+</ul>
+<h4>Email Applications</h4>
+<ul>
+<li><strong>Method:</strong> Some postings accept applications via email.</li>
+<li><strong>Approach:</strong> Compose and send an email with the tailored resume attached and the cover letter as the email body. Sent from the user&#39;s configured email (via OAuth) or from Woodhouse on behalf of the user.</li>
+</ul>
+<h4>Direct URL (Unsupported ATS)</h4>
+<ul>
+<li><strong>Fallback:</strong> For ATS platforms not yet supported, continue with the MVP approach: open the link, provide copy-to-clipboard.</li>
+</ul>
+<h3>Browser Automation Architecture</h3>
+<p>For ATS platforms requiring browser automation (Lever, Ashby, others):</p>
+<p><strong>Technology:</strong> Playwright running in a containerized environment (not in Supabase Edge Functions — these need a full browser).</p>
+<p><strong>Infrastructure:</strong> A separate microservice (e.g., a Docker container on Fly.io or Railway) running a Playwright-based submission worker.</p>
+<p><strong>Flow:</strong></p>
+<ol>
+<li>Application is approved by the user and flagged for auto-submit.</li>
+<li>The Next.js backend sends a submission request to the automation service.</li>
+<li>The automation service:
+a. Opens the application URL in a headless browser.
+b. Identifies the ATS type and selects the appropriate form-filling script.
+c. Maps user profile data to form fields.
+d. Fills all fields.
+e. Uploads the resume file.
+f. Takes a screenshot of the filled form for verification.
+g. Submits the form.
+h. Captures the confirmation page/message.</li>
+<li>Results (success/failure, screenshot, confirmation) are sent back and logged.</li>
+</ol>
+<p><strong>Verification step:</strong> Before final submission, the system captures a screenshot of the filled form and can optionally require user confirmation (&quot;Your application to [Company] is ready to submit. [Screenshot]. Confirm?&quot;). This is configurable — power users can enable fully automatic submission.</p>
+<h3>Form Field Mapping</h3>
+<p>A mapping layer translates between the user&#39;s profile data and ATS-specific form fields:</p>
+<table>
+<thead>
+<tr>
+<th>Profile Data</th>
+<th>Greenhouse</th>
+<th>Lever</th>
+<th>Common Label</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>full_name</code> (split)</td>
+<td><code>first_name</code>, <code>last_name</code></td>
+<td><code>name</code></td>
+<td>First Name, Last Name</td>
+</tr>
+<tr>
+<td><code>email</code></td>
+<td><code>email</code></td>
+<td><code>email</code></td>
+<td>Email</td>
+</tr>
+<tr>
+<td><code>phone</code></td>
+<td><code>phone</code></td>
+<td><code>phone</code></td>
+<td>Phone</td>
+</tr>
+<tr>
+<td>resume file</td>
+<td><code>resume</code> (file)</td>
+<td><code>resume</code> (file)</td>
+<td>Resume/CV</td>
+</tr>
+<tr>
+<td><code>cover_letter</code></td>
+<td><code>cover_letter</code></td>
+<td><code>comments</code></td>
+<td>Cover Letter</td>
+</tr>
+<tr>
+<td><code>linkedin_url</code></td>
+<td>custom field</td>
+<td><code>urls[LinkedIn]</code></td>
+<td>LinkedIn URL</td>
+</tr>
+<tr>
+<td><code>portfolio_url</code></td>
+<td>custom field</td>
+<td><code>urls[Portfolio]</code></td>
+<td>Website/Portfolio</td>
+</tr>
+<tr>
+<td><code>work_authorization</code></td>
+<td>custom field</td>
+<td>custom field</td>
+<td>Work Authorization</td>
+</tr>
+<tr>
+<td><code>salary_expectations</code></td>
+<td>custom field</td>
+<td>custom field</td>
+<td>Salary Expectations</td>
+</tr>
+</tbody></table>
+<p>Custom questions (specific to each posting) are handled by the Materials Agent during the preparation phase. The auto-submit system maps these pre-generated answers to the corresponding form fields.</p>
+<h3>Error Handling</h3>
+<ul>
+<li><strong>Form structure changed:</strong> If the automation script can&#39;t find expected fields, it aborts and falls back to the manual approach. The user is notified.</li>
+<li><strong>CAPTCHA detected:</strong> Abort auto-submit. Notify user. Fall back to manual.</li>
+<li><strong>Rate limiting:</strong> Space submissions to no more than 5 per hour per IP. Use rotating proxies if needed.</li>
+<li><strong>Submission confirmation unclear:</strong> If the system can&#39;t confirm the application was received, it flags the submission as &quot;unconfirmed&quot; and asks the user to verify.</li>
+</ul>
+<h3>Phased Rollout</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Scope</th>
+<th>Timeline</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2a</td>
+<td>Greenhouse API submissions (highest reliability)</td>
+<td>First post-MVP release</td>
+</tr>
+<tr>
+<td>2b</td>
+<td>Lever + Ashby browser automation</td>
+<td>4-6 weeks after 2a</td>
+</tr>
+<tr>
+<td>2c</td>
+<td>Email-based applications</td>
+<td>Concurrent with 2b</td>
+</tr>
+<tr>
+<td>2d</td>
+<td>Workday assisted fill</td>
+<td>8-12 weeks after 2a</td>
+</tr>
+<tr>
+<td>2e</td>
+<td>Additional ATS platforms based on user demand</td>
+<td>Ongoing</td>
+</tr>
+</tbody></table>
+<h3>Premium-Only Feature</h3>
+<p>Auto-submit is a Premium tier feature ($39/month). This is the primary driver for Pro → Premium upgrades. Free and Pro users continue with the open-link-and-copy approach.</p>
+<hr>
+<p><em>End of Masterplan</em></p>
+
+
+</div>
+</body>
+</html>
