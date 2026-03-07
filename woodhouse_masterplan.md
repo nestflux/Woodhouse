@@ -1,8 +1,9 @@
 # Woodhouse — Masterplan
 
-> **Version:** 1.0
-> **Date:** 2026-03-06
+> **Version:** 1.1
+> **Date:** 2026-03-07
 > **Status:** Draft
+> **Changelog:** v1.1 — Integrated AI architecture research findings: pipeline queue table, concurrency control, exponential backoff, Zod validation, Anthropic prompt caching, Haiku pre-screen, Langfuse observability, Premium tier soft cap.
 
 ---
 
@@ -319,8 +320,9 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 
 ### Post-MVP Roadmap
 
-- **Phase 2:** Auto-submit for major ATS platforms (see §13).
-- **Phase 3:** Analytics and optimization — which resume versions generate interviews, which roles respond most, A/B testing resume strategies.
+- **Phase 2:** Auto-submit for major ATS platforms (see §13). Evaluate Trigger.dev migration when Edge Function timeouts or concurrency limits become bottlenecks.
+- **Phase 2.5:** Cost optimizations at scale — Anthropic Batch API for non-urgent tailoring/materials (40-50% discount), source efficiency tuning (reduce scan frequency for low-match sources), prompt optimization for token reduction.
+- **Phase 3:** Analytics, optimization, and quality — which resume versions generate interviews, which roles respond most, A/B testing resume strategies. Add evaluator-optimizer pattern for semantic truthfulness validation (a reviewer LLM pass that verifies tailored resume content accurately represents source material, beyond structural `source_id` tracing). This is also the point where agentic patterns may become justified — a "strategy agent" that learns from application outcomes.
 - **Phase 4:** Career intelligence — skill gap analysis, career path recommendations, salary benchmarking.
 - **Phase 5:** Browser extension for one-click job capture from any site.
 - **Phase 6:** Interview preparation — AI mock interviews based on the specific role and company.
@@ -329,7 +331,9 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 
 ## §5 AI Agent Architecture
 
-Woodhouse uses a pipeline of specialized AI agents, each responsible for a discrete step in the job application workflow. Agents are implemented as Supabase Edge Functions that call the Anthropic API (Claude) with task-specific system prompts and structured outputs.
+Woodhouse uses a pipeline of specialized AI agents, each responsible for a discrete step in the job application workflow. This is a **workflow architecture, not an agent architecture** — the steps are always Find → Evaluate → Tailor → Generate → Queue. The LLM provides intelligence within each step, but the control flow is predefined in code.
+
+Agents are implemented as Supabase Edge Functions that call the Anthropic API (Claude) directly via the TypeScript SDK — no agent framework. Orchestration is handled by a `pipeline_jobs` queue table in Postgres with a worker Edge Function that claims and processes jobs on a 30-second cycle.
 
 ### Agent Overview
 
@@ -347,35 +351,123 @@ Woodhouse uses a pipeline of specialized AI agents, each responsible for a discr
 
 2. **Stateless execution:** Agents read all context from the database at invocation time. They do not maintain state between runs. This makes them idempotent and retryable.
 
-3. **Structured output:** Every agent returns structured JSON, not free-form text. This ensures downstream agents and the UI can reliably parse results.
+3. **Structured output with Zod validation:** Every agent returns structured JSON, not free-form text. Every LLM response is validated against a Zod schema before being written to the database. If `safeParse` fails, the pipeline job is marked as failed and retried with a clearer prompt. Track validation failure rate as a key metric — target <1% in production.
+
+```typescript
+import { z } from 'zod';
+
+const EvaluationSchema = z.object({
+  overall_score: z.number().int().min(0).max(100),
+  skill_score: z.number().int().min(0).max(100),
+  experience_score: z.number().int().min(0).max(100),
+  seniority_score: z.number().int().min(0).max(100),
+  location_score: z.number().int().min(0).max(100),
+  technology_score: z.number().int().min(0).max(100),
+  recommendation: z.enum(['strong_match', 'good_match', 'possible_match', 'weak_match', 'no_match']),
+  reasoning: z.string().min(50),
+  strengths: z.array(z.string()),
+  gaps: z.array(z.string()),
+});
+
+// After Claude returns:
+const parsed = EvaluationSchema.safeParse(JSON.parse(response.content[0].text));
+if (!parsed.success) {
+  throw new ValidationError(`Evaluation output invalid: ${parsed.error.message}`);
+}
+```
+
+Equivalent Zod schemas must be defined for every agent output: `TailoredResumeSchema`, `MaterialsSchema`, `DiscoveryPostingSchema`.
 
 4. **Truthfulness constraint:** The Tailoring and Materials agents operate under a hard constraint: they may only use information present in the user's knowledge base. This is enforced in the system prompt and validated post-generation.
 
-5. **Graceful degradation:** If an agent fails (API timeout, malformed response), the pipeline marks that step as failed and moves on. Failed items can be retried without re-running the entire pipeline.
+5. **Graceful degradation:** If an agent fails (API timeout, malformed response, Zod validation failure), the pipeline marks that step as failed in the `pipeline_jobs` queue table and moves on. Failed items are retried with exponential backoff (30s → 60s → 120s) up to 3 attempts. Failed items do not block the pipeline for other jobs.
 
-### Orchestrator
+### Orchestrator — Queue-Backed Worker Pattern
 
-The Orchestrator is not an AI agent — it is a control function (Supabase Edge Function) that manages the pipeline for each discovery run.
+The Orchestrator is not an AI agent — it is a pair of control functions backed by the `pipeline_jobs` queue table in Postgres. This is a classic **Blackboard pattern**: agents read from and write to a shared knowledge base (the database), and a controller manages the sequence.
 
-**Orchestrator flow:**
-1. Triggered by cron schedule (every 6 hours per user, configurable).
-2. Creates a `discovery_run` record with status "running."
-3. Invokes the Discovery Agent for each configured source.
-4. For each new posting returned, invokes the Evaluation Agent.
-5. For each posting that passes the threshold, invokes the Tailoring Agent.
-6. For each tailored resume, invokes the Materials Agent.
-7. Updates the discovery run record with counts and status.
-8. Triggers notifications if new applications are ready for review.
+**Two Edge Functions handle all orchestration:**
+
+1. **`discover-jobs`** — Triggered by pg_cron per user (every 6h for Pro, every 1h for Premium, every 12h for Free). Creates a `discovery_run` record, invokes the Discovery Agent for each configured source in parallel, deduplicates results, saves new postings, and **enqueues evaluation jobs** in the `pipeline_jobs` table for each new posting. Does NOT call the Evaluation Agent directly.
+
+2. **`process-pipeline`** — Triggered by pg_cron every 30 seconds. Claims ONE pending job from the `pipeline_jobs` table using `SELECT FOR UPDATE SKIP LOCKED`, processes it (calls the appropriate agent), and enqueues the next step on success. This is the execution engine of the entire pipeline.
+
+**Pipeline job lifecycle:**
+```
+pending → processing → completed (enqueues next step)
+                    → failed (if attempts >= max_attempts)
+                    → pending (if attempts < max_attempts, with exponential backoff)
+```
+
+**Queue-based step sequencing:**
+```
+discover-jobs creates: pipeline_job(step='evaluate', status='pending')
+    → process-pipeline claims and runs evaluation
+    → IF passes_threshold: creates pipeline_job(step='tailor', status='pending')
+        → process-pipeline claims and runs tailoring
+        → creates pipeline_job(step='generate_materials', status='pending')
+            → process-pipeline claims and runs materials generation
+            → creates pipeline_job(step='generate_files', status='pending')
+                → process-pipeline claims and generates PDF/DOCX
+                → creates notification
+```
+
+**Concurrency control — `SELECT FOR UPDATE SKIP LOCKED`:**
+
+pg_cron fires `process-pipeline` every 30 seconds. If a job takes 35 seconds, two invocations will overlap. Without `SKIP LOCKED`, both would attempt to process the same job, causing duplicate LLM calls and corrupted state.
+
+```sql
+-- Claim a single pending job atomically
+WITH claimed AS (
+  SELECT id FROM pipeline_jobs
+  WHERE status = 'pending'
+    AND attempts < max_attempts
+    AND (next_retry_at IS NULL OR next_retry_at <= now())
+  ORDER BY created_at ASC
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED
+)
+UPDATE pipeline_jobs SET
+  status = 'processing',
+  started_at = now(),
+  attempts = attempts + 1
+FROM claimed
+WHERE pipeline_jobs.id = claimed.id
+RETURNING pipeline_jobs.*;
+```
+
+This ensures no two Edge Function invocations process the same job, even under concurrent execution.
+
+**Exponential backoff retry:**
+
+On failure, the job is returned to `pending` with an exponential backoff delay:
+
+```sql
+UPDATE pipeline_jobs SET
+  status = CASE
+    WHEN attempts >= max_attempts THEN 'failed'
+    ELSE 'pending'
+  END,
+  error = $error_message,
+  next_retry_at = CASE
+    WHEN attempts < max_attempts
+    THEN now() + (interval '30 seconds' * power(2, attempts))
+    ELSE NULL
+  END
+WHERE id = $job_id;
+```
+
+After 3 failures: 30s → 60s → 120s backoff, then permanently marked as `failed` with user notification.
+
+**Zombie job detection:**
+
+If `status = 'processing'` and `started_at < now() - interval '5 minutes'`, the job is a zombie (the Edge Function crashed or timed out without updating the record). The `process-pipeline` worker reclaims it by resetting status to `pending`.
 
 **Error handling:**
-- If a single job fails at any stage, it is logged and skipped. The pipeline continues for other jobs.
-- If a source API is completely down, the orchestrator logs the failure and continues with other sources.
-- Failed items are flagged for retry on the next run.
-
-**Concurrency:**
-- Each user's pipeline runs independently.
-- Within a pipeline, evaluation of multiple jobs can run concurrently (up to a concurrency limit to manage API costs).
-- Tailoring and materials generation run sequentially per job (tailoring must complete before materials generation).
+- If a single job fails at any stage, it is logged in the `pipeline_jobs.error` field and retried with backoff. The pipeline continues for other jobs.
+- If a source API is completely down, the discovery function logs the failure and continues with other sources.
+- Each user's pipeline runs independently — jobs are scoped by `profile_id`.
+- Tailoring and materials generation run sequentially per job (tailoring must complete before materials generation) — enforced by the step-based enqueue pattern.
 
 ### Discovery Agent — Detail
 
@@ -595,15 +687,61 @@ All agents run as **Supabase Edge Functions** (Deno runtime).
 Edge Function → Anthropic API (Claude Sonnet for evaluation/tailoring, Haiku for parsing/normalization)
 ```
 
-**Model selection:**
-- **Claude Haiku 4.5:** Job description parsing, email parsing, data normalization — fast, cheap, structured extraction tasks.
-- **Claude Sonnet 4.6:** Evaluation, resume tailoring, cover letter generation, application answers — requires reasoning and quality writing.
+**Model routing:**
+
+| Task | Model | Reasoning | Est. Cost per Call |
+|------|-------|-----------|-------------------|
+| Job description parsing | Haiku 4.5 | Structured extraction, no reasoning needed | ~$0.001 |
+| Email parsing | Haiku 4.5 | Structured extraction | ~$0.001 |
+| Evaluation pre-screen | Haiku 4.5 | Quick title/location/seniority gate | ~$0.001 |
+| Full evaluation | Sonnet 4.6 | Requires reasoning, scoring, explanation | ~$0.01-0.03 |
+| Resume tailoring | Sonnet 4.6 | Requires reasoning, writing quality | ~$0.02-0.05 |
+| Cover letter generation | Sonnet 4.6 | Requires quality writing | ~$0.01-0.03 |
+| Application answers | Haiku 4.5 | Simple extraction from profile data | ~$0.002 |
+| Achievement improvement (AI assist) | Sonnet 4.6 | Writing quality matters | ~$0.005 |
+| Skill suggestion (AI assist) | Haiku 4.5 | Simple analysis | ~$0.002 |
+
+**Two-stage evaluation (Haiku pre-screen):**
+
+Before sending to Sonnet (~$0.02/eval), every job runs through a quick Haiku pre-screen (~$0.001) that checks basic disqualifiers: title mismatch, location incompatibility, seniority mismatch, salary range mismatch. Only jobs passing the pre-screen proceed to full Sonnet evaluation. This cuts evaluation costs by 50-70% by filtering obviously bad matches before the expensive call.
+
+```
+Haiku pre-screen (fast, $0.001) → PASS → Sonnet full evaluation ($0.02)
+                                → FAIL → Save as no_match, skip pipeline
+```
 
 **Cost management:**
-- Haiku for high-volume, low-complexity tasks (discovery parsing)
-- Sonnet for lower-volume, high-quality tasks (tailoring, evaluation)
-- Caching: if a job posting hasn't changed, don't re-evaluate
-- Batch processing: group multiple jobs per API call where possible
+
+1. **Anthropic prompt caching (Day 1 requirement):** The user's full profile (~3,000 tokens) is identical across every evaluation in a single discovery run. Using Anthropic's `cache_control` parameter, the profile is sent at full cost once and cached at ~10% cost for all subsequent evaluations in the run. Evaluating 20 jobs costs: 1 full profile send + 19 cached sends. **Estimated savings: 58% reduction per evaluation run.**
+
+```typescript
+const response = await anthropic.messages.create({
+  model: 'claude-sonnet-4-6',
+  max_tokens: 2000,
+  system: [
+    {
+      type: 'text',
+      text: EVALUATION_SYSTEM_PROMPT,
+      cache_control: { type: 'ephemeral' }
+    },
+    {
+      type: 'text',
+      text: formatUserProfile(profile),
+      cache_control: { type: 'ephemeral' }
+    }
+  ],
+  messages: [{
+    role: 'user',
+    content: formatJobPosting(posting)  // This changes per job
+  }]
+});
+```
+
+2. **Database-level deduplication:** If a job posting hasn't changed (content hash match) and the user's profile hasn't changed, don't re-evaluate. Enforced by `UNIQUE(profile_id, job_posting_id)` on `job_evaluations`.
+
+3. **Source efficiency:** If a user's match rate from a particular source is <5% over 30 days, reduce scan frequency for that source.
+
+4. **Post-MVP: Anthropic Batch API** for non-urgent tailoring/materials at 40-50% discount (Phase 2 optimization).
 
 ---
 
@@ -626,6 +764,9 @@ Edge Function → Anthropic API (Claude Sonnet for evaluation/tailoring, Haiku f
 | Payments | Stripe | Subscription billing, customer portal, webhook-based status sync. |
 | Hosting | Vercel | Optimized for Next.js. Automatic deployments, edge network, analytics. |
 | Cron/Scheduling | Supabase pg_cron + Vercel Cron | pg_cron for database-triggered jobs, Vercel Cron for HTTP-triggered schedules. |
+| LLM Observability | Langfuse | Per-agent cost tracking, latency percentiles, error rates, token usage. Open-source, self-hostable or cloud. |
+| Error Tracking | Sentry | Runtime error tracking with context (function name, step, user ID, job posting ID). |
+| Schema Validation | Zod | Runtime validation of all LLM responses before database writes. |
 
 ### Architecture Diagram (Conceptual)
 
@@ -685,6 +826,33 @@ Edge Function → Anthropic API (Claude Sonnet for evaluation/tailoring, Haiku f
 
 **Realtime for pipeline status:** The frontend subscribes to Supabase Realtime on the `applications` and `discovery_runs` tables. When the pipeline creates new evaluations or prepared applications, the dashboard updates without polling.
 
+**LLM observability via Langfuse:** Every Anthropic API call is wrapped with a Langfuse trace. This provides per-agent cost analysis, error rates, latency percentiles, and token usage tracking — critical for validating that per-user API costs stay within tier margins.
+
+```typescript
+async function callAgent(agentType: string, input: any, userId: string) {
+  const trace = langfuse.trace({ name: agentType, userId });
+  const start = Date.now();
+  try {
+    const result = await executeAgent(agentType, input);
+    trace.update({
+      output: result,
+      metadata: {
+        duration_ms: Date.now() - start,
+        input_tokens: result.usage?.input_tokens,
+        output_tokens: result.usage?.output_tokens,
+        model: result.model,
+        cache_read_tokens: result.usage?.cache_read_input_tokens ?? 0,
+        success: true,
+      }
+    });
+    return result;
+  } catch (error) {
+    trace.update({ metadata: { success: false, error: error.message } });
+    throw error;
+  }
+}
+```
+
 ### Environment Variables
 
 | Variable | Purpose | Where used |
@@ -699,9 +867,13 @@ Edge Function → Anthropic API (Claude Sonnet for evaluation/tailoring, Haiku f
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook verification | API Routes |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe client-side | Client |
 | `SENDGRID_WEBHOOK_SECRET` | Email inbound verification | API Routes |
+| `LANGFUSE_SECRET_KEY` | Langfuse LLM observability | Edge Functions only |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse project identifier | Edge Functions only |
+| `LANGFUSE_BASE_URL` | Langfuse API endpoint (cloud or self-hosted) | Edge Functions only |
+| `SENTRY_DSN` | Sentry error tracking | Server + Edge Functions |
 | `NEXT_PUBLIC_APP_URL` | Application base URL | Client + Server |
 
-**Never expose** `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `SERPAPI_API_KEY`, `JSEARCH_API_KEY`, or `STRIPE_SECRET_KEY` to the client. These are server/edge-only.
+**Never expose** `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `SERPAPI_API_KEY`, `JSEARCH_API_KEY`, `STRIPE_SECRET_KEY`, or `LANGFUSE_SECRET_KEY` to the client. These are server/edge-only.
 
 ---
 
@@ -1097,6 +1269,49 @@ CREATE INDEX idx_events_application ON public.application_events(application_id)
 CREATE INDEX idx_events_created ON public.application_events(created_at DESC);
 ```
 
+### Pipeline Jobs (Queue Table)
+
+This is the backbone of the pipeline orchestration. Every unit of work in the pipeline is a row in this table.
+
+```sql
+CREATE TABLE public.pipeline_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  job_posting_id UUID REFERENCES public.job_postings(id) ON DELETE CASCADE,
+  application_id UUID REFERENCES public.applications(id) ON DELETE SET NULL,
+  discovery_run_id UUID REFERENCES public.discovery_runs(id) ON DELETE SET NULL,
+  step TEXT NOT NULL
+    CHECK (step IN ('pre_screen', 'evaluate', 'tailor', 'generate_materials', 'generate_files')),
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 3,
+  input_data JSONB,
+  output_data JSONB,
+  error TEXT,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  next_retry_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- No RLS on pipeline_jobs — managed by Edge Functions with service role key.
+-- Workers need to claim jobs across all users.
+
+CREATE INDEX idx_pipeline_jobs_queue
+  ON public.pipeline_jobs(status, next_retry_at, created_at)
+  WHERE status = 'pending';
+
+CREATE INDEX idx_pipeline_jobs_profile ON public.pipeline_jobs(profile_id);
+CREATE INDEX idx_pipeline_jobs_posting ON public.pipeline_jobs(job_posting_id);
+CREATE INDEX idx_pipeline_jobs_status ON public.pipeline_jobs(status);
+
+-- Index for zombie detection
+CREATE INDEX idx_pipeline_jobs_zombie
+  ON public.pipeline_jobs(status, started_at)
+  WHERE status = 'processing';
+```
+
 ### Discovery Runs
 
 ```sql
@@ -1210,6 +1425,9 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.applications
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.subscriptions
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+-- Note: pipeline_jobs intentionally has no updated_at trigger —
+-- status transitions are tracked via started_at, completed_at, and next_retry_at columns.
+
 -- Auto-create profile and subscription on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -1220,6 +1438,7 @@ BEGIN
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', '')
   );
+  -- Limits: free=5, pro=50, premium=200
   INSERT INTO public.subscriptions (profile_id, plan, applications_limit)
   VALUES (NEW.id, 'free', 5);
   RETURN NEW;
@@ -1246,6 +1465,55 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_application_approved
   AFTER INSERT OR UPDATE ON public.applications
   FOR EACH ROW EXECUTE FUNCTION public.handle_application_approved();
+
+-- Claim next pending pipeline job atomically (used by process-pipeline Edge Function)
+CREATE OR REPLACE FUNCTION public.claim_pipeline_job()
+RETURNS SETOF public.pipeline_jobs AS $$
+  WITH zombies_reclaimed AS (
+    UPDATE public.pipeline_jobs SET
+      status = 'pending',
+      started_at = NULL
+    WHERE status = 'processing'
+      AND started_at < now() - interval '5 minutes'
+    RETURNING id
+  ),
+  claimed AS (
+    SELECT id FROM public.pipeline_jobs
+    WHERE status = 'pending'
+      AND attempts < max_attempts
+      AND (next_retry_at IS NULL OR next_retry_at <= now())
+    ORDER BY created_at ASC
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED
+  )
+  UPDATE public.pipeline_jobs SET
+    status = 'processing',
+    started_at = now(),
+    attempts = attempts + 1
+  FROM claimed
+  WHERE public.pipeline_jobs.id = claimed.id
+  RETURNING public.pipeline_jobs.*;
+$$ LANGUAGE sql;
+
+-- Mark pipeline job as failed with exponential backoff
+CREATE OR REPLACE FUNCTION public.fail_pipeline_job(
+  p_job_id UUID,
+  p_error TEXT
+)
+RETURNS void AS $$
+  UPDATE public.pipeline_jobs SET
+    status = CASE
+      WHEN attempts >= max_attempts THEN 'failed'
+      ELSE 'pending'
+    END,
+    error = p_error,
+    next_retry_at = CASE
+      WHEN attempts < max_attempts
+      THEN now() + (interval '30 seconds' * power(2, attempts))
+      ELSE NULL
+    END
+  WHERE id = p_job_id;
+$$ LANGUAGE sql;
 
 -- Log application status changes
 CREATE OR REPLACE FUNCTION public.handle_application_status_change()
@@ -1541,28 +1809,53 @@ Same CRUD pattern as work experience for each entity type.
 
 ### Supabase Edge Functions
 
-These are not called directly by the frontend. They are invoked by cron triggers or by other server-side code.
+These are not called directly by the frontend. They are invoked by pg_cron triggers or by other server-side code.
 
-**`/functions/v1/run-discovery`**
+**`/functions/v1/discover-jobs`**
 - Input: `{ "profile_id": "uuid" }`
-- Action: Runs the full discovery → evaluation → tailoring → materials pipeline for the user
-- Called by: Vercel Cron or pg_cron
+- Action: Fetches jobs from all configured sources (SerpAPI, JSearch, Greenhouse, Lever, email) in parallel. Deduplicates against existing postings. Saves new postings to `job_postings`. **Enqueues `pipeline_jobs` with `step='pre_screen'`** for each new posting. Does NOT run evaluation directly.
+- Called by: pg_cron (every 12h free / 6h pro / 1h premium per user)
 
-**`/functions/v1/evaluate-job`**
-- Input: `{ "profile_id": "uuid", "job_posting_id": "uuid" }`
-- Action: Runs the Evaluation Agent for a single job
-
-**`/functions/v1/tailor-resume`**
-- Input: `{ "profile_id": "uuid", "job_posting_id": "uuid", "application_id": "uuid" }`
-- Action: Runs the Tailoring Agent, then the Materials Agent
+**`/functions/v1/process-pipeline`** (the worker)
+- Input: None — it reads from the `pipeline_jobs` queue table.
+- Action: Calls `claim_pipeline_job()` to atomically claim one pending job. Based on the `step` field, calls the appropriate agent function. On success, enqueues the next step. On failure, calls `fail_pipeline_job()` for exponential backoff. Wraps every LLM call with Langfuse tracing.
+- Called by: pg_cron every 30 seconds.
+- Worker pseudocode:
+```
+1. SELECT * FROM claim_pipeline_job()
+2. IF no job returned: exit (nothing to do)
+3. SWITCH job.step:
+   - 'pre_screen': Run Haiku pre-screen → IF pass, enqueue 'evaluate' → IF fail, mark no_match
+   - 'evaluate': Run Sonnet evaluation → IF passes_threshold, create application, enqueue 'tailor'
+   - 'tailor': Run Sonnet tailoring → Save resume_version → Enqueue 'generate_materials'
+   - 'generate_materials': Run Sonnet/Haiku materials → Update application → Enqueue 'generate_files'
+   - 'generate_files': Generate PDF/DOCX → Upload to Storage → Set application status='ready' → Notify
+4. On success: UPDATE pipeline_jobs SET status='completed', completed_at=now()
+5. On failure: CALL fail_pipeline_job(job.id, error_message)
+```
 
 **`/functions/v1/generate-resume-files`**
 - Input: `{ "resume_version_id": "uuid" }`
-- Action: Generates PDF and DOCX files from the resume JSON, uploads to Supabase Storage
+- Action: Generates PDF and DOCX files from the resume JSON, uploads to Supabase Storage. Can also be called standalone for re-generation.
 
 **`/functions/v1/parse-job-url`**
 - Input: `{ "url": "string" }`
-- Action: Fetches URL, parses job posting content, returns structured data
+- Action: Fetches URL, parses job posting content using Haiku, returns structured data. Used by the manual job addition flow.
+
+**pg_cron schedule configuration:**
+```sql
+-- Process pipeline worker: every 30 seconds
+SELECT cron.schedule('process-pipeline', '30 seconds',
+  $$SELECT net.http_post(
+    'https://<project>.supabase.co/functions/v1/process-pipeline',
+    '{}',
+    '{"Authorization": "Bearer <service_role_key>"}'
+  )$$
+);
+
+-- Discovery runs: scheduled per-user based on subscription tier
+-- (Managed dynamically — see search_preferences.scan_interval_hours)
+```
 
 ---
 
@@ -1598,6 +1891,7 @@ These are not called directly by the frontend. They are invoked by cron triggers
 | 24 | Notifications | `/notifications` | Yes | All notifications with read/unread state |
 | 25 | Subscription | `/settings/subscription` | Yes | Current plan, usage, upgrade/downgrade |
 | 26 | Account Settings | `/settings/account` | Yes | Email, password, delete account |
+| 27 | Pipeline Admin | `/admin/pipeline` | Admin | Pipeline health: jobs by status, error rates, avg duration, per-user cost, zombie count |
 
 ### Screen Details
 
@@ -1759,6 +2053,19 @@ These are not called directly by the frontend. They are invoked by cron triggers
 
 **Account (`/settings/account`):** Change email, change password, email digest toggle, notification preferences (in-app, email for each notification type), "Delete Account" danger zone at bottom.
 
+#### 27. Pipeline Admin (`/admin/pipeline`)
+
+**Layout:** Full-width. No sidebar (internal tool, not user-facing). Simple nav bar with logo + "Back to Dashboard."
+
+**Access:** Admin-only. Protected by a check against an `is_admin` flag on the profile or an admin email allowlist in environment variables.
+
+**Sections:**
+- **Pipeline Health:** Four stat cards: Pending Jobs, Processing Jobs, Failed Jobs (last 24h), Zombie Jobs (processing > 5 min).
+- **Jobs by Step:** Bar chart or table showing counts per step (pre_screen, evaluate, tailor, generate_materials, generate_files) × status (pending, processing, completed, failed).
+- **Error Log:** Scrollable list of recent failed pipeline jobs: timestamp, step, user email, job posting title, error message, attempt count. Click to see full `input_data` and `output_data`.
+- **Per-User Cost (from Langfuse):** Table showing top users by token usage this billing period: user email, total input tokens, total output tokens, estimated API cost, plan tier. Highlights any user where estimated cost > plan revenue.
+- **Validation Failure Rate:** Zod validation failure count and percentage over last 7 days, broken down by agent type. Target: <1%.
+
 ---
 
 ## §10 Design System
@@ -1895,7 +2202,7 @@ Base unit: `4px`. All spacing uses multiples of 4.
 
 | Feature | Free | Pro ($19/mo) | Premium ($39/mo) |
 |---------|------|-------------|-----------------|
-| Applications per month | 5 | 50 | Unlimited |
+| Applications per month | 5 | 50 | 200 |
 | Job discovery | Every 12 hours | Every 6 hours | Every 1 hour |
 | Sources | Aggregator APIs only | All sources | All sources |
 | Manual job input | Yes | Yes | Yes |
@@ -1910,6 +2217,20 @@ Base unit: `4px`. All spacing uses multiples of 4.
 | Priority support | No | No | Yes |
 | Auto-submit (Phase 2) | No | No | Yes |
 
+### Tier Economics
+
+Per-application AI cost is ~$0.08 before optimizations, ~$0.03-0.04 with prompt caching and Haiku pre-screen.
+
+| Tier | Revenue | Max Apps | Est. API Cost/mo | Gross Margin |
+|------|---------|----------|-----------------|--------------|
+| Free | $0 | 5 | ~$0.20 | Loss leader |
+| Pro ($19) | $19 | 50 | ~$2-4 | 79-89% |
+| Premium ($39) | $39 | 200 | ~$8-16 | 59-79% |
+
+The Premium cap of 200 applications/month (vs. the original "unlimited" design) ensures healthy margins even for power users. 200 applications/month is ~10 per business day — more than sufficient for even the most active job seekers (Priya persona). The 1-hour discovery cadence and priority support remain the primary Premium differentiators alongside the higher volume cap.
+
+If market feedback demands a higher cap, the cost optimizations (prompt caching, Haiku pre-screen, Batch API) must be fully implemented first. Monitor per-user API cost via the Langfuse-powered admin dashboard.
+
 ### Billing
 
 - Monthly billing via Stripe.
@@ -1922,7 +2243,7 @@ Base unit: `4px`. All spacing uses multiples of 4.
 ### Expansion Motion
 
 Free → Pro: User hits the 5-application limit. Sees prepared applications they can't approve. Upgrade prompt.
-Pro → Premium: User wants faster scanning, unlimited applications, cover letters, or (later) auto-submit. The analytics in Premium show them exactly how Woodhouse is improving their job search — making the value tangible.
+Pro → Premium: User wants faster scanning (1h vs 6h), higher volume (200 vs 50 apps), cover letters, full analytics, or (later) auto-submit. The analytics in Premium show them exactly how Woodhouse is improving their job search — making the value tangible.
 
 ---
 
