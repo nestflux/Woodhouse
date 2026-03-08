@@ -217,6 +217,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E12-03 (Usage Enforcement & Feature Gating)
-Currently working: E13-01 (Profile & Preferences Settings)
-Next up: E13-02 (Account Settings)
+Last completed: E13-02 (Account Settings)
+Currently working: E14-01 (Analytics Dashboard)
+Next up: E15-01 (Final Polish & Cross-Cutting Fixes)

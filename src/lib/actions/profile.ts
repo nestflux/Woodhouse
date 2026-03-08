@@ -37,6 +37,7 @@ export async function updateBasicInfo(data: {
 
   if (error) return { error: error.message };
   revalidatePath("/onboarding");
+  revalidatePath("/settings/profile");
   return { success: true };
 }
 
@@ -60,6 +61,7 @@ export async function updateHeadline(data: {
 
   if (error) return { error: error.message };
   revalidatePath("/onboarding");
+  revalidatePath("/settings/profile");
   return { success: true };
 }
 
@@ -94,4 +96,21 @@ export async function getProfile() {
     .single();
 
   return data;
+}
+
+export async function updateEmailDigest(value: "none" | "daily" | "weekly") {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ email_digest: value })
+    .eq("id", user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/settings/preferences");
+  return { success: true };
 }
