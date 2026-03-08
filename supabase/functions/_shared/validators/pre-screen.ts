@@ -3,7 +3,7 @@ import { ValidationError } from "./errors.ts";
 
 export const PreScreenSchema = z.object({
   pass: z.boolean(),
-  reason: z.string(),
+  reason: z.string().min(1),
   disqualifiers: z.array(z.string()),
 });
 

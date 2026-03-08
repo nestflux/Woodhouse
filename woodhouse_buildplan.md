@@ -511,39 +511,40 @@ Implement the standard agent call pattern with Anthropic prompt caching and Lang
 
 ### Description
 
-Build the 8-step onboarding wizard that guides new users through profile creation. This is the first thing every user experiences after sign-up.
+Build the 8-step onboarding wizard that guides new users through profile creation. This is the first thing every user experiences after sign-up. Resume upload is offered as Step 1 (optional) — if provided, parsed data pre-fills all subsequent steps so users can review and edit rather than type from scratch.
 
 ### Implementation Notes
 
 - Onboarding routes live in `(app)/onboarding/` with a dedicated layout (no sidebar — progress bar at top, back/continue buttons at bottom).
-- Steps: basics → headline → experience → education → skills → projects → preferences → upload.
-- Each step is a separate route: `/onboarding/basics`, `/onboarding/headline`, etc.
+- Steps: upload → basics → headline → experience → education → skills → projects → preferences.
+- Each step is a separate route: `/onboarding/upload`, `/onboarding/basics`, `/onboarding/headline`, etc.
 - Progress bar shows 8 steps with current step highlighted.
+- Step 1 (Resume Upload): two-option choice card — "Upload your resume" (drag-and-drop zone, accepts PDF/DOCX up to 5MB) or "Start from scratch" (skip button). After upload, show a parsing progress indicator, then a summary of what was extracted. Parsed data is stored in a `resume_parsed_data` JSONB column on `profiles` for use by subsequent steps. Parsing itself is implemented in E4-02 — this step provides the upload UI and file storage only. If parsing is not yet available, the file is saved to Supabase Storage and the user proceeds with empty steps.
+- Steps 2-7: If `resume_parsed_data` exists on the profile, pre-fill form fields from the parsed data. Show an "Imported from resume" badge on pre-filled entries. All pre-filled fields are fully editable.
 - All data saves to the database via Server Actions on "Continue" — progress is preserved if user abandons.
-- Step 3 (Work Experience): expandable cards with achievement bullets. "Add Experience" button.
-- Step 5 (Skills): tag-style input with category and proficiency dropdowns per skill.
-- Step 1 (Basic Info): includes country dropdown and location (city/region) field.
-- Step 3 (Work Experience): each entry includes country field.
-- Step 7 (Preferences): match threshold slider (0-100) with labels at 50/70/90. Target countries (multi-select), target role titles, locations (multi-select/free text), remote preference, salary range with currency selector (default based on user's country), job types, excluded companies/keywords, preferred industries/company sizes.
-- Step 8 (Resume Upload): drag-and-drop zone, accepts PDF/DOCX. Parsing comes in E4-02.
+- Step 4 (Work Experience): expandable cards with achievement bullets. "Add Experience" button. Each entry includes country field.
+- Step 6 (Skills): tag-style input with category and proficiency dropdowns per skill.
+- Step 2 (Basic Info): includes country dropdown and location (city/region) field.
+- Step 8 (Preferences): match threshold slider (0-100) with labels at 50/70/90. Target countries (multi-select), target role titles, locations (multi-select/free text), remote preference, salary range with currency selector (default based on user's country), job types, excluded companies/keywords, preferred industries/company sizes.
 - On final step completion, set `profiles.onboarding_complete = true` and redirect to `/dashboard`.
 - Create Server Actions for all profile CRUD: `createWorkExperience`, `updateWorkExperience`, `deleteWorkExperience`, `reorderWorkExperiences`, `createAchievement`, `updateAchievement`, `deleteAchievement`, plus CRUD for education, skills, projects, certifications, search preferences.
 
 ### Acceptance Criteria
 
 - [ ] 8 onboarding steps render at their respective routes with a progress bar showing current step
-- [ ] Step 1 (Basic Info): saves full_name, phone, country, location, linkedin_url, portfolio_url, github_url to profiles table
-- [ ] Step 2 (Headline): saves headline and summary to profiles table
-- [ ] Step 3 (Work Experience): user can add multiple entries with achievements, save to work_experiences + achievements tables
-- [ ] Step 4 (Education): saves to education table
-- [ ] Step 5 (Skills): saves to skills table with category and proficiency
-- [ ] Step 6 (Projects & Certs): saves to projects and certifications tables
-- [ ] Step 7 (Preferences): saves to search_preferences table (including target_countries, salary_currency, next_discovery_at)
-- [ ] Step 8 (Resume Upload): file input accepts PDF and DOCX files (parsing is E4-02)
+- [ ] Step 1 (Resume Upload): shows upload option and "Start from scratch" skip button; file input accepts PDF and DOCX files up to 5MB; uploaded file is saved to Supabase Storage
+- [ ] Step 2 (Basic Info): saves full_name, phone, country, location, linkedin_url, portfolio_url, github_url to profiles table; pre-fills from parsed resume data if available
+- [ ] Step 3 (Headline): saves headline and summary to profiles table; pre-fills from parsed resume data if available
+- [ ] Step 4 (Work Experience): user can add multiple entries with achievements, save to work_experiences + achievements tables; pre-fills from parsed resume data if available
+- [ ] Step 5 (Education): saves to education table; pre-fills from parsed resume data if available
+- [ ] Step 6 (Skills): saves to skills table with category and proficiency; pre-fills from parsed resume data if available
+- [ ] Step 7 (Projects & Certs): saves to projects and certifications tables; pre-fills from parsed resume data if available
+- [ ] Step 8 (Preferences): saves to search_preferences table (including target_countries, salary_currency, next_discovery_at)
 - [ ] "Back" button navigates to the previous step; "Continue" saves current data and advances
 - [ ] Abandoning mid-onboarding preserves all entered data — returning later resumes from last step
 - [ ] Completing step 8 sets `onboarding_complete = true` and redirects to `/dashboard`
 - [ ] All Server Actions validate input server-side and return appropriate errors
+- [ ] Pre-filled fields from resume parsing are fully editable before saving
 
 ---
 
@@ -551,32 +552,34 @@ Build the 8-step onboarding wizard that guides new users through profile creatio
 
 **Type:** Integration
 **Depends on:** E4-01
-**Masterplan:** MP §3 Flow 1 (AI assist), MP §5 Model Routing (skill suggestion, achievement improvement), MP §8 AI Assist Server Actions
+**Masterplan:** MP §3 Flow 1 (AI assist, resume parsing), MP §5 Model Routing (skill suggestion, achievement improvement), MP §8 AI Assist Server Actions
 
 ### Description
 
-Add AI-powered features to the onboarding flow: professional summary generation, skill suggestions from work history, achievement bullet improvement, and resume upload parsing.
+Add AI-powered features to the onboarding flow: resume parsing for Step 1 pre-fill, professional summary generation, skill suggestions from work history, and achievement bullet improvement.
 
 ### Implementation Notes
 
+- **Resume Parsing (Step 1):** Create a `parse-resume` Edge Function that accepts a Supabase Storage file path, reads the file content, and calls Claude Haiku for structured extraction. Output includes: full_name, phone, location, country, linkedin_url, headline, summary, work_experiences (with achievements), education, skills (with inferred categories and proficiency), projects, certifications. Parsed data is validated against a `ResumeParsingSchema` (Zod) and saved to `profiles.resume_parsed_data` (JSONB). The upload step (E4-01) calls this Edge Function after file upload and shows a summary of extracted data. Subsequent onboarding steps read from `resume_parsed_data` to pre-fill forms.
 - Three AI assist Server Actions (MP §8):
   - `generateSummary()` — calls Claude Sonnet with user's work history, generates a 2-3 sentence professional summary. Returns suggestion (does not auto-save).
   - `suggestSkills()` — calls Claude Haiku, analyzes work history entries and achievements, returns a list of suggested skills with categories and proficiency levels.
   - `improveAchievement(achievementId)` — calls Claude Sonnet, rewrites a single achievement bullet for impact and clarity. Returns suggestion (does not auto-save).
 - Each AI call uses the `callClaude` pattern from E3-04 with Langfuse tracing.
 - UI: sparkle icon buttons next to the relevant fields. Clicking shows a loading state, then displays the suggestion with "Accept" / "Dismiss" options.
-- Resume parsing (Step 8): upload the file to Supabase Storage, then call a `parse-resume` Server Action that sends the file content to Claude Haiku for structured extraction (name, work history, education, skills). Display extracted data for user review with checkboxes to confirm/discard each section. On confirm, merge into existing profile data (don't overwrite already-filled fields).
 
 ### Acceptance Criteria
 
-- [ ] "Help me write this" button on Step 2 generates a professional summary from existing profile data
-- [ ] "Suggest skills" button on Step 5 returns skills extracted from work history with category and proficiency
-- [ ] "Improve this bullet" button on Step 3 achievement entries returns an improved version
-- [ ] All three AI features show a loading spinner while processing
+- [ ] Resume upload on Step 1 triggers parsing via `parse-resume` Edge Function
+- [ ] Parsed data is saved to `profiles.resume_parsed_data` as structured JSON
+- [ ] Steps 2-7 pre-fill form fields from `resume_parsed_data` when it exists
+- [ ] Parsing summary shows count of extracted items (e.g., "Found: 3 work experiences, 2 education entries, 12 skills")
+- [ ] Parsing failure shows a user-friendly message and allows the user to proceed with manual entry
+- [ ] "Help me write this" button on Step 3 generates a professional summary from existing profile data
+- [ ] "Suggest skills" button on Step 6 returns skills extracted from work history with category and proficiency
+- [ ] "Improve this bullet" button on Step 4 achievement entries returns an improved version
+- [ ] All AI features show a loading spinner while processing
 - [ ] AI suggestions are displayed as proposals — user must click "Accept" to save them
-- [ ] Resume upload accepts PDF and DOCX files up to 5MB
-- [ ] Parsed resume data is displayed in a review screen with checkboxes per section
-- [ ] Confirming parsed data merges into the profile without overwriting existing entries
 - [ ] All AI calls appear in Langfuse with correct agent type labels
 - [ ] AI errors show a user-friendly message (not a crash)
 

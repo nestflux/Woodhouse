@@ -4,6 +4,7 @@
 > **Date:** 2026-03-07
 > **Status:** Final Draft
 > **Changelog:**
+> - v1.4 — Onboarding restructure: moved resume upload from Step 8 (last) to Step 1 (first, optional). Parsed resume data now pre-fills all subsequent steps (basics, headline, experience, education, skills, projects). Users can skip upload and enter data manually. All pre-filled fields are editable. Preferences step remains last (Step 8).
 > - v1.3 — Internationalization: added country fields to profiles, work_experiences, and job_postings. Added target_countries to profiles. Added salary_currency to search_preferences. Removed US-centric defaults throughout.
 > - v1.2 — Worker loop pattern for throughput, tracked_boards table, per-user cron scheduling via next_discovery_at, pre-screen failure handling (Option B), Materials Agent split (Sonnet + Haiku), scan interval tier enforcement, updated architecture diagram, flow consistency with queue pattern.
 > - v1.1 — Integrated AI architecture research findings: pipeline queue table, concurrency control, exponential backoff, Zod validation, Anthropic prompt caching, Haiku pre-screen, Langfuse observability, Premium tier soft cap.
@@ -90,20 +91,22 @@ With Woodhouse: He configures tight search criteria and a high match threshold (
 
 1. User lands on the sign-up page. Enters email and password. Clicks "Create Account."
 2. Email verification sent. User clicks the link. Redirected to onboarding.
-3. **Step 1 — Basic Info:** Form with fields: full name, phone (optional), country, location (city/region), LinkedIn URL (optional), portfolio URL (optional), GitHub URL (optional). User fills in and clicks "Continue."
-4. **Step 2 — Professional Headline:** Single field: "How would you describe your role?" (e.g., "Senior Software Engineer"). Below it, a textarea for professional summary (2-3 sentences). AI assist button available: "Help me write this" — generates a summary from what the user has entered so far. User clicks "Continue."
-5. **Step 3 — Work Experience:** User adds work experience entries one at a time. Each entry: company name, job title, location, country, start date, end date (or "I currently work here" toggle), description. For each entry, user adds achievement bullets. AI assist available: "Improve this bullet" — rewrites for impact and clarity. User can add multiple entries. Clicks "Continue" when done.
-6. **Step 4 — Education:** User adds education entries. Each: institution, degree, field of study, start/end dates, GPA (optional), achievements/honors. Clicks "Continue."
-7. **Step 5 — Skills:** User adds skills. Each skill has a name, category (technical, soft, language, certification, tool, framework), proficiency level (beginner through expert), and years of experience. AI assist: "Suggest skills from my experience" — analyzes work history and suggests skills to add. Clicks "Continue."
-8. **Step 6 — Projects & Certifications (optional):** User adds portfolio projects and certifications. Clicks "Continue."
-9. **Step 7 — Job Search Preferences:** Form with: target role titles (multi-select/free text), target countries (multi-select), target locations (multi-select), remote preference (remote only, hybrid, onsite, flexible), salary range, salary currency (dropdown, default based on user's country), job types (full-time, part-time, contract), preferred industries, preferred company sizes, keywords to search for, keywords to exclude, companies to exclude. Match threshold slider (default 70%). Clicks "Continue."
-10. **Step 8 — Resume Upload (optional):** User can upload an existing resume (PDF or DOCX). The system parses it and pre-fills any missing profile fields. User reviews and confirms extracted data.
+3. **Step 1 — Resume Upload (optional, first):** User is presented with a choice: "Upload your resume to get started quickly" or "Start from scratch." If they upload a resume (PDF or DOCX), the system parses it using Claude Haiku and extracts structured data (name, contact info, work history, education, skills, projects, certifications). Parsed data is stored temporarily and used to pre-fill all subsequent steps. User can also skip this step entirely and enter everything manually. Clicks "Continue."
+4. **Step 2 — Basic Info:** Form with fields: full name, phone (optional), country, location (city/region), LinkedIn URL (optional), portfolio URL (optional), GitHub URL (optional). If a resume was uploaded in Step 1, fields are pre-filled with extracted data — user reviews and edits as needed. User fills in and clicks "Continue."
+5. **Step 3 — Professional Headline:** Single field: "How would you describe your role?" (e.g., "Senior Software Engineer"). Below it, a textarea for professional summary (2-3 sentences). If a resume was uploaded, these may be pre-filled from extracted data. AI assist button available: "Help me write this" — generates a summary from what the user has entered so far. User clicks "Continue."
+6. **Step 4 — Work Experience:** User adds work experience entries one at a time. Each entry: company name, job title, location, country, start date, end date (or "I currently work here" toggle), description. For each entry, user adds achievement bullets. If a resume was uploaded, work experience entries and achievement bullets are pre-filled — user reviews, edits, and confirms each entry. AI assist available: "Improve this bullet" — rewrites for impact and clarity. User can add multiple entries. Clicks "Continue" when done.
+7. **Step 5 — Education:** User adds education entries. Each: institution, degree, field of study, start/end dates, GPA (optional), achievements/honors. If a resume was uploaded, entries are pre-filled. Clicks "Continue."
+8. **Step 6 — Skills:** User adds skills. Each skill has a name, category (technical, soft, language, certification, tool, framework), proficiency level (beginner through expert), and years of experience. If a resume was uploaded, skills are pre-filled with AI-inferred categories and proficiency levels. AI assist: "Suggest skills from my experience" — analyzes work history and suggests skills to add. Clicks "Continue."
+9. **Step 7 — Projects & Certifications (optional):** User adds portfolio projects and certifications. If a resume was uploaded, entries are pre-filled. Clicks "Continue."
+10. **Step 8 — Job Search Preferences:** Form with: target role titles (multi-select/free text), target countries (multi-select), target locations (multi-select), remote preference (remote only, hybrid, onsite, flexible), salary range, salary currency (dropdown, default based on user's country), job types (full-time, part-time, contract), preferred industries, preferred company sizes, keywords to search for, keywords to exclude, companies to exclude. Match threshold slider (default 70%). Clicks "Continue."
 11. **Onboarding complete.** User sees dashboard with a message: "Woodhouse is now scanning for jobs matching your profile. You'll see results within the next few hours."
 
 **Edge cases:**
 - User abandons onboarding midway: progress is saved. They can resume from where they left off.
-- Resume upload parsing fails: user is notified and asked to enter data manually.
+- Resume upload parsing fails: user is notified and asked to enter data manually. The remaining steps are left empty for manual entry.
 - User has no work experience (new grad): work experience step shows a "No work experience yet" option that adjusts the profile accordingly.
+- Resume contains partial data (e.g., no skills section): only the fields that were successfully extracted are pre-filled. Other steps remain empty for manual entry.
+- User uploads a resume but wants to change pre-filled data: every step allows full editing of pre-filled fields before continuing. Pre-filled data is a suggestion, not a commitment.
 
 ---
 
@@ -977,6 +980,7 @@ CREATE TABLE public.profiles (
   email_digest TEXT DEFAULT 'daily'
     CHECK (email_digest IN ('none', 'daily', 'weekly')),
   forwarding_address TEXT UNIQUE,
+  resume_parsed_data JSONB,
   onboarding_complete BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
@@ -2016,14 +2020,14 @@ SELECT cron.schedule('trigger-discoveries', '0 * * * *',
 | 2 | Sign Up | `/signup` | No | Email + password + full name registration form |
 | 3 | Sign In | `/signin` | No | Email + password login form |
 | 4 | Forgot Password | `/forgot-password` | No | Password reset email request |
-| 5 | Onboarding — Basic Info | `/onboarding/basics` | Yes | Name, country, location, links |
-| 6 | Onboarding — Headline | `/onboarding/headline` | Yes | Professional headline + summary with AI assist |
-| 7 | Onboarding — Work Experience | `/onboarding/experience` | Yes | Add/edit work history + achievement bullets |
-| 8 | Onboarding — Education | `/onboarding/education` | Yes | Add/edit education entries |
-| 9 | Onboarding — Skills | `/onboarding/skills` | Yes | Add skills with AI suggestions |
-| 10 | Onboarding — Projects & Certs | `/onboarding/projects` | Yes | Optional projects and certifications |
-| 11 | Onboarding — Preferences | `/onboarding/preferences` | Yes | Job search preferences and match threshold |
-| 12 | Onboarding — Resume Upload | `/onboarding/upload` | Yes | Optional resume upload with parsing |
+| 5 | Onboarding — Resume Upload | `/onboarding/upload` | Yes | Optional resume upload to pre-fill subsequent steps |
+| 6 | Onboarding — Basic Info | `/onboarding/basics` | Yes | Name, country, location, links (pre-filled if resume uploaded) |
+| 7 | Onboarding — Headline | `/onboarding/headline` | Yes | Professional headline + summary with AI assist (pre-filled if resume uploaded) |
+| 8 | Onboarding — Work Experience | `/onboarding/experience` | Yes | Add/edit work history + achievement bullets (pre-filled if resume uploaded) |
+| 9 | Onboarding — Education | `/onboarding/education` | Yes | Add/edit education entries (pre-filled if resume uploaded) |
+| 10 | Onboarding — Skills | `/onboarding/skills` | Yes | Add skills with AI suggestions (pre-filled if resume uploaded) |
+| 11 | Onboarding — Projects & Certs | `/onboarding/projects` | Yes | Optional projects and certifications (pre-filled if resume uploaded) |
+| 12 | Onboarding — Preferences | `/onboarding/preferences` | Yes | Job search preferences and match threshold |
 | 13 | Dashboard | `/dashboard` | Yes | Overview: queue count, stats, recent matches, activity feed |
 | 14 | Job Feed | `/jobs` | Yes | All discovered jobs with filters, search, sort |
 | 15 | Job Detail | `/jobs/:id` | Yes | Full job posting + evaluation breakdown |
@@ -2066,10 +2070,10 @@ SELECT cron.schedule('trigger-discoveries', '0 * * * *',
 **Layout:** Centered content area with a progress bar at the top showing 8 steps. "Back" and "Continue" buttons at the bottom. Step title and description at the top.
 
 **Key interactions:**
-- Step 7 (Work Experience): Each entry is a card that expands to show achievement bullets. "Add Experience" button at bottom. Each achievement has an "Improve with AI" sparkle icon button.
-- Step 9 (Skills): Tag-style input. Category and proficiency dropdowns per skill. "Suggest Skills" AI button analyzes work history.
-- Step 11 (Preferences): Match threshold is a slider (0-100) with labels: 50 = "Cast a wide net", 70 = "Balanced" (default), 90 = "Only strong matches."
-- Step 12 (Resume Upload): Drag-and-drop zone or file picker. After upload, a parsing progress indicator, then a review screen showing extracted data with checkboxes to confirm or discard each section.
+- Step 1 (Resume Upload): Two-option choice card: "Upload your resume" (drag-and-drop zone or file picker, accepts PDF/DOCX) or "Start from scratch" (skip button). After upload, a parsing progress indicator, then a confirmation message showing what was extracted ("Found: 3 work experiences, 2 education entries, 12 skills"). User clicks "Continue" to proceed with pre-filled data, or "Start from scratch" to ignore parsed data.
+- Step 4 (Work Experience): Each entry is a card that expands to show achievement bullets. If pre-filled from resume, entries show with an "Imported from resume" badge. "Add Experience" button at bottom. Each achievement has an "Improve with AI" sparkle icon button.
+- Step 6 (Skills): Tag-style input. Category and proficiency dropdowns per skill. If pre-filled from resume, skills appear as editable tags. "Suggest Skills" AI button analyzes work history.
+- Step 8 (Preferences): Match threshold is a slider (0-100) with labels: 50 = "Cast a wide net", 70 = "Balanced" (default), 90 = "Only strong matches."
 
 #### 13. Dashboard (`/dashboard`)
 

@@ -1,6 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getSupabaseAdmin } from "../_shared/supabase.ts";
-import { captureException } from "../_shared/sentry.ts";
+import { captureException, captureMessage } from "../_shared/sentry.ts";
+import { runPreScreen } from "../_shared/agents/pre-screen.ts";
+import { runEvaluation } from "../_shared/agents/evaluation.ts";
+import { runTailoring } from "../_shared/agents/tailoring.ts";
+import { runMaterials } from "../_shared/agents/materials.ts";
+import { generateResumeFiles } from "../_shared/file-generation/index.ts";
 
 const WORKER_TIMEOUT_MS = 120_000;
 
@@ -28,34 +33,196 @@ type StepHandler = (
 ) => Promise<{ nextStep?: string; outputData?: Record<string, unknown> }>;
 
 const stepHandlers: Record<string, StepHandler> = {
-  pre_screen: async (_job) => {
-    // Stub: will be implemented in E5-01
-    console.info(`[stub] pre_screen for job ${_job.id} — not yet implemented`);
-    return { nextStep: "evaluate" };
+  pre_screen: async (job) => {
+    if (!job.job_posting_id) {
+      throw new Error("pre_screen requires a job_posting_id");
+    }
+
+    const result = await runPreScreen({
+      userId: job.profile_id,
+      jobPostingId: job.job_posting_id,
+    });
+
+    const outputData = {
+      pass: result.pass,
+      reason: result.reason,
+      disqualifiers: result.disqualifiers,
+    };
+
+    if (result.pass) {
+      return { nextStep: "evaluate", outputData };
+    }
+
+    // Job failed pre-screen — mark completed, no evaluation record created
+    return { outputData };
   },
-  evaluate: async (_job) => {
-    // Stub: will be implemented in E6-01
-    console.info(`[stub] evaluate for job ${_job.id} — not yet implemented`);
-    return { nextStep: "tailor" };
+  evaluate: async (job) => {
+    if (!job.job_posting_id) {
+      throw new Error("evaluate requires a job_posting_id");
+    }
+
+    const result = await runEvaluation({
+      userId: job.profile_id,
+      jobPostingId: job.job_posting_id,
+    });
+
+    const outputData = {
+      evaluation_id: result.evaluationId,
+      overall_score: result.evaluation.overall_score,
+      recommendation: result.evaluation.recommendation,
+      passes_threshold: result.passesThreshold,
+      application_id: result.applicationId ?? null,
+    };
+
+    if (result.passesThreshold && result.applicationId) {
+      // Pass threshold — enqueue tailoring with application_id
+      return {
+        nextStep: "tailor",
+        outputData,
+      };
+    }
+
+    // Below threshold — save evaluation only, no application or tailoring
+    return { outputData };
   },
-  tailor: async (_job) => {
-    // Stub: will be implemented in E7-01
-    console.info(`[stub] tailor for job ${_job.id} — not yet implemented`);
-    return { nextStep: "generate_materials" };
+  tailor: async (job) => {
+    if (!job.job_posting_id) {
+      throw new Error("tailor requires a job_posting_id");
+    }
+    if (!job.application_id) {
+      throw new Error("tailor requires an application_id");
+    }
+
+    const result = await runTailoring({
+      userId: job.profile_id,
+      jobPostingId: job.job_posting_id,
+      applicationId: job.application_id,
+    });
+
+    const outputData = {
+      resume_version_id: result.resumeVersionId,
+      application_id: job.application_id,
+    };
+
+    return {
+      nextStep: "generate_materials",
+      outputData,
+    };
   },
-  generate_materials: async (_job) => {
-    // Stub: will be implemented in E7-02
-    console.info(
-      `[stub] generate_materials for job ${_job.id} — not yet implemented`
-    );
-    return { nextStep: "generate_files" };
+  generate_materials: async (job) => {
+    if (!job.job_posting_id) {
+      throw new Error("generate_materials requires a job_posting_id");
+    }
+    if (!job.application_id) {
+      throw new Error("generate_materials requires an application_id");
+    }
+
+    await runMaterials({
+      userId: job.profile_id,
+      jobPostingId: job.job_posting_id,
+      applicationId: job.application_id,
+    });
+
+    const outputData = {
+      application_id: job.application_id,
+    };
+
+    return {
+      nextStep: "generate_files",
+      outputData,
+    };
   },
-  generate_files: async (_job) => {
-    // Stub: will be implemented in E7-03
-    console.info(
-      `[stub] generate_files for job ${_job.id} — not yet implemented`
-    );
-    return {};
+  generate_files: async (job) => {
+    if (!job.application_id) {
+      throw new Error("generate_files requires an application_id");
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    // Find the tailored resume version for this application
+    const { data: resumeVersion, error: rvError } = await supabase
+      .from("resume_versions")
+      .select("id")
+      .eq("application_id", job.application_id)
+      .eq("is_base", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (rvError || !resumeVersion) {
+      throw new Error(
+        `No tailored resume found for application ${job.application_id}: ${rvError?.message ?? "Not found"}`
+      );
+    }
+
+    // Generate PDF + DOCX, upload to storage, update resume_versions
+    const fileResult = await generateResumeFiles({
+      resumeVersionId: resumeVersion.id,
+      profileId: job.profile_id,
+    });
+
+    // Set application status to 'ready'
+    const { error: statusError } = await supabase
+      .from("applications")
+      .update({ status: "ready" })
+      .eq("id", job.application_id);
+
+    if (statusError) {
+      throw new Error(
+        `Failed to update application status to ready: ${statusError.message}`
+      );
+    }
+
+    // Fetch job posting details for notification message
+    let notificationTitle = "Application ready for review";
+    if (job.job_posting_id) {
+      const { data: posting } = await supabase
+        .from("job_postings")
+        .select("job_title, company_name")
+        .eq("id", job.job_posting_id)
+        .single();
+
+      if (posting) {
+        notificationTitle = `Your application for ${posting.job_title} at ${posting.company_name} is ready for review`;
+      }
+    }
+
+    // Create notification
+    const { error: notifError } = await supabase
+      .from("notifications")
+      .insert({
+        profile_id: job.profile_id,
+        type: "applications_ready",
+        title: notificationTitle,
+        body: "Your tailored resume and application materials have been generated. Review and approve to download.",
+        metadata: {
+          application_id: job.application_id,
+          job_posting_id: job.job_posting_id,
+          resume_version_id: resumeVersion.id,
+        },
+      });
+
+    if (notifError) {
+      // Non-fatal — log but don't fail the pipeline
+      console.error(
+        `Failed to create notification: ${notifError.message}`
+      );
+      captureMessage("Failed to create notification for ready application", {
+        applicationId: job.application_id,
+        profileId: job.profile_id,
+        error: notifError.message,
+      });
+    }
+
+    return {
+      outputData: {
+        application_id: job.application_id,
+        resume_version_id: resumeVersion.id,
+        pdf_url: fileResult.pdfUrl,
+        docx_url: fileResult.docxUrl,
+        status: "ready",
+      },
+    };
   },
 };
 
@@ -84,10 +251,15 @@ async function enqueueNextStep(
   extraData?: Record<string, unknown>
 ) {
   const supabase = getSupabaseAdmin();
+
+  // Use application_id from output data if set (e.g., after evaluation creates one)
+  const applicationId =
+    (extraData?.application_id as string) ?? currentJob.application_id;
+
   const { error } = await supabase.from("pipeline_jobs").insert({
     profile_id: currentJob.profile_id,
     job_posting_id: currentJob.job_posting_id,
-    application_id: currentJob.application_id,
+    application_id: applicationId,
     discovery_run_id: currentJob.discovery_run_id,
     step: nextStep,
     status: "pending",
@@ -115,6 +287,9 @@ Deno.serve(async (_req) => {
 
       if (claimError) {
         console.error(`Failed to claim job: ${claimError.message}`);
+        captureException(new Error(claimError.message), {
+          phase: "claim-job",
+        });
         break;
       }
 
@@ -171,6 +346,11 @@ Deno.serve(async (_req) => {
           console.error(
             `Failed to mark job as failed: ${failError.message}`
           );
+          captureException(new Error(failError.message), {
+            phase: "fail-pipeline-job",
+            jobId: job.id,
+            step: job.step,
+          });
         }
 
         captureException(error, {

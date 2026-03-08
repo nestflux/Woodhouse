@@ -210,6 +210,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E3-04 (Prompt Caching & Agent Call Pattern)
-Currently working: E4-01 (Onboarding Flow — Basics & Work Experience)
-Next up: E4-02 (AI Assist & Resume Parsing)
+Last completed: E9-03 (Job Detail Screen)
+Currently working: E10-01 (Application Tracker Board)
+Next up: E10-02 (Settings & Profile Management)

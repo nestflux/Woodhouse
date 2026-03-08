@@ -10,7 +10,7 @@ const ApplicationAnswerSchema = z.object({
 export const MaterialsSchema = z.object({
   cover_letter: z.string().min(1).nullable().optional(),
   why_interested: z.string().min(1),
-  application_answers: z.array(ApplicationAnswerSchema),
+  application_answers: z.array(ApplicationAnswerSchema).min(1),
 });
 
 export type Materials = z.infer<typeof MaterialsSchema>;

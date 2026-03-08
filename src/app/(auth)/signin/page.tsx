@@ -53,7 +53,7 @@ export default function SignInPage() {
         .single();
 
       if (profile && !profile.onboarding_complete) {
-        router.push("/onboarding/basics");
+        router.push("/onboarding/upload");
       } else {
         router.push("/dashboard");
       }

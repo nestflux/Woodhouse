@@ -16,8 +16,8 @@ export const EvaluationSchema = z.object({
     "no_match",
   ]),
   reasoning: z.string().min(50),
-  strengths: z.array(z.string()),
-  gaps: z.array(z.string()),
+  strengths: z.array(z.string()).min(1),
+  gaps: z.array(z.string()).min(1),
 });
 
 export type Evaluation = z.infer<typeof EvaluationSchema>;
