@@ -782,9 +782,9 @@ const response = await anthropic.messages.create({
 
 | Layer | Technology | Reason |
 |-------|-----------|--------|
-| Frontend | Next.js 14+ (App Router) | Server components, server actions, file-based routing. Industry standard for React apps on Vercel. |
-| Styling | Tailwind CSS 3+ | Utility-first, rapid UI development, consistent design system implementation. |
-| UI Components | shadcn/ui | High-quality, accessible, customizable components built on Radix UI. Not a dependency — components are copied into the project. |
+| Frontend | Next.js 16+ (App Router) | Server components, server actions, file-based routing. Industry standard for React apps on Vercel. |
+| Styling | Tailwind CSS 4 | Utility-first, rapid UI development, consistent design system implementation. CSS-based config via `@theme` directives. |
+| UI Components | shadcn/ui v4 | High-quality, accessible, customizable components built on Base UI. |
 | Backend/Database | Supabase (PostgreSQL) | Auth, database, storage, edge functions, realtime — single platform for all backend needs. |
 | Auth | Supabase Auth | Email/password authentication. Integrated with RLS for row-level security. |
 | AI | Anthropic API (Claude) | Sonnet 4.6 for reasoning tasks, Haiku 4.5 for parsing tasks. |

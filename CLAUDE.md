@@ -28,10 +28,10 @@ Skipping them causes drift and rework.
 
 ## Rule 2 — Stack: Next.js + Supabase + Tailwind + Anthropic. No Substitutions.
 
-**Frontend:** Next.js 14+ with App Router. Not Pages Router. Not Remix. Not Vite.
+**Frontend:** Next.js 16+ with App Router. Not Pages Router. Not Remix. Not Vite.
 - React Server Components by default. Only use `"use client"` when interactivity is required.
-- Tailwind CSS for all styling. Not CSS modules. Not styled-components. Not Emotion.
-- shadcn/ui for components (New York style, slate base). Not Material UI. Not Chakra. Not Ant Design.
+- Tailwind CSS 4 for all styling (CSS-based `@theme` config, not `tailwind.config.js`). Not CSS modules. Not styled-components. Not Emotion.
+- shadcn/ui v4 for components (Base UI primitives). Not Material UI. Not Chakra. Not Ant Design.
 - Inter font via `next/font/google`. Not a CDN link.
 
 **Backend:** Supabase Edge Functions (Deno runtime) for all AI agents and pipeline processing. Next.js Server Actions for profile CRUD and authenticated data mutations. Next.js API Routes for webhooks only (Stripe, SendGrid).
@@ -210,6 +210,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: —
-Currently working: —
-Next up: E1-01 (Next.js Project Initialization)
+Last completed: E3-04 (Prompt Caching & Agent Call Pattern)
+Currently working: E4-01 (Onboarding Flow — Basics & Work Experience)
+Next up: E4-02 (AI Assist & Resume Parsing)
