@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Woodhouse — Path to Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#1e3a5f;--primary-light:#2d5a8e;--accent:#d97706;--accent-light:#f59e0b;--bg:#fafaf9;--surface:#fff;--border:#e7e5e4;--text:#18181b;--text-sec:#52525b;--text-muted:#a1a1aa;--green:#059669;--red:#dc2626;--blue:#2563eb}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+
+.hero{background:linear-gradient(135deg,var(--primary) 0%,#132843 100%);color:#fff;padding:64px 24px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 50%,rgba(217,119,6,.08) 0%,transparent 50%);pointer-events:none}
+.hero h1{font-size:2.5rem;font-weight:800;letter-spacing:-1px;margin-bottom:8px;position:relative}
+.hero p{font-size:1rem;color:rgba(255,255,255,.6);position:relative;max-width:560px;margin:0 auto}
+.hero .back{position:absolute;top:24px;left:24px;color:rgba(255,255,255,.5);text-decoration:none;font-size:.85rem;font-weight:500}
+.hero .back:hover{color:#fff}
+
+.container{max-width:800px;margin:0 auto;padding:48px 24px}
+
+h2{font-size:1.4rem;font-weight:700;color:var(--primary);margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid var(--border);letter-spacing:-.3px}
+h2:first-of-type{margin-top:0}
+
+h3{font-size:1.05rem;font-weight:700;color:var(--text);margin:32px 0 12px}
+
+p{margin-bottom:12px;color:var(--text-sec);font-size:.925rem}
+p.note{font-size:.8rem;color:var(--text-muted);margin-top:4px}
+
+/* Key cards */
+.key-group{margin-bottom:32px}
+.key-group-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:12px}
+
+.key-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:12px}
+.key-card .key-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.key-card .key-name{font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:.85rem;font-weight:600;color:var(--primary);background:rgba(30,58,95,.06);padding:2px 8px;border-radius:4px}
+.key-card .key-service{font-size:.8rem;font-weight:600;color:var(--accent)}
+.key-card .key-scope{font-size:.7rem;font-weight:600;color:var(--text-muted);background:var(--bg);padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px}
+.key-card .key-desc{font-size:.875rem;color:var(--text-sec);line-height:1.55}
+.key-card .key-link{font-size:.8rem;color:var(--blue);text-decoration:none;margin-top:6px;display:inline-block}
+.key-card .key-link:hover{text-decoration:underline}
+
+/* Priority */
+.priority-list{list-style:none;counter-reset:priority}
+.priority-list li{counter-increment:priority;display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.9rem;color:var(--text-sec)}
+.priority-list li:last-child{border-bottom:none}
+.priority-list li::before{content:counter(priority);display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;font-size:.75rem;font-weight:700;flex-shrink:0;margin-top:1px}
+.priority-list li strong{color:var(--text)}
+
+/* Code blocks */
+pre{background:#1a1a2e;color:#e2e8f0;border-radius:8px;padding:16px 20px;margin:12px 0 16px;overflow-x:auto;font-size:.8rem;line-height:1.7;font-family:'SF Mono',SFMono-Regular,Consolas,monospace}
+pre .cmd{color:#7dd3fc}
+pre .flag{color:#fbbf24}
+pre .val{color:#86efac}
+pre .comment{color:#64748b}
+
+code{font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:.8rem;background:rgba(30,58,95,.06);padding:2px 6px;border-radius:3px;color:var(--primary)}
+
+/* Steps */
+.step{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:12px;display:flex;align-items:flex-start;gap:16px}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0}
+.step-content{flex:1;min-width:0}
+.step-content h4{font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:4px}
+.step-content p{margin-bottom:0;font-size:.875rem}
+
+/* Checklist */
+.checklist{list-style:none;margin:16px 0}
+.checklist li{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.875rem;color:var(--text-sec)}
+.checklist li:last-child{border-bottom:none}
+.checklist li.done{color:var(--text-muted);text-decoration:line-through}
+.checklist input[type="checkbox"]{width:16px;height:16px;accent-color:var(--green);flex-shrink:0;margin-top:3px;cursor:pointer}
+
+/* Step checkboxes */
+.step-check{width:18px;height:18px;accent-color:var(--green);flex-shrink:0;margin-top:7px;cursor:pointer}
+.step.done{opacity:.6}
+.step.done .step-num{background:var(--text-muted)}
+.step.done .step-content h4{text-decoration:line-through;color:var(--text-muted)}
+
+/* Progress banner */
+.progress-banner{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:32px;display:flex;align-items:center;gap:16px}
+.progress-banner .prog-bar{flex:1;background:var(--border);border-radius:20px;height:12px;overflow:hidden}
+.progress-banner .prog-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--green),#34d399);transition:width .4s ease}
+.progress-banner .prog-text{font-size:.85rem;font-weight:700;color:var(--primary);white-space:nowrap}
+
+/* Recommended */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.rec-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+.rec-card h4{font-size:.85rem;font-weight:700;color:var(--primary);margin-bottom:4px}
+.rec-card p{font-size:.8rem;color:var(--text-sec);margin-bottom:0}
+
+footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85rem;border-top:1px solid var(--border)}
+
+@media(max-width:640px){
+.hero h1{font-size:1.75rem}
+.key-card .key-header{flex-wrap:wrap}
+.rec-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+<a href="index.html" class="back">&larr; Back to Dashboard</a>
+<h1>Path to Production</h1>
+<p>Everything you need to go from finished codebase to live product. API keys, deployment steps, and verification checklist.</p>
+</div>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<!--  API Keys                                                      -->
+<!-- ============================================================ -->
+
+<h2>1. API Keys &amp; External Services</h2>
+
+<div class="key-group">
+<div class="key-group-title">Core AI &mdash; Required for any AI features</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">ANTHROPIC_API_KEY</span>
+<span class="key-service">Anthropic</span>
+<span class="key-scope">Edge Functions</span>
+</div>
+<div class="key-desc">
+Powers <strong>every AI call</strong> in the system: resume parsing (Haiku), pre-screen filtering (Haiku), 5-dimension job evaluation (Sonnet), resume tailoring (Sonnet), cover letter &amp; application answer generation (Sonnet), and all AI assist features (summary, skills, achievements). Without this key, the entire pipeline is inert.
+</div>
+<a href="https://console.anthropic.com" class="key-link">console.anthropic.com &rarr; API Keys</a>
+</div>
+</div>
+
+<div class="key-group">
+<div class="key-group-title">Job Discovery &mdash; Required for automated job search</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">SERPAPI_API_KEY</span>
+<span class="key-service">SerpAPI</span>
+<span class="key-scope">Edge Functions</span>
+</div>
+<div class="key-desc">
+<strong>Primary search engine.</strong> The Discovery Agent queries Google Jobs via SerpAPI &mdash; searches by role, location, country, and keywords from each user's search preferences. Returns structured job listings for evaluation.
+</div>
+<a href="https://serpapi.com" class="key-link">serpapi.com</a>
+</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">JSEARCH_API_KEY</span>
+<span class="key-service">RapidAPI (JSearch)</span>
+<span class="key-scope">Edge Functions</span>
+</div>
+<div class="key-desc">
+<strong>Secondary search engine.</strong> Runs in parallel with SerpAPI for broader coverage across different job boards and sources. Complements the primary search.
+</div>
+<a href="https://rapidapi.com" class="key-link">rapidapi.com &rarr; JSearch API</a>
+</div>
+</div>
+
+<div class="key-group">
+<div class="key-group-title">Payments &mdash; Required for paid tiers</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">STRIPE_SECRET_KEY</span>
+<span class="key-service">Stripe</span>
+<span class="key-scope">Server</span>
+</div>
+<div class="key-desc">
+Server-side Stripe SDK initialization. Creates checkout sessions, manages subscriptions (Pro $19/mo, Premium $39/mo), handles plan upgrades and downgrades.
+</div>
+</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">STRIPE_WEBHOOK_SECRET</span>
+<span class="key-service">Stripe</span>
+<span class="key-scope">API Routes</span>
+</div>
+<div class="key-desc">
+Verifies incoming webhook signatures. Ensures events (payment success, subscription changes, invoice failures) genuinely came from Stripe before the app processes them.
+</div>
+</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</span>
+<span class="key-service">Stripe</span>
+<span class="key-scope">Client (public)</span>
+</div>
+<div class="key-desc">
+Client-side key that initializes Stripe checkout UI on the subscription page. Safe to expose &mdash; it can only create checkout sessions, not read data.
+</div>
+<a href="https://dashboard.stripe.com" class="key-link">dashboard.stripe.com &rarr; Developers &rarr; API Keys</a>
+</div>
+</div>
+
+<div class="key-group">
+<div class="key-group-title">Observability &mdash; Recommended</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">LANGFUSE_SECRET_KEY</span>
+<span class="key-name">LANGFUSE_PUBLIC_KEY</span>
+<span class="key-name">LANGFUSE_BASE_URL</span>
+<span class="key-service">Langfuse</span>
+<span class="key-scope">Edge Functions</span>
+</div>
+<div class="key-desc">
+<strong>LLM observability.</strong> Every AI call is traced with: agent type, user ID, duration, token counts (input/output/cache), cost estimate, and success/failure status. Feeds the admin dashboard's per-user cost table. Base URL defaults to <code>https://cloud.langfuse.com</code>.
+</div>
+<a href="https://cloud.langfuse.com" class="key-link">cloud.langfuse.com</a>
+</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">SENTRY_DSN</span>
+<span class="key-service">Sentry</span>
+<span class="key-scope">Edge Functions</span>
+</div>
+<div class="key-desc">
+<strong>Error tracking.</strong> Captures exceptions in Edge Functions when pipeline jobs fail, AI calls error, or unexpected crashes happen. Surfaces in your Sentry dashboard for debugging.
+</div>
+<a href="https://sentry.io" class="key-link">sentry.io</a>
+</div>
+</div>
+
+<div class="key-group">
+<div class="key-group-title">Email &mdash; Required for email features</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">SENDGRID_API_KEY</span>
+<span class="key-service">SendGrid</span>
+<span class="key-scope">Edge Functions</span>
+</div>
+<div class="key-desc">
+Sends outbound email digests &mdash; daily or weekly notification summaries to users with new matches, prepared applications, and status updates.
+</div>
+</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">SENDGRID_WEBHOOK_SECRET</span>
+<span class="key-service">SendGrid</span>
+<span class="key-scope">API Routes</span>
+</div>
+<div class="key-desc">
+Verifies inbound email webhooks for the email forwarding feature. Users forward job posting emails to Woodhouse, which parses them with Haiku and adds them to the pipeline.
+</div>
+<a href="https://sendgrid.com" class="key-link">sendgrid.com &rarr; Settings &rarr; API Keys</a>
+</div>
+</div>
+
+<div class="key-group">
+<div class="key-group-title">Configuration</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">ADMIN_EMAILS</span>
+<span class="key-scope">Server Actions</span>
+</div>
+<div class="key-desc">
+Comma-separated list of email addresses with admin access. These users can access <code>/admin/pipeline</code> (job monitoring, cost tracking) and <code>/admin/settings</code> (system configuration). Example: <code>you@example.com,cofounder@example.com</code>
+</div>
+</div>
+
+<div class="key-card">
+<div class="key-header">
+<span class="key-name">NEXT_PUBLIC_APP_URL</span>
+<span class="key-scope">Client + Server</span>
+</div>
+<div class="key-desc">
+Your production domain (e.g., <code>https://woodhouse.app</code>). Used for email links, OAuth redirects, and webhook URLs.
+</div>
+</div>
+</div>
+
+<h3>Priority Order</h3>
+<p>Get things running incrementally:</p>
+<ol class="priority-list">
+<li><strong>ANTHROPIC_API_KEY</strong> &mdash; nothing AI works without it</li>
+<li><strong>ADMIN_EMAILS</strong> &mdash; your email, so you can access admin pages</li>
+<li><strong>SERPAPI_API_KEY + JSEARCH_API_KEY</strong> &mdash; job discovery needs search engines</li>
+<li><strong>STRIPE_* (3 keys)</strong> &mdash; billing; free tier works without these</li>
+<li><strong>LANGFUSE_* (3 keys)</strong> &mdash; AI cost tracking and observability</li>
+<li><strong>SENTRY_DSN</strong> &mdash; error monitoring</li>
+<li><strong>SENDGRID_* (3 keys)</strong> &mdash; email digests and forwarding</li>
+</ol>
+
+<!-- ============================================================ -->
+<!--  Deployment Steps                                              -->
+<!-- ============================================================ -->
+
+<h2>2. Deployment Steps</h2>
+
+<div class="progress-banner">
+<span class="prog-text" id="prog-text">0 / 18 complete</span>
+<div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+</div>
+
+<div class="step" data-step="deploy-1">
+<input type="checkbox" class="step-check" data-id="deploy-1">
+<div class="step-num">1</div>
+<div class="step-content">
+<h4>Push Database Migrations</h4>
+<p>14 migrations create 16 tables, RLS policies, triggers, helper functions, and cron schedules.</p>
+</div>
+</div>
+<pre><span class="cmd">SUPABASE_ACCESS_TOKEN</span>=<span class="val">&lt;token&gt;</span> <span class="cmd">npx supabase db push</span> <span class="flag">--project-ref</span> <span class="val">aultujuuzepnavbvtqmx</span></pre>
+
+<div class="step" data-step="deploy-2">
+<input type="checkbox" class="step-check" data-id="deploy-2">
+<div class="step-num">2</div>
+<div class="step-content">
+<h4>Deploy Edge Functions</h4>
+<p>12 functions: parse-resume, ai-assist, discover-jobs, trigger-discoveries, parse-job-url, process-pipeline, delete-account, generate-resume-files, send-email-digest, parse-email-job, integration-test, test-agent.</p>
+</div>
+</div>
+<pre><span class="cmd">SUPABASE_ACCESS_TOKEN</span>=<span class="val">&lt;token&gt;</span> <span class="cmd">npx supabase functions deploy</span> <span class="flag">--project-ref</span> <span class="val">aultujuuzepnavbvtqmx</span></pre>
+
+<div class="step" data-step="deploy-3">
+<input type="checkbox" class="step-check" data-id="deploy-3">
+<div class="step-num">3</div>
+<div class="step-content">
+<h4>Set Edge Function Secrets</h4>
+<p>API keys for all external services used by Edge Functions.</p>
+</div>
+</div>
+<pre><span class="cmd">npx supabase secrets set</span> \
+  <span class="flag">ANTHROPIC_API_KEY</span>=<span class="val">sk-...</span> \
+  <span class="flag">SERPAPI_API_KEY</span>=<span class="val">...</span> \
+  <span class="flag">JSEARCH_API_KEY</span>=<span class="val">...</span> \
+  <span class="flag">LANGFUSE_SECRET_KEY</span>=<span class="val">...</span> \
+  <span class="flag">LANGFUSE_PUBLIC_KEY</span>=<span class="val">...</span> \
+  <span class="flag">LANGFUSE_BASE_URL</span>=<span class="val">https://cloud.langfuse.com</span> \
+  <span class="flag">SENTRY_DSN</span>=<span class="val">...</span> \
+  <span class="flag">SENDGRID_API_KEY</span>=<span class="val">...</span> \
+  <span class="flag">SENDGRID_FROM_EMAIL</span>=<span class="val">noreply@yourdomain.com</span> \
+  <span class="flag">--project-ref</span> <span class="val">aultujuuzepnavbvtqmx</span></pre>
+
+<div class="step" data-step="deploy-4">
+<input type="checkbox" class="step-check" data-id="deploy-4">
+<div class="step-num">4</div>
+<div class="step-content">
+<h4>Configure Stripe</h4>
+<p>Create products for Pro ($19/mo) and Premium ($39/mo). Set up webhook endpoint at <code>https://yourdomain.com/api/webhooks/stripe</code>. Subscribe to: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed.</p>
+</div>
+</div>
+
+<div class="step" data-step="deploy-5">
+<input type="checkbox" class="step-check" data-id="deploy-5">
+<div class="step-num">5</div>
+<div class="step-content">
+<h4>Deploy Next.js</h4>
+<p><strong>Vercel (recommended):</strong> <code>npx vercel</code> &mdash; set env vars in Vercel Dashboard.<br>
+<strong>Self-hosted:</strong> <code>npm run build && npm start</code> behind nginx/Caddy with SSL.</p>
+</div>
+</div>
+<pre><span class="comment"># Next.js environment variables</span>
+<span class="flag">NEXT_PUBLIC_SUPABASE_URL</span>=<span class="val">https://aultujuuzepnavbvtqmx.supabase.co</span>
+<span class="flag">NEXT_PUBLIC_SUPABASE_ANON_KEY</span>=<span class="val">...</span>
+<span class="flag">SUPABASE_SERVICE_ROLE_KEY</span>=<span class="val">...</span>
+<span class="flag">STRIPE_SECRET_KEY</span>=<span class="val">sk_live_...</span>
+<span class="flag">STRIPE_WEBHOOK_SECRET</span>=<span class="val">whsec_...</span>
+<span class="flag">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</span>=<span class="val">pk_live_...</span>
+<span class="flag">ADMIN_EMAILS</span>=<span class="val">you@example.com</span>
+<span class="flag">NEXT_PUBLIC_APP_URL</span>=<span class="val">https://yourdomain.com</span></pre>
+
+<div class="step" data-step="deploy-6">
+<input type="checkbox" class="step-check" data-id="deploy-6">
+<div class="step-num">6</div>
+<div class="step-content">
+<h4>Domain &amp; DNS</h4>
+<p>Point your domain to the hosting platform. SSL is handled automatically by Vercel/Caddy. Update <code>NEXT_PUBLIC_APP_URL</code> and verify sender domain in SendGrid.</p>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!--  Verification                                                  -->
+<!-- ============================================================ -->
+
+<h2>3. Verification Checklist</h2>
+<p>Run through this end-to-end after all keys are in place:</p>
+
+<ul class="checklist">
+<li><input type="checkbox" data-id="verify-1"><strong>Sign up</strong> &mdash; create a new account, verify redirect to onboarding</li>
+<li><input type="checkbox" data-id="verify-2"><strong>Onboarding</strong> &mdash; upload a resume (PDF or DOCX), verify parsing extracts data</li>
+<li><input type="checkbox" data-id="verify-3"><strong>AI Assist</strong> &mdash; test "Generate Summary", "Suggest Skills", and "Improve Achievement"</li>
+<li><input type="checkbox" data-id="verify-4"><strong>Discovery</strong> &mdash; trigger a discovery run, verify jobs appear in Job Feed</li>
+<li><input type="checkbox" data-id="verify-5"><strong>Evaluation</strong> &mdash; verify match scores appear on discovered jobs</li>
+<li><input type="checkbox" data-id="verify-6"><strong>Tailoring</strong> &mdash; click "Prepare Application", verify resume and materials generate</li>
+<li><input type="checkbox" data-id="verify-7"><strong>Review Queue</strong> &mdash; approve an application, verify files download</li>
+<li><input type="checkbox" data-id="verify-8"><strong>Tracker</strong> &mdash; verify approved application appears, drag between columns</li>
+<li><input type="checkbox" data-id="verify-9"><strong>Notifications</strong> &mdash; verify badge in sidebar and notification page</li>
+<li><input type="checkbox" data-id="verify-10"><strong>Stripe</strong> &mdash; test Pro upgrade via checkout (use test mode first)</li>
+<li><input type="checkbox" data-id="verify-11"><strong>Admin</strong> &mdash; access /admin/pipeline, verify dashboard loads with your admin email</li>
+<li><input type="checkbox" data-id="verify-12"><strong>Landing page</strong> &mdash; visit /, verify hero, pricing table, and CTAs</li>
+</ul>
+
+<!-- ============================================================ -->
+<!--  Post-Launch                                                   -->
+<!-- ============================================================ -->
+
+<h2>4. Post-Launch</h2>
+
+<h3>Recommended</h3>
+<div class="rec-grid">
+<div class="rec-card">
+<h4>CI/CD Pipeline</h4>
+<p>GitHub Actions: lint, type-check, build, deploy on push to main.</p>
+</div>
+<div class="rec-card">
+<h4>Monitoring</h4>
+<p>Verify Langfuse traces for AI calls. Check Sentry for production errors.</p>
+</div>
+<div class="rec-card">
+<h4>Security Audit</h4>
+<p>Test RLS policies. Verify users can't access each other's data. No API key leakage.</p>
+</div>
+<div class="rec-card">
+<h4>Backups</h4>
+<p>Supabase handles daily backups. Verify retention settings in project dashboard.</p>
+</div>
+</div>
+
+<h3>Future Enhancements</h3>
+<div class="rec-grid">
+<div class="rec-card">
+<h4>Auto-Submit (Phase 2)</h4>
+<p>Direct API submissions to Greenhouse, Lever, and Ashby career portals.</p>
+</div>
+<div class="rec-card">
+<h4>Product Analytics</h4>
+<p>Posthog or Mixpanel for user behavior tracking and funnel analysis.</p>
+</div>
+<div class="rec-card">
+<h4>Load Testing</h4>
+<p>Verify concurrent user handling, API rate limits, and database performance.</p>
+</div>
+<div class="rec-card">
+<h4>Content &amp; SEO</h4>
+<p>Blog posts on job search strategy for organic traffic and user education.</p>
+</div>
+</div>
+
+</div>
+
+<footer>
+Woodhouse &mdash; Path to Production &mdash; 2026
+</footer>
+
+<script>
+(function() {
+  var STORAGE_KEY = 'woodhouse-production-checklist';
+  var state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  var total = 18; // 6 deploy steps + 12 verify items
+
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  function updateProgress() {
+    var done = Object.keys(state).filter(function(k) { return state[k]; }).length;
+    var pct = Math.round((done / total) * 100);
+    document.getElementById('prog-text').textContent = done + ' / ' + total + ' complete';
+    document.getElementById('prog-fill').style.width = pct + '%';
+  }
+
+  // Step checkboxes
+  document.querySelectorAll('.step-check').forEach(function(cb) {
+    var id = cb.getAttribute('data-id');
+    if (state[id]) {
+      cb.checked = true;
+      cb.closest('.step').classList.add('done');
+    }
+    cb.addEventListener('change', function() {
+      state[id] = cb.checked;
+      cb.closest('.step').classList.toggle('done', cb.checked);
+      save();
+      updateProgress();
+    });
+  });
+
+  // Checklist checkboxes
+  document.querySelectorAll('.checklist input[type="checkbox"]').forEach(function(cb) {
+    var id = cb.getAttribute('data-id');
+    if (state[id]) {
+      cb.checked = true;
+      cb.closest('li').classList.add('done');
+    }
+    cb.addEventListener('change', function() {
+      state[id] = cb.checked;
+      cb.closest('li').classList.toggle('done', cb.checked);
+      save();
+      updateProgress();
+    });
+  });
+
+  updateProgress();
+})();
+</script>
+
+</body>
+</html>
