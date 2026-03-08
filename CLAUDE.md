@@ -218,6 +218,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E14-01 (Pipeline Admin Dashboard)
-Currently working: E15-01 (Final Polish & Cross-Cutting Fixes)
-Next up: E15-02 (Launch Prep)
+Last completed: E15-01 (Marketing Landing Page)
+Currently working: E15-02 (Loading States, Empty States & Final Polish)
+Next up: Complete — all issues done
