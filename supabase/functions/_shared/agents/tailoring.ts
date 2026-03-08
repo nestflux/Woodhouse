@@ -312,13 +312,55 @@ function validateSourceIds(
   return invalidIds;
 }
 
+async function buildSystemPrompt(userId: string): Promise<string> {
+  const supabase = getSupabaseAdmin();
+
+  // Fetch tailoring prompt config
+  const { data: configRows } = await supabase
+    .from("system_config")
+    .select("key, value")
+    .in("key", ["tailoring_prompt_mode", "tailoring_prompt_admin_text"]);
+
+  const config = Object.fromEntries(
+    (configRows ?? []).map((r: { key: string; value: string | null }) => [r.key, r.value])
+  );
+
+  const mode = config["tailoring_prompt_mode"] ?? "system_default";
+  const adminText = config["tailoring_prompt_admin_text"] ?? null;
+
+  let prompt = SYSTEM_PROMPT;
+
+  if (mode === "admin_custom" && adminText) {
+    prompt += `\n\n## Additional Tailoring Instructions (Admin)\n${adminText}`;
+  } else if (mode === "user_choice") {
+    if (adminText) {
+      prompt += `\n\n## Admin Base Instructions\n${adminText}`;
+    }
+
+    // Fetch user's tailoring instructions
+    const { data: prefs } = await supabase
+      .from("search_preferences")
+      .select("tailoring_instructions")
+      .eq("profile_id", userId)
+      .maybeSingle();
+
+    const userInstructions = prefs?.tailoring_instructions;
+    if (userInstructions) {
+      prompt += `\n\n## User Tailoring Preferences\nThe user has requested the following tailoring approach. Follow these preferences while maintaining all truthfulness and safety constraints above.\n\n${userInstructions}`;
+    }
+  }
+
+  return prompt;
+}
+
 export async function runTailoring(
   input: TailoringInput
 ): Promise<TailoringResult> {
-  // Build knowledge base (used as cacheable context for prompt caching)
-  const [knowledgeBase, jobAndEval] = await Promise.all([
+  // Build knowledge base, job context, and system prompt in parallel
+  const [knowledgeBase, jobAndEval, systemPrompt] = await Promise.all([
     buildKnowledgeBase(input.userId),
     getJobAndEvaluation(input.userId, input.jobPostingId),
+    buildSystemPrompt(input.userId),
   ]);
 
   const { jobContext, evaluationContext } = jobAndEval;
@@ -336,7 +378,7 @@ export async function runTailoring(
     agentType: "tailoring",
     userId: input.userId,
     model: "claude-sonnet-4-6",
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt,
     cacheableContext: knowledgeBaseContext,
     userMessage: `Tailor this candidate's resume for the following job posting.
 

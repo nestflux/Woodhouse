@@ -67,6 +67,7 @@ Skipping them causes drift and rework.
 | `LANGFUSE_BASE_URL` | Edge Functions only |
 | `SENTRY_DSN` | Server + Edge Functions |
 | `NEXT_PUBLIC_APP_URL` | Client + Server |
+| `ADMIN_EMAILS` | Server only |
 
 Never hardcode credentials. Never expose service role keys, API keys, or secrets to the client. Variables marked "Edge Functions only" must never appear in Next.js server code or client bundles.
 
@@ -83,7 +84,7 @@ E1-01 → E1-02 → E1-03 → E2-01 → E2-02 → E2-03 → E2-04 → E2-05
 → E3-01 → E3-02 → E3-03 → E3-04 → E4-01 → E4-02
 → E5-01 → E5-02 → E5-03 → E6-01 → E6-02 → E6-03
 → E7-01 → E7-02 → E7-03 → E8-01 → E8-02 → E8-03 → E8-04
-→ E9-01 → E9-02 → E9-03 → E10-01 → E10-02
+→ E9-01 → E9-02 → E9-03 → E9-04 → E10-01 → E10-02
 → E11-01 → E11-02 → E11-03 → E12-01 → E12-02 → E12-03
 → E13-01 → E13-02 → E14-01 → E15-01 → E15-02
 ```
@@ -210,6 +211,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E9-03 (Job Detail Screen)
+Last completed: E9-04 (Tailoring Prompt Customization)
 Currently working: E10-01 (Application Tracker Board)
 Next up: E10-02 (Settings & Profile Management)

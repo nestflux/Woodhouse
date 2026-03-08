@@ -29,7 +29,7 @@
 | E6 | Job Evaluation | 3 | — | Haiku pre-screen, Sonnet evaluation, manual job input |
 | E7 | Resume Tailoring & Materials | 3 | — | Tailoring Agent, Materials Agent, end-to-end pipeline test |
 | E8 | Review Queue & File Generation | 4 | — | Resume files, review queue, application detail, approve flow |
-| E9 | Dashboard & Job Feed | 3 | — | Dashboard, job feed, job detail |
+| E9 | Dashboard, Job Feed & Tailoring Config | 4 | — | Dashboard, job feed, job detail, tailoring prompt customization |
 | E10 | Application Tracker | 2 | — | Kanban board, tracker detail |
 | E11 | Notifications & Email | 3 | — | In-app notifications, email digest, email forwarding |
 | E12 | Subscription & Payments | 3 | — | Stripe setup, subscription management, usage enforcement |
@@ -37,7 +37,7 @@
 | E14 | Admin & Observability | 1 | — | Pipeline admin dashboard |
 | E15 | Landing Page & Polish | 2 | — | Marketing page, loading/empty/error states, responsive polish |
 
-**Total: 43 issues**
+**Total: 44 issues**
 
 ---
 
@@ -48,7 +48,7 @@ E1-01 → E1-02 → E1-03 → E2-01 → E2-02 → E2-03 → E2-04 → E2-05
 → E3-01 → E3-02 → E3-03 → E3-04 → E4-01 → E4-02
 → E5-01 → E5-02 → E5-03 → E6-01 → E6-02 → E6-03
 → E7-01 → E7-02 → E7-03 → E8-01 → E8-02 → E8-03 → E8-04
-→ E9-01 → E9-02 → E9-03 → E10-01 → E10-02
+→ E9-01 → E9-02 → E9-03 → E9-04 → E10-01 → E10-02
 → E11-01 → E11-02 → E11-03 → E12-01 → E12-02 → E12-03
 → E13-01 → E13-02 → E14-01 → E15-01 → E15-02
 ```
@@ -1176,6 +1176,67 @@ Build the job detail screen showing the full job posting and evaluation breakdow
 - [ ] "View Application" button navigates to `/queue/:applicationId` when application exists
 - [ ] "Prepare Anyway" creates an application for below-threshold jobs
 - [ ] Loading skeleton shows while data is being fetched
+
+---
+
+## E9-04 — Tailoring Prompt Customization
+
+**Type:** Full-stack (Schema + Backend + Frontend)
+**Depends on:** E9-03, E7-01
+**Masterplan:** MP §5 Tailoring Agent
+
+### Description
+
+Add admin-controlled tailoring prompt customization with three modes: System Default (hardcoded rules only), Admin Custom (admin writes additional instructions), and User Choice (users can provide their own tailoring instructions via pre-built templates or free-text). The base system prompt (truthfulness constraints, forbidden operations, JSON output format) is always locked and non-removable.
+
+### Implementation Notes
+
+**Schema:**
+- New `system_config` table: key-value store for admin settings, RLS enabled with admin-only access. Keys: `tailoring_prompt_mode` (enum: `system_default`, `admin_custom`, `user_choice`; default: `system_default`), `tailoring_prompt_admin_text` (text, nullable).
+- Add `tailoring_instructions` TEXT column to `search_preferences` (nullable, user's custom tailoring prompt).
+- RLS: `system_config` readable by authenticated users (they need to check the mode), writable only by admin (service role or admin check).
+
+**Backend:**
+- Server Actions: `getSystemConfig(key)` — reads a config value. `setSystemConfig(key, value)` — admin-only, validates against `ADMIN_EMAILS` env var or profile flag. `getTailoringConfig()` — returns mode + admin text + whether user instructions are enabled. `setTailoringInstructions(text)` — user action, saves to `search_preferences.tailoring_instructions`.
+- Update `supabase/functions/_shared/agents/tailoring.ts`:
+  - Before calling Claude, fetch `tailoring_prompt_mode` and `tailoring_prompt_admin_text` from `system_config`.
+  - If mode is `admin_custom`, append admin text to system prompt as `## Additional Tailoring Instructions (Admin)`.
+  - If mode is `user_choice`, fetch user's `tailoring_instructions` from `search_preferences`, append admin text (if any) as `## Admin Base Instructions`, then user text as `## User Tailoring Preferences`.
+  - If mode is `system_default`, use base prompt only.
+  - The base system prompt sections (Truthfulness, Forbidden Operations, Output Format) are always first and non-removable.
+
+**Frontend — Admin UI:**
+- Add tailoring prompt config section to the admin dashboard (`/admin/pipeline` or a new `/admin/settings` route).
+- Three-option radio/select for mode: System Default, Admin Custom, User Choice.
+- When Admin Custom or User Choice is selected, show a textarea for admin instructions.
+- Save button calls `setSystemConfig`.
+
+**Frontend — User UI:**
+- In Settings (profile/preferences section), show a "Resume Tailoring Style" section — **only visible when mode = `user_choice`**.
+- Template dropdown with pre-built options:
+  - "Start from scratch" (clears textarea)
+  - "Technical depth — Prioritize technical skills, frameworks, and architecture decisions. Highlight system design work and engineering complexity."
+  - "Leadership focus — Emphasize team leadership, cross-functional collaboration, and strategic decision-making. Lead with scope of impact."
+  - "Metrics-driven — Lead every achievement bullet with a quantified result. Prioritize revenue impact, performance improvements, and measurable outcomes."
+  - "Concise — Keep the resume tight. 2-3 positions max, 3 bullets each. Only include what's directly relevant to the target role."
+  - "Career changer — Highlight transferable skills and relevant adjacent experience. De-emphasize industry-specific jargon from previous field."
+- Free-text textarea below the dropdown (pre-filled by template, fully editable).
+- Save button calls `setTailoringInstructions`.
+- Microcopy explaining what this does: "These instructions guide how Woodhouse tailors your resume for each job. The system's safety rules (truthfulness, no fabrication) always apply."
+
+### Acceptance Criteria
+
+- [ ] `system_config` table exists with RLS (authenticated can read, admin-only can write)
+- [ ] `search_preferences.tailoring_instructions` column exists (nullable TEXT)
+- [ ] Admin can set tailoring mode to `system_default`, `admin_custom`, or `user_choice`
+- [ ] Admin can write custom instructions when mode is `admin_custom` or `user_choice`
+- [ ] Tailoring agent appends admin instructions when mode is `admin_custom`
+- [ ] Tailoring agent appends admin + user instructions when mode is `user_choice`
+- [ ] Base system prompt (truthfulness, forbidden ops, output format) is always present and non-removable
+- [ ] User sees "Resume Tailoring Style" section in Settings only when mode is `user_choice`
+- [ ] User can select from pre-built templates or write custom instructions
+- [ ] User instructions are saved to `search_preferences.tailoring_instructions`
+- [ ] When mode is `system_default`, no custom instructions are appended — original behavior unchanged
 
 ---
 
