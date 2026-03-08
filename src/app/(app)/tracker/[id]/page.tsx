@@ -11,6 +11,10 @@ import {
   type TrackerDetail,
   type ApplicationEvent,
 } from "@/lib/actions/applications";
+import {
+  checkSubscription,
+  type SubscriptionFeatures,
+} from "@/lib/subscription";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -271,6 +275,7 @@ export default function TrackerDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<TrackerDetail | null>(null);
+  const [features, setFeatures] = useState<SubscriptionFeatures | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -287,7 +292,10 @@ export default function TrackerDetailPage() {
 
   useEffect(() => {
     async function load() {
-      const result = await getTrackerDetail(params.id);
+      const [result, subResult] = await Promise.all([
+        getTrackerDetail(params.id),
+        checkSubscription(),
+      ]);
       if (result.error) {
         setError(result.error);
       } else if (result.data) {
@@ -295,6 +303,9 @@ export default function TrackerDetailPage() {
         if (result.data.next_step_date) {
           setReminderDate(result.data.next_step_date.split("T")[0]);
         }
+      }
+      if (subResult.data) {
+        setFeatures(subResult.data);
       }
       setLoading(false);
     }
@@ -472,7 +483,19 @@ export default function TrackerDetailPage() {
               </span>
             }
           >
-            {detail.events.length === 0 ? (
+            {features && !features.full_tracker ? (
+              <div className="py-4 text-center">
+                <p className="text-sm text-[var(--w-text-muted)]">
+                  Full timeline is available on Pro and Premium plans.
+                </p>
+                <a
+                  href="/settings/subscription"
+                  className="inline-block mt-2 text-xs font-medium text-[var(--w-primary)] hover:underline"
+                >
+                  Upgrade to unlock
+                </a>
+              </div>
+            ) : detail.events.length === 0 ? (
               <p className="text-sm text-[var(--w-text-muted)] py-2">
                 No events recorded yet.
               </p>
@@ -510,17 +533,18 @@ export default function TrackerDetailPage() {
                         Download PDF
                       </a>
                     )}
-                    {detail.tailored_resume.file_url_docx && (
-                      <a
-                        href={detail.tailored_resume.file_url_docx}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-sm)] border border-[var(--w-border)] bg-[var(--w-surface)] text-[var(--w-text-secondary)] hover:bg-[var(--w-surface-alt)] transition-colors"
-                      >
-                        <Download className="h-3 w-3" />
-                        Download DOCX
-                      </a>
-                    )}
+                    {detail.tailored_resume.file_url_docx &&
+                      features?.docx_export && (
+                        <a
+                          href={detail.tailored_resume.file_url_docx}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-sm)] border border-[var(--w-border)] bg-[var(--w-surface)] text-[var(--w-text-secondary)] hover:bg-[var(--w-surface-alt)] transition-colors"
+                        >
+                          <Download className="h-3 w-3" />
+                          Download DOCX
+                        </a>
+                      )}
                   </div>
                   {detail.tailored_resume.tailoring_notes && (
                     <p className="text-xs text-[var(--w-text-muted)] mt-2 italic">
@@ -711,37 +735,53 @@ export default function TrackerDetailPage() {
             )}
           </div>
 
-          {/* Add Note */}
-          <div className="rounded-[var(--radius-md)] border border-[var(--w-border)] bg-[var(--w-surface)] p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <MessageSquare className="h-4 w-4 text-[var(--w-text-secondary)]" />
-              <h3 className="text-sm font-medium text-[var(--w-text-primary)]">
+          {/* Add Note — Pro/Premium only */}
+          {features?.full_tracker ? (
+            <div className="rounded-[var(--radius-md)] border border-[var(--w-border)] bg-[var(--w-surface)] p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="h-4 w-4 text-[var(--w-text-secondary)]" />
+                <h3 className="text-sm font-medium text-[var(--w-text-primary)]">
+                  Add Note
+                </h3>
+              </div>
+              <Textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Add a note about this application..."
+                rows={3}
+                className="text-sm mb-3"
+              />
+              <Button
+                size="sm"
+                className="w-full gap-2 bg-[var(--w-primary)] text-white hover:bg-[var(--w-primary-light)]"
+                disabled={!noteText.trim() || notePending}
+                onClick={handleAddNote}
+              >
+                {notePending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <MessageSquare className="h-3.5 w-3.5" />
+                )}
                 Add Note
-              </h3>
+              </Button>
             </div>
-            <Textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Add a note about this application..."
-              rows={3}
-              className="text-sm mb-3"
-            />
-            <Button
-              size="sm"
-              className="w-full gap-2 bg-[var(--w-primary)] text-white hover:bg-[var(--w-primary-light)]"
-              disabled={!noteText.trim() || notePending}
-              onClick={handleAddNote}
-            >
-              {notePending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <MessageSquare className="h-3.5 w-3.5" />
-              )}
-              Add Note
-            </Button>
-          </div>
+          ) : (
+            <div className="rounded-[var(--radius-md)] border border-[var(--w-border)] bg-[var(--w-surface)] p-4 text-center">
+              <MessageSquare className="h-5 w-5 text-[var(--w-text-muted)] mx-auto mb-2" />
+              <p className="text-sm text-[var(--w-text-muted)]">
+                Notes are available on Pro and Premium plans.
+              </p>
+              <a
+                href="/settings/subscription"
+                className="inline-block mt-1 text-xs font-medium text-[var(--w-primary)] hover:underline"
+              >
+                Upgrade to unlock
+              </a>
+            </div>
+          )}
 
-          {/* Set Reminder */}
+          {/* Set Reminder — Pro/Premium only */}
+          {features?.full_tracker ? (
           <div className="rounded-[var(--radius-md)] border border-[var(--w-border)] bg-[var(--w-surface)] p-4">
             <div className="flex items-center gap-2 mb-3">
               <Bell className="h-4 w-4 text-[var(--w-text-secondary)]" />
@@ -810,6 +850,20 @@ export default function TrackerDetailPage() {
               )}
             </div>
           </div>
+          ) : (
+            <div className="rounded-[var(--radius-md)] border border-[var(--w-border)] bg-[var(--w-surface)] p-4 text-center">
+              <Bell className="h-5 w-5 text-[var(--w-text-muted)] mx-auto mb-2" />
+              <p className="text-sm text-[var(--w-text-muted)]">
+                Reminders are available on Pro and Premium plans.
+              </p>
+              <a
+                href="/settings/subscription"
+                className="inline-block mt-1 text-xs font-medium text-[var(--w-primary)] hover:underline"
+              >
+                Upgrade to unlock
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

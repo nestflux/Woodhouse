@@ -61,6 +61,10 @@ Skipping them causes drift and rework.
 | `STRIPE_SECRET_KEY` | Server Actions / API Routes |
 | `STRIPE_WEBHOOK_SECRET` | API Routes |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client |
+| `NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID` | Client + Server |
+| `NEXT_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID` | Client + Server |
+| `NEXT_PUBLIC_STRIPE_PREMIUM_MONTHLY_PRICE_ID` | Client + Server |
+| `NEXT_PUBLIC_STRIPE_PREMIUM_ANNUAL_PRICE_ID` | Client + Server |
 | `SENDGRID_API_KEY` | Edge Functions only |
 | `SENDGRID_FROM_EMAIL` | Edge Functions only |
 | `SENDGRID_WEBHOOK_SECRET` | API Routes |
@@ -213,6 +217,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E11-03 (Email Forwarding & Inbound Parse)
-Currently working: E12-01 (Stripe Setup)
-Next up: E12-02 (Subscription Management)
+Last completed: E12-03 (Usage Enforcement & Feature Gating)
+Currently working: E13-01 (Profile & Preferences Settings)
+Next up: E13-02 (Account Settings)

@@ -142,27 +142,37 @@ async function getTailoredResumeContext(
 
 async function getUserProfileContext(
   userId: string
-): Promise<{ profileContext: string; coverLetterEnabled: boolean }> {
+): Promise<{
+  profileContext: string;
+  coverLetterEnabled: boolean;
+  fullAnswers: boolean;
+}> {
   const supabase = getSupabaseAdmin();
 
-  const [profileResult, experiencesResult, skillsResult] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "full_name, location, country, remote_preference, target_locations, target_countries, min_salary, max_salary, salary_currency, experience_years, work_authorization, cover_letter_enabled"
-      )
-      .eq("id", userId)
-      .single(),
-    supabase
-      .from("work_experiences")
-      .select("job_title, company_name, start_date, end_date, is_current")
-      .eq("profile_id", userId)
-      .order("start_date", { ascending: false }),
-    supabase
-      .from("skills")
-      .select("name, category, proficiency, years_experience")
-      .eq("profile_id", userId),
-  ]);
+  const [profileResult, experiencesResult, skillsResult, subResult] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "full_name, location, country, remote_preference, target_locations, target_countries, min_salary, max_salary, salary_currency, experience_years, work_authorization, cover_letter_enabled"
+        )
+        .eq("id", userId)
+        .single(),
+      supabase
+        .from("work_experiences")
+        .select("job_title, company_name, start_date, end_date, is_current")
+        .eq("profile_id", userId)
+        .order("start_date", { ascending: false }),
+      supabase
+        .from("skills")
+        .select("name, category, proficiency, years_experience")
+        .eq("profile_id", userId),
+      supabase
+        .from("subscriptions")
+        .select("plan")
+        .eq("profile_id", userId)
+        .maybeSingle(),
+    ]);
 
   if (profileResult.error) {
     throw new RetryableError(
@@ -183,8 +193,16 @@ async function getUserProfileContext(
     });
   }
 
-  const coverLetterEnabled =
+  const plan = (subResult.data?.plan as string) ?? "free";
+  const isPaid = plan === "pro" || plan === "premium";
+
+  // Cover letter: requires paid plan AND user preference enabled
+  const userPrefEnabled =
     (profileResult.data?.cover_letter_enabled as boolean) ?? true;
+  const coverLetterEnabled = isPaid && userPrefEnabled;
+
+  // Full application answers: paid plans get all fields, free gets limited (3)
+  const fullAnswers = isPaid;
 
   return {
     profileContext: JSON.stringify({
@@ -193,6 +211,7 @@ async function getUserProfileContext(
       skills: skillsResult.data ?? [],
     }),
     coverLetterEnabled,
+    fullAnswers,
   };
 }
 
@@ -218,7 +237,7 @@ export async function runMaterials(
       getUserProfileContext(input.userId),
     ]);
 
-  const { profileContext, coverLetterEnabled } = userContext;
+  const { profileContext, coverLetterEnabled, fullAnswers } = userContext;
 
   // ─── Run both LLM calls in parallel ───────────────────────────────────────
 
@@ -292,12 +311,16 @@ ${profileContext}`,
   }
 
   // Combine outputs and validate
+  // Free users get max 3 application answer fields; Pro/Premium get all
+  const allAnswers = haikuParsed.application_answers ?? [];
+  const limitedAnswers = fullAnswers ? allAnswers : allAnswers.slice(0, 3);
+
   const combined = {
     cover_letter: coverLetterEnabled
       ? (sonnetParsed.cover_letter ?? null)
       : null,
     why_interested: sonnetParsed.why_interested ?? "",
-    application_answers: haikuParsed.application_answers ?? [],
+    application_answers: limitedAnswers,
   };
 
   const validated = MaterialsSchema.safeParse(combined);

@@ -12,6 +12,10 @@ import {
   type ApplicationDetail,
   type ApproveResult,
 } from "@/lib/actions/applications";
+import {
+  checkSubscription,
+  type SubscriptionFeatures,
+} from "@/lib/subscription";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -1096,14 +1100,19 @@ function ApprovedBanner({
   app,
   onSubmitted,
   isPending,
+  docxExport = true,
 }: {
   approveResult: ApproveResult | null;
   app: ApplicationDetail;
   onSubmitted: () => void;
   isPending: boolean;
+  docxExport?: boolean;
 }) {
   const pdfUrl = approveResult?.resume_pdf_url ?? app.tailored_resume?.file_url_pdf;
-  const docxUrl = approveResult?.resume_docx_url ?? app.tailored_resume?.file_url_docx;
+  const docxUrl =
+    docxExport
+      ? (approveResult?.resume_docx_url ?? app.tailored_resume?.file_url_docx)
+      : null;
   const applicationUrl =
     approveResult?.application_url ?? app.job_postings.application_url;
   const coverLetter = approveResult?.cover_letter ?? app.cover_letter;
@@ -1195,6 +1204,36 @@ function ApprovedBanner({
 /*  Upgrade Prompt                                                     */
 /* ------------------------------------------------------------------ */
 
+function LockedOverlay({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      <div className="blur-sm pointer-events-none select-none">{children}</div>
+      <div className="absolute inset-0 flex items-center justify-center bg-[var(--w-surface)]/60 backdrop-blur-[2px] rounded-[var(--radius-md)]">
+        <div className="text-center p-6">
+          <Crown className="h-8 w-8 text-[var(--w-warning)] mx-auto mb-3" />
+          <p className="text-sm font-semibold text-[var(--w-text-primary)] mb-1">
+            Application limit reached
+          </p>
+          <p className="text-xs text-[var(--w-text-secondary)] mb-4 max-w-xs">
+            Your materials are ready — upgrade to unlock and approve this application.
+          </p>
+          <a href="/settings/subscription">
+            <Button
+              size="sm"
+              className="bg-[var(--w-primary)] text-white hover:bg-[var(--w-primary-light)]"
+            >
+              <Crown className="h-3.5 w-3.5 mr-1.5" />
+              Upgrade Plan
+            </Button>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
 function UpgradePrompt({
   message,
   onClose,
@@ -1242,6 +1281,7 @@ export default function ApplicationDetailPage() {
   const applicationId = params.id as string;
 
   const [app, setApp] = useState<ApplicationDetail | null>(null);
+  const [features, setFeatures] = useState<SubscriptionFeatures | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
@@ -1254,12 +1294,18 @@ export default function ApplicationDetailPage() {
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
 
   const fetchDetail = useCallback(async () => {
-    const result = await getApplicationDetail(applicationId);
+    const [result, subResult] = await Promise.all([
+      getApplicationDetail(applicationId),
+      checkSubscription(),
+    ]);
     if (result.data) {
       setApp(result.data);
       setError(null);
     } else {
       setError(result.error ?? "Failed to load application");
+    }
+    if (subResult.data) {
+      setFeatures(subResult.data);
     }
     setLoading(false);
   }, [applicationId]);
@@ -1416,6 +1462,7 @@ export default function ApplicationDetailPage() {
           app={app}
           onSubmitted={handleMarkSubmitted}
           isPending={isPending}
+          docxExport={features?.docx_export ?? false}
         />
       )}
 
@@ -1434,26 +1481,55 @@ export default function ApplicationDetailPage() {
         </TabsContent>
 
         <TabsContent value="resume">
-          <ResumeTab
-            tailoredResume={app.tailored_resume}
-            baseResume={app.base_resume}
-          />
+          {features && !features.can_approve && app.status === "ready" ? (
+            <LockedOverlay>
+              <ResumeTab
+                tailoredResume={app.tailored_resume}
+                baseResume={app.base_resume}
+              />
+            </LockedOverlay>
+          ) : (
+            <ResumeTab
+              tailoredResume={app.tailored_resume}
+              baseResume={app.base_resume}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="cover-letter">
-          <CoverLetterTab
-            coverLetter={app.cover_letter}
-            applicationId={app.id}
-            onSaved={fetchDetail}
-          />
+          {features && !features.can_approve && app.status === "ready" ? (
+            <LockedOverlay>
+              <CoverLetterTab
+                coverLetter={app.cover_letter}
+                applicationId={app.id}
+                onSaved={fetchDetail}
+              />
+            </LockedOverlay>
+          ) : (
+            <CoverLetterTab
+              coverLetter={app.cover_letter}
+              applicationId={app.id}
+              onSaved={fetchDetail}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="answers">
-          <AnswersTab
-            answers={answers}
-            applicationId={app.id}
-            onSaved={fetchDetail}
-          />
+          {features && !features.can_approve && app.status === "ready" ? (
+            <LockedOverlay>
+              <AnswersTab
+                answers={answers}
+                applicationId={app.id}
+                onSaved={fetchDetail}
+              />
+            </LockedOverlay>
+          ) : (
+            <AnswersTab
+              answers={answers}
+              applicationId={app.id}
+              onSaved={fetchDetail}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="job-posting">

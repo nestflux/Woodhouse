@@ -1,16 +1,19 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { checkSubscription } from "@/lib/subscription";
 import { randomBytes } from "crypto";
 
 const INBOUND_DOMAIN = "inbound.woodhouse.app";
 
 /**
  * Get the user's forwarding address. If none exists, generate one.
+ * Email forwarding is Pro/Premium only.
  */
 export async function getForwardingAddress(): Promise<{
   data?: string;
   error?: string;
+  gated?: boolean;
 }> {
   const supabase = await createClient();
   const {
@@ -19,6 +22,15 @@ export async function getForwardingAddress(): Promise<{
 
   if (!user) {
     return { error: "Not authenticated" };
+  }
+
+  // Check subscription — email forwarding is Pro/Premium only
+  const sub = await checkSubscription(user.id);
+  if (sub.data && !sub.data.email_forwarding_enabled) {
+    return {
+      error: "Email forwarding is available on Pro and Premium plans.",
+      gated: true,
+    };
   }
 
   const { data: profile, error: fetchError } = await supabase
