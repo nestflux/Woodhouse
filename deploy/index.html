@@ -174,13 +174,13 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 <div class="progress-header">
 <h3>Build Progress</h3>
 <div class="progress-stats">
-<div class="stat"><div class="dot done-dot"></div>12 / 43 issues complete</div>
-<div class="stat"><div class="dot active-dot"></div>3 / 15 epics done</div>
+<div class="stat"><div class="dot done-dot"></div>30 / 43 issues complete</div>
+<div class="stat"><div class="dot active-dot"></div>9 / 15 epics done</div>
 </div>
 </div>
 
 <div class="progress-bar-container">
-<div class="progress-bar-fill" style="width:28%" data-label="28%"></div>
+<div class="progress-bar-fill" style="width:70%" data-label="70%"></div>
 </div>
 
 <div class="epic-list">
@@ -211,67 +211,67 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 <div class="epic-issues done-t">4/4</div>
 </div>
 
-<div class="epic-row active">
-<div class="epic-status active-s">&#9655;</div>
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
 <div class="epic-info">
 <div class="epic-title">E4 — Onboarding</div>
 <div class="epic-desc">8-step onboarding wizard, AI assist (summary, skills, achievements), resume parsing</div>
 </div>
-<div class="epic-issues active-t">0/2</div>
+<div class="epic-issues done-t">2/2</div>
 </div>
 
-<div class="epic-row pending">
-<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
 <div class="epic-info">
 <div class="epic-title">E5 — Job Discovery</div>
 <div class="epic-desc">Discovery Agent (SerpAPI + JSearch), ATS board monitoring, cron scheduling</div>
 </div>
-<div class="epic-issues">0/3</div>
+<div class="epic-issues done-t">3/3</div>
 </div>
 
-<div class="epic-row pending">
-<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
 <div class="epic-info">
 <div class="epic-title">E6 — Job Evaluation</div>
 <div class="epic-desc">Haiku pre-screen, Sonnet full evaluation with 6 dimensions, manual job addition</div>
 </div>
-<div class="epic-issues">0/3</div>
+<div class="epic-issues done-t">3/3</div>
 </div>
 
-<div class="epic-row pending">
-<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
 <div class="epic-info">
 <div class="epic-title">E7 — Resume Tailoring & Materials</div>
 <div class="epic-desc">Tailoring Agent, Materials Agent (cover letter + answers), end-to-end pipeline test</div>
 </div>
-<div class="epic-issues">0/3</div>
+<div class="epic-issues done-t">3/3</div>
 </div>
 
-<div class="epic-row pending">
-<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
 <div class="epic-info">
 <div class="epic-title">E8 — Review Queue & File Generation</div>
 <div class="epic-desc">PDF/DOCX resume files, review queue, application detail, approve flow</div>
 </div>
-<div class="epic-issues">0/4</div>
+<div class="epic-issues done-t">4/4</div>
 </div>
 
-<div class="epic-row pending">
-<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
 <div class="epic-info">
 <div class="epic-title">E9 — Dashboard & Job Feed</div>
 <div class="epic-desc">Dashboard with stats + activity, job feed with filters, job detail view</div>
 </div>
-<div class="epic-issues">0/3</div>
+<div class="epic-issues done-t">3/3</div>
 </div>
 
-<div class="epic-row pending">
-<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-row active">
+<div class="epic-status active-s">&#9655;</div>
 <div class="epic-info">
 <div class="epic-title">E10 — Application Tracker</div>
 <div class="epic-desc">Kanban board with drag-and-drop, tracker detail with timeline</div>
 </div>
-<div class="epic-issues">0/2</div>
+<div class="epic-issues active-t">0/2</div>
 </div>
 
 <div class="epic-row pending">
@@ -346,24 +346,52 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot next">&#9655;</div>
+<div class="timeline-dot done">&#10003;</div>
 <div class="timeline-content">
-<h4>E4 — Onboarding (Next Up)</h4>
-<p>8-step wizard, AI assist (summary generation, skill suggestions, achievement improvement), resume parsing</p>
+<h4>E4 — Onboarding</h4>
+<p>8-step wizard with resume upload pre-fill, AI assist (summary, skills, achievements), resume parsing (PDF + DOCX)</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot future">5</div>
+<div class="timeline-dot done">&#10003;</div>
 <div class="timeline-content">
-<h4>E5-E7 — Discovery, Evaluation, Tailoring</h4>
-<p>Job discovery agents, pre-screen + evaluation, resume tailoring + materials generation</p>
+<h4>E5 — Job Discovery</h4>
+<p>Discovery agents (SerpAPI + JSearch), ATS board monitoring (Greenhouse, Lever, Workday), cron scheduling, job URL parsing</p>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-dot done">&#10003;</div>
+<div class="timeline-content">
+<h4>E6-E7 — Evaluation & Tailoring</h4>
+<p>Pre-screen (Haiku), full evaluation with 6 dimensions (Sonnet), resume tailoring, cover letter + application answers generation</p>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-dot done">&#10003;</div>
+<div class="timeline-content">
+<h4>E8 — Review Queue & File Generation</h4>
+<p>PDF/DOCX resume files, review queue with filters, application detail (5 tabs), approve/skip/save flow with subscription limits</p>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-dot done">&#10003;</div>
+<div class="timeline-content">
+<h4>E9 — Dashboard & Job Feed</h4>
+<p>Dashboard with stats + realtime activity feed, job feed with filters/sort/pagination, job detail with evaluation card, manual job input</p>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-dot next">&#9655;</div>
+<div class="timeline-content">
+<h4>E10 — Application Tracker (Next Up)</h4>
+<p>Kanban board with drag-and-drop, tracker detail with timeline, settings & profile management</p>
 </div>
 </div>
 <div class="timeline-item">
 <div class="timeline-dot future">6</div>
 <div class="timeline-content">
-<h4>E8-E15 — UI, Payments, Polish</h4>
-<p>Review queue, dashboard, tracker, notifications, Stripe, settings, admin, landing page</p>
+<h4>E11-E15 — Notifications, Payments, Settings, Admin, Polish</h4>
+<p>In-app notifications, email digests, Stripe subscriptions, account settings, admin dashboard, landing page</p>
 </div>
 </div>
 </div>
