@@ -19,23 +19,23 @@
 
 ## Epics Overview
 
-| Epic | Title | Issues | Description |
-|------|-------|--------|-------------|
-| E1 | Development Environment | 3 | Next.js + Supabase + Tailwind project setup |
-| E2 | Database & Auth | 5 | All tables, RLS, triggers, auth flow, app shell |
-| E3 | AI Pipeline Infrastructure | 4 | Anthropic SDK, Langfuse, Zod schemas, pipeline queue worker |
-| E4 | Onboarding | 2 | 8-step onboarding wizard, AI assist, resume upload |
-| E5 | Job Discovery | 3 | Discovery Agent, ATS boards, cron scheduling |
-| E6 | Job Evaluation | 3 | Haiku pre-screen, Sonnet evaluation, manual job input |
-| E7 | Resume Tailoring & Materials | 3 | Tailoring Agent, Materials Agent, end-to-end pipeline test |
-| E8 | Review Queue & File Generation | 4 | Resume files, review queue, application detail, approve flow |
-| E9 | Dashboard & Job Feed | 3 | Dashboard, job feed, job detail |
-| E10 | Application Tracker | 2 | Kanban board, tracker detail |
-| E11 | Notifications & Email | 3 | In-app notifications, email digest, email forwarding |
-| E12 | Subscription & Payments | 3 | Stripe setup, subscription management, usage enforcement |
-| E13 | Settings | 2 | Profile/preferences settings, account settings |
-| E14 | Admin & Observability | 1 | Pipeline admin dashboard |
-| E15 | Landing Page & Polish | 2 | Marketing page, loading/empty/error states, responsive polish |
+| Epic | Title | Issues | Status | Description |
+|------|-------|--------|--------|-------------|
+| E1 | Development Environment | 3 | DONE | Next.js + Supabase + Tailwind project setup |
+| E2 | Database & Auth | 5 | DONE | All tables, RLS, triggers, auth flow, app shell |
+| E3 | AI Pipeline Infrastructure | 4 | DONE | Anthropic SDK, Langfuse, Zod schemas, pipeline queue worker |
+| E4 | Onboarding | 2 | NEXT | 8-step onboarding wizard, AI assist, resume upload |
+| E5 | Job Discovery | 3 | — | Discovery Agent, ATS boards, cron scheduling |
+| E6 | Job Evaluation | 3 | — | Haiku pre-screen, Sonnet evaluation, manual job input |
+| E7 | Resume Tailoring & Materials | 3 | — | Tailoring Agent, Materials Agent, end-to-end pipeline test |
+| E8 | Review Queue & File Generation | 4 | — | Resume files, review queue, application detail, approve flow |
+| E9 | Dashboard & Job Feed | 3 | — | Dashboard, job feed, job detail |
+| E10 | Application Tracker | 2 | — | Kanban board, tracker detail |
+| E11 | Notifications & Email | 3 | — | In-app notifications, email digest, email forwarding |
+| E12 | Subscription & Payments | 3 | — | Stripe setup, subscription management, usage enforcement |
+| E13 | Settings | 2 | — | Profile/preferences settings, account settings |
+| E14 | Admin & Observability | 1 | — | Pipeline admin dashboard |
+| E15 | Landing Page & Polish | 2 | — | Marketing page, loading/empty/error states, responsive polish |
 
 **Total: 43 issues**
 
@@ -95,13 +95,13 @@ Create a new Next.js 14+ project with App Router, Tailwind CSS, and shadcn/ui. T
 
 ### Acceptance Criteria
 
-- [ ] `npm run dev` starts the dev server without errors on `http://localhost:3000`
-- [ ] Tailwind CSS is working: a test element with `className="text-blue-500"` renders in blue
-- [ ] shadcn/ui is initialized: `npx shadcn@latest add button` adds a working Button component
-- [ ] Inter font is loaded via `next/font/google` and applied as the default body font
-- [ ] The folder structure matches the specification above
-- [ ] TypeScript strict mode is enabled in `tsconfig.json`
-- [ ] `@/*` import alias resolves correctly (e.g., `import { Button } from "@/components/ui/button"`)
+- [x] `npm run dev` starts the dev server without errors on `http://localhost:3000`
+- [x] Tailwind CSS is working: a test element with `className="text-blue-500"` renders in blue
+- [x] shadcn/ui is initialized: `npx shadcn@latest add button` adds a working Button component
+- [x] Inter font is loaded via `next/font/google` and applied as the default body font
+- [x] The folder structure matches the specification above
+- [x] TypeScript strict mode is enabled in `tsconfig.json`
+- [x] `@/*` import alias resolves correctly (e.g., `import { Button } from "@/components/ui/button"`)
 
 ---
 
@@ -128,12 +128,12 @@ Set up Supabase for local development and configure the three Supabase client pa
 
 ### Acceptance Criteria
 
-- [ ] `npx supabase start` launches local Supabase (Postgres, Auth, Storage, Edge Functions)
-- [ ] `src/lib/supabase/server.ts` exports a `createClient()` function that uses `createServerClient` with cookies
-- [ ] `src/lib/supabase/client.ts` exports a `createClient()` function that uses `createBrowserClient`
-- [ ] `src/lib/supabase/admin.ts` exports a `createClient()` function using the service role key
-- [ ] `src/middleware.ts` refreshes the auth session and is configured in `middleware` matcher
-- [ ] A test Server Component can query `auth.getUser()` and return the session state
+- [x] `npx supabase start` launches local Supabase (Postgres, Auth, Storage, Edge Functions)
+- [x] `src/lib/supabase/server.ts` exports a `createClient()` function that uses `createServerClient` with cookies
+- [x] `src/lib/supabase/client.ts` exports a `createClient()` function that uses `createBrowserClient`
+- [x] `src/lib/supabase/admin.ts` exports a `createClient()` function using the service role key
+- [x] `src/middleware.ts` refreshes the auth session and is configured in `middleware` matcher
+- [x] A test Server Component can query `auth.getUser()` and return the session state
 
 ---
 
@@ -157,13 +157,13 @@ Configure all environment variables and development tooling (linting, formatting
 
 ### Acceptance Criteria
 
-- [ ] `.env.local` contains all 15 environment variables from MP §6
-- [ ] `.env.example` documents every variable with its purpose and where it's used
-- [ ] `.env.local` is in `.gitignore`
-- [ ] `NEXT_PUBLIC_*` variables are accessible in client components
-- [ ] Non-`NEXT_PUBLIC_*` variables are NOT accessible in client components (verified by test)
-- [ ] Prettier formats on save with Tailwind class sorting
-- [ ] `npm run lint` passes with zero warnings
+- [x] `.env.local` contains all 15 environment variables from MP §6
+- [x] `.env.example` documents every variable with its purpose and where it's used
+- [x] `.env.local` is in `.gitignore`
+- [x] `NEXT_PUBLIC_*` variables are accessible in client components
+- [x] Non-`NEXT_PUBLIC_*` variables are NOT accessible in client components (verified by test)
+- [x] Prettier formats on save with Tailwind class sorting
+- [x] `npm run lint` passes with zero warnings
 
 ---
 
@@ -190,16 +190,16 @@ Create the user profile and knowledge base tables. These store everything about 
 
 ### Acceptance Criteria
 
-- [ ] Migration creates all 7 tables with exact columns, types, and constraints from MP §7
-- [ ] `profiles` includes `country TEXT`, `target_countries TEXT[] DEFAULT '{}'`
-- [ ] `work_experiences` includes `country TEXT`
-- [ ] RLS is enabled on all 7 tables
-- [ ] RLS policies enforce user-can-only-access-own-data on all tables
-- [ ] `profiles.id` is a FK referencing `auth.users(id)` with `ON DELETE CASCADE`
-- [ ] `achievements.work_experience_id` cascades deletes from `work_experiences`
-- [ ] All CHECK constraints are present: `remote_preference`, `category`, `proficiency`, `email_digest`
-- [ ] All indexes from MP §7 are created
-- [ ] Migration applies cleanly: `npx supabase db reset` succeeds without errors
+- [x] Migration creates all 7 tables with exact columns, types, and constraints from MP §7
+- [x] `profiles` includes `country TEXT`, `target_countries TEXT[] DEFAULT '{}'`
+- [x] `work_experiences` includes `country TEXT`
+- [x] RLS is enabled on all 7 tables
+- [x] RLS policies enforce user-can-only-access-own-data on all tables
+- [x] `profiles.id` is a FK referencing `auth.users(id)` with `ON DELETE CASCADE`
+- [x] `achievements.work_experience_id` cascades deletes from `work_experiences`
+- [x] All CHECK constraints are present: `remote_preference`, `category`, `proficiency`, `email_digest`
+- [x] All indexes from MP §7 are created
+- [x] Migration applies cleanly: `npx supabase db reset` succeeds without errors
 
 ---
 
@@ -224,19 +224,19 @@ Create the job discovery, evaluation, application pipeline, and queue tables. Th
 
 ### Acceptance Criteria
 
-- [ ] Migration creates all 9 tables with exact columns, types, and constraints from MP §7
-- [ ] `search_preferences` includes `salary_currency TEXT DEFAULT 'USD'`
-- [ ] `job_postings` includes `country TEXT` and `salary_currency TEXT DEFAULT 'USD'`
-- [ ] `job_postings` and `pipeline_jobs` have RLS enabled but NO restrictive policies (service role access)
-- [ ] All other tables have RLS with user-scoped policies
-- [ ] `search_preferences` has `UNIQUE(profile_id)` and `next_discovery_at` column
-- [ ] `tracked_boards` has `UNIQUE(profile_id, board_url)`
-- [ ] `pipeline_jobs` has partial indexes for queue (`WHERE status = 'pending'`) and zombie detection (`WHERE status = 'processing'`)
-- [ ] `applications` status CHECK includes all 12 statuses from MP §7
-- [ ] `job_postings` source CHECK includes all 10 sources from MP §7
-- [ ] `UNIQUE(source, external_id)` on `job_postings`
-- [ ] `UNIQUE(profile_id, job_posting_id)` on `job_evaluations` and `applications`
-- [ ] Migration applies cleanly on top of E2-01 migration
+- [x] Migration creates all 9 tables with exact columns, types, and constraints from MP §7
+- [x] `search_preferences` includes `salary_currency TEXT DEFAULT 'USD'`
+- [x] `job_postings` includes `country TEXT` and `salary_currency TEXT DEFAULT 'USD'`
+- [x] `job_postings` and `pipeline_jobs` have RLS enabled but NO restrictive policies (service role access)
+- [x] All other tables have RLS with user-scoped policies
+- [x] `search_preferences` has `UNIQUE(profile_id)` and `next_discovery_at` column
+- [x] `tracked_boards` has `UNIQUE(profile_id, board_url)`
+- [x] `pipeline_jobs` has partial indexes for queue (`WHERE status = 'pending'`) and zombie detection (`WHERE status = 'processing'`)
+- [x] `applications` status CHECK includes all 12 statuses from MP §7
+- [x] `job_postings` source CHECK includes all 10 sources from MP §7
+- [x] `UNIQUE(source, external_id)` on `job_postings`
+- [x] `UNIQUE(profile_id, job_posting_id)` on `job_evaluations` and `applications`
+- [x] Migration applies cleanly on top of E2-01 migration
 
 ---
 
@@ -264,17 +264,17 @@ Create the remaining tables (subscriptions, notifications) and all database func
 
 ### Acceptance Criteria
 
-- [ ] `subscriptions` and `notifications` tables created with all columns and constraints
-- [ ] `handle_updated_at()` trigger fires on UPDATE for all 10 specified tables
-- [ ] Creating a user in `auth.users` auto-creates a `profiles` row and a `subscriptions` row (plan='free', limit=5)
-- [ ] Updating an application to status='approved' increments `subscriptions.applications_used` by 1
-- [ ] `claim_pipeline_job()` returns a single pending job with status changed to 'processing' and attempts incremented
-- [ ] `claim_pipeline_job()` reclaims zombie jobs (processing for > 5 minutes) before claiming
-- [ ] `claim_pipeline_job()` returns no rows when queue is empty
-- [ ] Two concurrent calls to `claim_pipeline_job()` never return the same job (test with two simultaneous queries)
-- [ ] `fail_pipeline_job()` sets status to 'pending' with exponential `next_retry_at` when attempts < max_attempts
-- [ ] `fail_pipeline_job()` sets status to 'failed' when attempts >= max_attempts
-- [ ] Changing application status logs an event to `application_events`
+- [x] `subscriptions` and `notifications` tables created with all columns and constraints
+- [x] `handle_updated_at()` trigger fires on UPDATE for all 10 specified tables
+- [x] Creating a user in `auth.users` auto-creates a `profiles` row and a `subscriptions` row (plan='free', limit=5)
+- [x] Updating an application to status='approved' increments `subscriptions.applications_used` by 1
+- [x] `claim_pipeline_job()` returns a single pending job with status changed to 'processing' and attempts incremented
+- [x] `claim_pipeline_job()` reclaims zombie jobs (processing for > 5 minutes) before claiming
+- [x] `claim_pipeline_job()` returns no rows when queue is empty
+- [x] Two concurrent calls to `claim_pipeline_job()` never return the same job (test with two simultaneous queries)
+- [x] `fail_pipeline_job()` sets status to 'pending' with exponential `next_retry_at` when attempts < max_attempts
+- [x] `fail_pipeline_job()` sets status to 'failed' when attempts >= max_attempts
+- [x] Changing application status logs an event to `application_events`
 
 ---
 
@@ -301,16 +301,16 @@ Build the sign up, sign in, and forgot password screens using Supabase Auth.
 
 ### Acceptance Criteria
 
-- [ ] `/signup` renders a centered card with: full name, email, password, confirm password fields and "Create Account" button
-- [ ] Submitting the sign-up form creates a user in Supabase Auth with `full_name` in user metadata
-- [ ] After sign-up, a profile row and subscription row exist in the database
-- [ ] `/signin` renders a centered card with email and password fields and "Sign In" button
-- [ ] Signing in with valid credentials redirects to `/dashboard`
-- [ ] Signing in when `onboarding_complete` is false redirects to `/onboarding/basics`
-- [ ] `/forgot-password` sends a password reset email and shows a confirmation message
-- [ ] Invalid credentials show an error message (not a crash)
-- [ ] All three screens use the design system colors, typography, and spacing from MP §10
-- [ ] Links between the three auth screens work: Sign Up ↔ Sign In, Sign In → Forgot Password
+- [x] `/signup` renders a centered card with: full name, email, password, confirm password fields and "Create Account" button
+- [x] Submitting the sign-up form creates a user in Supabase Auth with `full_name` in user metadata
+- [x] After sign-up, a profile row and subscription row exist in the database
+- [x] `/signin` renders a centered card with email and password fields and "Sign In" button
+- [x] Signing in with valid credentials redirects to `/dashboard`
+- [x] Signing in when `onboarding_complete` is false redirects to `/onboarding/basics`
+- [x] `/forgot-password` sends a password reset email and shows a confirmation message
+- [x] Invalid credentials show an error message (not a crash)
+- [x] All three screens use the design system colors, typography, and spacing from MP §10
+- [x] Links between the three auth screens work: Sign Up ↔ Sign In, Sign In → Forgot Password
 
 ---
 
@@ -337,15 +337,15 @@ Build the authenticated app shell with persistent sidebar navigation. Every auth
 
 ### Acceptance Criteria
 
-- [ ] `(app)` layout renders a 240px sidebar on the left with main content on the right
-- [ ] Sidebar contains all nav items: Dashboard, Job Feed, Review Queue, Tracker, Add Job, Settings (with sub-items)
-- [ ] Active route is highlighted with `--primary` background and white text
-- [ ] Clicking a nav item navigates to the correct route
-- [ ] Sidebar collapses to 64px (icons only) between 768px and 1280px viewport width
-- [ ] Below 768px, sidebar becomes a bottom navigation bar
-- [ ] Unauthenticated users accessing any `(app)` route are redirected to `/signin`
-- [ ] Sign out button calls `supabase.auth.signOut()` and redirects to `/signin`
-- [ ] Sidebar uses Inter font, correct colors, spacing from MP §10
+- [x] `(app)` layout renders a 240px sidebar on the left with main content on the right
+- [x] Sidebar contains all nav items: Dashboard, Job Feed, Review Queue, Tracker, Add Job, Settings (with sub-items)
+- [x] Active route is highlighted with `--primary` background and white text
+- [x] Clicking a nav item navigates to the correct route
+- [x] Sidebar collapses to 64px (icons only) between 768px and 1280px viewport width
+- [x] Below 768px, sidebar becomes a bottom navigation bar
+- [x] Unauthenticated users accessing any `(app)` route are redirected to `/signin`
+- [x] Sign out button calls `supabase.auth.signOut()` and redirects to `/signin`
+- [x] Sidebar uses Inter font, correct colors, spacing from MP §10
 
 ---
 
@@ -373,14 +373,14 @@ Set up the Anthropic TypeScript SDK, Langfuse observability, and Sentry error tr
 
 ### Acceptance Criteria
 
-- [ ] `supabase/functions/_shared/anthropic.ts` exports a configured Anthropic client
-- [ ] `supabase/functions/_shared/langfuse.ts` exports a `callAgent(agentType, input, userId)` function that wraps LLM calls with Langfuse tracing
-- [ ] The `callAgent` wrapper records: agent type, duration_ms, input_tokens, output_tokens, model, cache_read_tokens, success boolean
-- [ ] `supabase/functions/_shared/sentry.ts` exports an error capture function
-- [ ] `supabase/functions/_shared/supabase.ts` exports an admin Supabase client
-- [ ] A test Edge Function successfully calls Claude Haiku and returns a valid response
-- [ ] The test call appears in Langfuse with all metadata fields populated
-- [ ] Edge Functions use Deno runtime (no Node.js-only dependencies)
+- [x] `supabase/functions/_shared/anthropic.ts` exports a configured Anthropic client
+- [x] `supabase/functions/_shared/langfuse.ts` exports a `callAgent(agentType, input, userId)` function that wraps LLM calls with Langfuse tracing
+- [x] The `callAgent` wrapper records: agent type, duration_ms, input_tokens, output_tokens, model, cache_read_tokens, success boolean
+- [x] `supabase/functions/_shared/sentry.ts` exports an error capture function
+- [x] `supabase/functions/_shared/supabase.ts` exports an admin Supabase client
+- [x] A test Edge Function successfully calls Claude Haiku and returns a valid response
+- [x] The test call appears in Langfuse with all metadata fields populated
+- [x] Edge Functions use Deno runtime (no Node.js-only dependencies)
 
 ---
 
@@ -408,14 +408,14 @@ Define Zod schemas for every AI agent output. These schemas validate all LLM res
 
 ### Acceptance Criteria
 
-- [ ] `EvaluationSchema` validates: all 6 scores are integers 0-100, recommendation is one of the 5 enum values, reasoning is a string of at least 50 characters, strengths and gaps are string arrays
-- [ ] `PreScreenSchema` validates: pass is boolean, reason is string, disqualifiers is string array
-- [ ] `TailoredResumeSchema` validates: every work_experience item has a `source_id` UUID, header has required fields, content_markdown is present
-- [ ] `MaterialsSchema` validates: cover_letter is a non-empty string, why_interested is a non-empty string, application_answers is an array with question/answer/source fields
-- [ ] `DiscoveryPostingSchema` validates: each posting has external_id, source (enum), source_url, company_name, job_title, description_raw
-- [ ] All schemas export both a Zod schema object and a TypeScript type
-- [ ] Each `validate()` function returns the parsed data on success and throws `ValidationError` with a descriptive message on failure
-- [ ] Schemas are importable from both Next.js (`src/lib/validators/`) and Edge Functions (`supabase/functions/_shared/validators/`)
+- [x] `EvaluationSchema` validates: all 6 scores are integers 0-100, recommendation is one of the 5 enum values, reasoning is a string of at least 50 characters, strengths and gaps are string arrays
+- [x] `PreScreenSchema` validates: pass is boolean, reason is string, disqualifiers is string array
+- [x] `TailoredResumeSchema` validates: every work_experience item has a `source_id` UUID, header has required fields, content_markdown is present
+- [x] `MaterialsSchema` validates: cover_letter is a non-empty string, why_interested is a non-empty string, application_answers is an array with question/answer/source fields
+- [x] `DiscoveryPostingSchema` validates: each posting has external_id, source (enum), source_url, company_name, job_title, description_raw
+- [x] All schemas export both a Zod schema object and a TypeScript type
+- [x] Each `validate()` function returns the parsed data on success and throws `ValidationError` with a descriptive message on failure
+- [x] Schemas are importable from both Next.js (`src/lib/validators/`) and Edge Functions (`supabase/functions/_shared/validators/`)
 
 ---
 
@@ -446,15 +446,15 @@ Build the `process-pipeline` Edge Function — the worker that claims and proces
 
 ### Acceptance Criteria
 
-- [ ] `process-pipeline` Edge Function starts, calls `claim_pipeline_job()`, and exits cleanly when no jobs are pending
-- [ ] When a pipeline job with `step='evaluate'` exists, the worker claims it, calls the stub handler, and marks it completed
-- [ ] `enqueueNextStep()` correctly inserts a new pipeline_jobs row with the specified step, profile_id, and job_posting_id
-- [ ] The worker loop processes multiple jobs per invocation (not just one)
-- [ ] The worker loop exits after 120 seconds of elapsed time
-- [ ] On handler error, `fail_pipeline_job()` is called and the job gets exponential backoff `next_retry_at`
-- [ ] A job that has failed 3 times is marked as `status='failed'` and not retried
-- [ ] pg_cron SQL is documented/created to invoke the function every 30 seconds
-- [ ] The worker logs each step it processes (step, job_id, profile_id, duration)
+- [x] `process-pipeline` Edge Function starts, calls `claim_pipeline_job()`, and exits cleanly when no jobs are pending
+- [x] When a pipeline job with `step='evaluate'` exists, the worker claims it, calls the stub handler, and marks it completed
+- [x] `enqueueNextStep()` correctly inserts a new pipeline_jobs row with the specified step, profile_id, and job_posting_id
+- [x] The worker loop processes multiple jobs per invocation (not just one)
+- [x] The worker loop exits after 120 seconds of elapsed time
+- [x] On handler error, `fail_pipeline_job()` is called and the job gets exponential backoff `next_retry_at`
+- [x] A job that has failed 3 times is marked as `status='failed'` and not retried
+- [x] pg_cron SQL is documented/created to invoke the function every 30 seconds
+- [x] The worker logs each step it processes (step, job_id, profile_id, duration)
 
 ---
 
@@ -490,14 +490,14 @@ Implement the standard agent call pattern with Anthropic prompt caching and Lang
 
 ### Acceptance Criteria
 
-- [ ] `callClaude()` successfully calls Claude Sonnet and Haiku models
-- [ ] When `cacheableContext` is provided, the request uses `cache_control: { type: 'ephemeral' }` on system message blocks
-- [ ] Every call is wrapped with Langfuse tracing (agent type, user ID, tokens, duration, cache stats)
-- [ ] Rate limit errors (429) are thrown as retryable errors (the pipeline worker will retry with backoff)
-- [ ] Server errors (500, 529) are thrown as retryable errors
-- [ ] Bad request errors (400) are thrown as non-retryable errors
-- [ ] The response content text is returned as a string (caller parses and validates)
-- [ ] A test call with Haiku returns valid JSON and appears in Langfuse
+- [x] `callClaude()` successfully calls Claude Sonnet and Haiku models
+- [x] When `cacheableContext` is provided, the request uses `cache_control: { type: 'ephemeral' }` on system message blocks
+- [x] Every call is wrapped with Langfuse tracing (agent type, user ID, tokens, duration, cache stats)
+- [x] Rate limit errors (429) are thrown as retryable errors (the pipeline worker will retry with backoff)
+- [x] Server errors (500, 529) are thrown as retryable errors
+- [x] Bad request errors (400) are thrown as non-retryable errors
+- [x] The response content text is returned as a string (caller parses and validates)
+- [x] A test call with Haiku returns valid JSON and appears in Langfuse
 
 ---
 

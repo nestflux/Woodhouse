@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--primary:#1e3a5f;--primary-light:#2d5a8e;--accent:#d97706;--accent-light:#f59e0b;--bg:#fafaf9;--surface:#fff;--border:#e7e5e4;--text:#18181b;--text-sec:#52525b;--text-muted:#a1a1aa}
+:root{--primary:#1e3a5f;--primary-light:#2d5a8e;--accent:#d97706;--accent-light:#f59e0b;--bg:#fafaf9;--surface:#fff;--border:#e7e5e4;--text:#18181b;--text-sec:#52525b;--text-muted:#a1a1aa;--green:#059669;--red:#dc2626}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
 .hero{background:linear-gradient(135deg,var(--primary) 0%,#132843 100%);color:#fff;padding:80px 24px 60px;text-align:center;position:relative;overflow:hidden}
@@ -42,12 +42,44 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .info-item .label{font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
 .info-item .value{font-size:1rem;font-weight:600;color:var(--text)}
 
+/* Build Progress */
+.progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.progress-header h3{margin-bottom:0}
+.progress-stats{display:flex;gap:16px;font-size:.85rem;font-weight:600}
+.progress-stats .stat{display:flex;align-items:center;gap:6px}
+.progress-stats .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot.done-dot{background:var(--green)}
+.dot.active-dot{background:var(--accent)}
+.dot.pending-dot{background:var(--border)}
+
+.progress-bar-container{background:var(--border);border-radius:20px;height:24px;overflow:hidden;margin-bottom:32px;position:relative}
+.progress-bar-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--green) 0%,#34d399 100%);transition:width .6s ease;position:relative}
+.progress-bar-fill::after{content:attr(data-label);position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.7rem;font-weight:700;color:#fff;white-space:nowrap}
+
+.epic-list{display:flex;flex-direction:column;gap:12px}
+.epic-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;display:flex;align-items:center;gap:16px;transition:border-color .2s}
+.epic-row.done{border-left:3px solid var(--green)}
+.epic-row.active{border-left:3px solid var(--accent);background:rgba(217,119,6,.03)}
+.epic-row.pending{border-left:3px solid var(--border)}
+
+.epic-status{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.epic-status.done-s{background:rgba(5,150,105,.1);color:var(--green)}
+.epic-status.active-s{background:rgba(217,119,6,.15);color:var(--accent)}
+.epic-status.pending-s{background:var(--bg);color:var(--text-muted)}
+
+.epic-info{flex:1;min-width:0}
+.epic-info .epic-title{font-size:.95rem;font-weight:600;color:var(--text)}
+.epic-info .epic-desc{font-size:.8rem;color:var(--text-sec);margin-top:2px}
+.epic-issues{font-size:.8rem;font-weight:600;color:var(--text-muted);white-space:nowrap}
+.epic-issues.done-t{color:var(--green)}
+.epic-issues.active-t{color:var(--accent)}
+
 .timeline{margin-top:32px}
 .timeline-item{display:flex;gap:16px;padding-bottom:24px;position:relative}
 .timeline-item:not(:last-child)::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--border)}
 .timeline-dot{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff}
-.timeline-dot.done{background:var(--accent)}
-.timeline-dot.next{background:var(--primary)}
+.timeline-dot.done{background:var(--green)}
+.timeline-dot.next{background:var(--accent)}
 .timeline-dot.future{background:var(--border);color:var(--text-muted)}
 .timeline-content h4{font-size:.95rem;font-weight:600;color:var(--text)}
 .timeline-content p{font-size:.85rem;color:var(--text-sec);margin-top:2px}
@@ -59,6 +91,8 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 .hero .subtitle{font-size:1rem}
 .cards{grid-template-columns:1fr;padding:0 16px;gap:16px}
 .info-grid{grid-template-columns:1fr 1fr}
+.progress-header{flex-direction:column;align-items:flex-start}
+.epic-row{flex-wrap:wrap}
 }
 </style>
 </head>
@@ -105,6 +139,13 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 <p>Session rules file for Claude Code build sessions. Stack constraints, three-gate review protocol, standing technical rules, and the issue completion workflow.</p>
 <span class="badge complete">Complete</span>
 </a>
+
+<a href="https://github.com/nestflux/Woodhouse" class="card">
+<div class="card-icon green">&#128736;</div>
+<h2>Source Code</h2>
+<p>GitHub repository with the full codebase. Next.js 16, Supabase Edge Functions, Tailwind CSS 4, shadcn/ui v4, Anthropic Claude integration, and pipeline infrastructure.</p>
+<span class="badge wip">In Progress</span>
+</a>
 </div>
 
 <div class="section">
@@ -130,48 +171,199 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:.85
 </div>
 
 <div class="section">
-<h3>Documentation Roadmap</h3>
+<div class="progress-header">
+<h3>Build Progress</h3>
+<div class="progress-stats">
+<div class="stat"><div class="dot done-dot"></div>12 / 43 issues complete</div>
+<div class="stat"><div class="dot active-dot"></div>3 / 15 epics done</div>
+</div>
+</div>
+
+<div class="progress-bar-container">
+<div class="progress-bar-fill" style="width:28%" data-label="28%"></div>
+</div>
+
+<div class="epic-list">
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
+<div class="epic-info">
+<div class="epic-title">E1 — Development Environment</div>
+<div class="epic-desc">Next.js 16 + Supabase + Tailwind CSS 4 + shadcn/ui v4 project setup, env vars, Prettier</div>
+</div>
+<div class="epic-issues done-t">3/3</div>
+</div>
+
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
+<div class="epic-info">
+<div class="epic-title">E2 — Database & Auth</div>
+<div class="epic-desc">16 tables, RLS policies, triggers, auth flows (signin/signup/reset), responsive sidebar, app shell</div>
+</div>
+<div class="epic-issues done-t">5/5</div>
+</div>
+
+<div class="epic-row done">
+<div class="epic-status done-s">&#10003;</div>
+<div class="epic-info">
+<div class="epic-title">E3 — AI Pipeline Infrastructure</div>
+<div class="epic-desc">Anthropic SDK, Langfuse tracing, Sentry, Zod validators, pipeline worker, prompt caching</div>
+</div>
+<div class="epic-issues done-t">4/4</div>
+</div>
+
+<div class="epic-row active">
+<div class="epic-status active-s">&#9655;</div>
+<div class="epic-info">
+<div class="epic-title">E4 — Onboarding</div>
+<div class="epic-desc">8-step onboarding wizard, AI assist (summary, skills, achievements), resume parsing</div>
+</div>
+<div class="epic-issues active-t">0/2</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E5 — Job Discovery</div>
+<div class="epic-desc">Discovery Agent (SerpAPI + JSearch), ATS board monitoring, cron scheduling</div>
+</div>
+<div class="epic-issues">0/3</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E6 — Job Evaluation</div>
+<div class="epic-desc">Haiku pre-screen, Sonnet full evaluation with 6 dimensions, manual job addition</div>
+</div>
+<div class="epic-issues">0/3</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E7 — Resume Tailoring & Materials</div>
+<div class="epic-desc">Tailoring Agent, Materials Agent (cover letter + answers), end-to-end pipeline test</div>
+</div>
+<div class="epic-issues">0/3</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E8 — Review Queue & File Generation</div>
+<div class="epic-desc">PDF/DOCX resume files, review queue, application detail, approve flow</div>
+</div>
+<div class="epic-issues">0/4</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E9 — Dashboard & Job Feed</div>
+<div class="epic-desc">Dashboard with stats + activity, job feed with filters, job detail view</div>
+</div>
+<div class="epic-issues">0/3</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E10 — Application Tracker</div>
+<div class="epic-desc">Kanban board with drag-and-drop, tracker detail with timeline</div>
+</div>
+<div class="epic-issues">0/2</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E11 — Notifications & Email</div>
+<div class="epic-desc">In-app notifications, email digest, email forwarding inbound parse</div>
+</div>
+<div class="epic-issues">0/3</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E12 — Subscription & Payments</div>
+<div class="epic-desc">Stripe integration, subscription management, usage enforcement + gating</div>
+</div>
+<div class="epic-issues">0/3</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E13 — Settings</div>
+<div class="epic-desc">Profile/preferences settings, account settings (password, delete account)</div>
+</div>
+<div class="epic-issues">0/2</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E14 — Admin & Observability</div>
+<div class="epic-desc">Pipeline admin dashboard with job monitoring and retry controls</div>
+</div>
+<div class="epic-issues">0/1</div>
+</div>
+
+<div class="epic-row pending">
+<div class="epic-status pending-s">&#9675;</div>
+<div class="epic-info">
+<div class="epic-title">E15 — Landing Page & Polish</div>
+<div class="epic-desc">Marketing landing page, loading/empty/error states, responsive polish</div>
+</div>
+<div class="epic-issues">0/2</div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h3>What's Been Built</h3>
 <div class="timeline">
 <div class="timeline-item">
-<div class="timeline-dot done">1</div>
+<div class="timeline-dot done">&#10003;</div>
 <div class="timeline-content">
-<h4>Masterplan</h4>
-<p>Product specification, architecture, schema, API, screens, design system</p>
+<h4>E1 — Development Environment</h4>
+<p>Next.js 16 + Tailwind CSS 4 + shadcn/ui v4, Supabase project linked, env vars, Prettier configured</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot done">2</div>
+<div class="timeline-dot done">&#10003;</div>
 <div class="timeline-content">
-<h4>AI Architecture Research</h4>
-<p>Agent patterns, framework evaluation, cost analysis, recommended architecture</p>
+<h4>E2 — Database & Auth</h4>
+<p>4 migrations (16 tables, RLS, triggers, functions), auth flows, responsive sidebar, 10 placeholder pages</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot done">3</div>
+<div class="timeline-dot done">&#10003;</div>
 <div class="timeline-content">
-<h4>Build Plan</h4>
-<p>Epics, issues, acceptance criteria, critical path</p>
+<h4>E3 — AI Pipeline Infrastructure</h4>
+<p>Anthropic SDK, Langfuse tracing, Sentry, pipeline worker, prompt caching, 7 Zod validators, test agent deployed</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot done">4</div>
+<div class="timeline-dot next">&#9655;</div>
 <div class="timeline-content">
-<h4>Interactive Prototype</h4>
-<p>Clickable HTML prototype of all key screens</p>
+<h4>E4 — Onboarding (Next Up)</h4>
+<p>8-step wizard, AI assist (summary generation, skill suggestions, achievement improvement), resume parsing</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot done">5</div>
+<div class="timeline-dot future">5</div>
 <div class="timeline-content">
-<h4>CLAUDE.md</h4>
-<p>Session rules for Claude Code build sessions</p>
+<h4>E5-E7 — Discovery, Evaluation, Tailoring</h4>
+<p>Job discovery agents, pre-screen + evaluation, resume tailoring + materials generation</p>
 </div>
 </div>
 <div class="timeline-item">
-<div class="timeline-dot next">6</div>
+<div class="timeline-dot future">6</div>
 <div class="timeline-content">
-<h4>Build</h4>
-<p>15 epics, 43 issues — starting with E1-01</p>
+<h4>E8-E15 — UI, Payments, Polish</h4>
+<p>Review queue, dashboard, tracker, notifications, Stripe, settings, admin, landing page</p>
 </div>
 </div>
 </div>
