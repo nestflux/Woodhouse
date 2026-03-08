@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getSupabaseAdmin } from "../_shared/supabase.ts";
-import { captureException, captureMessage } from "../_shared/sentry.ts";
+import { captureException } from "../_shared/sentry.ts";
 import { runPreScreen } from "../_shared/agents/pre-screen.ts";
 import { runEvaluation } from "../_shared/agents/evaluation.ts";
 import { runTailoring } from "../_shared/agents/tailoring.ts";
@@ -173,46 +173,7 @@ const stepHandlers: Record<string, StepHandler> = {
       );
     }
 
-    // Fetch job posting details for notification message
-    let notificationTitle = "Application ready for review";
-    if (job.job_posting_id) {
-      const { data: posting } = await supabase
-        .from("job_postings")
-        .select("job_title, company_name")
-        .eq("id", job.job_posting_id)
-        .single();
-
-      if (posting) {
-        notificationTitle = `Your application for ${posting.job_title} at ${posting.company_name} is ready for review`;
-      }
-    }
-
-    // Create notification
-    const { error: notifError } = await supabase
-      .from("notifications")
-      .insert({
-        profile_id: job.profile_id,
-        type: "applications_ready",
-        title: notificationTitle,
-        body: "Your tailored resume and application materials have been generated. Review and approve to download.",
-        metadata: {
-          application_id: job.application_id,
-          job_posting_id: job.job_posting_id,
-          resume_version_id: resumeVersion.id,
-        },
-      });
-
-    if (notifError) {
-      // Non-fatal — log but don't fail the pipeline
-      console.error(
-        `Failed to create notification: ${notifError.message}`
-      );
-      captureMessage("Failed to create notification for ready application", {
-        applicationId: job.application_id,
-        profileId: job.profile_id,
-        error: notifError.message,
-      });
-    }
+    // Notification is created automatically by the handle_application_ready() trigger
 
     return {
       outputData: {

@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getUnreadCount } from "@/lib/actions/notifications";
 import {
   LayoutDashboard,
   Briefcase,
   ClipboardCheck,
   KanbanSquare,
   PlusCircle,
+  Bell,
   Settings,
   User,
   SlidersHorizontal,
@@ -35,6 +37,7 @@ const navItems: NavItem[] = [
   { label: "Job Feed", href: "/jobs", icon: Briefcase },
   { label: "Review Queue", href: "/queue", icon: ClipboardCheck },
   { label: "Tracker", href: "/tracker", icon: KanbanSquare },
+  { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Add Job", href: "/jobs/add", icon: PlusCircle },
   {
     label: "Settings",
@@ -69,8 +72,39 @@ export function AppSidebar({ userEmail, userName }: AppSidebarProps) {
     pathname.startsWith("/settings")
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
+
+  // Fetch unread notification count + subscribe to Realtime
+  useEffect(() => {
+    getUnreadCount().then((result) => {
+      if (result.data !== undefined) setUnreadCount(result.data);
+    });
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("sidebar-notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+        },
+        () => {
+          // Re-fetch count on any change to notifications
+          getUnreadCount().then((result) => {
+            if (result.data !== undefined) setUnreadCount(result.data);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Close mobile overlay on Escape
   useEffect(() => {
@@ -174,6 +208,8 @@ export function AppSidebar({ userEmail, userName }: AppSidebarProps) {
               );
             }
 
+            const isNotifications = item.href === "/notifications";
+
             return (
               <li key={item.href}>
                 <Link
@@ -188,8 +224,20 @@ export function AppSidebar({ userEmail, userName }: AppSidebarProps) {
                       : "text-[var(--w-text-secondary)] hover:bg-[var(--w-surface)]"
                   )}
                 >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  <span className="sidebar-label">{item.label}</span>
+                  <span className="relative shrink-0">
+                    <item.icon className="h-5 w-5" />
+                    {isNotifications && unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--w-accent)] px-1 text-[10px] font-bold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </span>
+                  <span className="sidebar-label flex-1">{item.label}</span>
+                  {isNotifications && unreadCount > 0 && (
+                    <span className="sidebar-label text-[10px] font-bold text-[var(--w-accent)]">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -243,22 +291,32 @@ export function AppSidebar({ userEmail, userName }: AppSidebarProps) {
       {/* Mobile bottom nav */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--w-border)] bg-[var(--w-surface)] md:hidden">
         <nav className="flex items-center justify-around py-2">
-          {navItems.slice(0, 5).map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-label={item.label}
-              className={cn(
-                "flex flex-col items-center gap-1 px-2 py-1 text-xs",
-                isActive(item.href)
-                  ? "text-[var(--w-primary)]"
-                  : "text-[var(--w-text-muted)]"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems.slice(0, 5).map((item) => {
+            const isBell = item.href === "/notifications";
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                className={cn(
+                  "flex flex-col items-center gap-1 px-2 py-1 text-xs",
+                  isActive(item.href)
+                    ? "text-[var(--w-primary)]"
+                    : "text-[var(--w-text-muted)]"
+                )}
+              >
+                <span className="relative">
+                  <item.icon className="h-5 w-5" />
+                  {isBell && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--w-accent)] px-0.5 text-[9px] font-bold text-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </span>
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="More options"

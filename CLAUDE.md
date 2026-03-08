@@ -61,6 +61,8 @@ Skipping them causes drift and rework.
 | `STRIPE_SECRET_KEY` | Server Actions / API Routes |
 | `STRIPE_WEBHOOK_SECRET` | API Routes |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client |
+| `SENDGRID_API_KEY` | Edge Functions only |
+| `SENDGRID_FROM_EMAIL` | Edge Functions only |
 | `SENDGRID_WEBHOOK_SECRET` | API Routes |
 | `LANGFUSE_SECRET_KEY` | Edge Functions only |
 | `LANGFUSE_PUBLIC_KEY` | Edge Functions only |
@@ -211,6 +213,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E10-02 (Tracker Detail Screen)
-Currently working: E11-01 (In-App Notifications)
-Next up: E11-02 (Email Digests)
+Last completed: E11-03 (Email Forwarding & Inbound Parse)
+Currently working: E12-01 (Stripe Setup)
+Next up: E12-02 (Subscription Management)
