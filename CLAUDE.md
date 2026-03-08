@@ -74,6 +74,7 @@ Skipping them causes drift and rework.
 | `SENTRY_DSN` | Server + Edge Functions |
 | `NEXT_PUBLIC_APP_URL` | Client + Server |
 | `ADMIN_EMAILS` | Server only |
+| `ADMIN_EMAILS` | Server only |
 
 Never hardcode credentials. Never expose service role keys, API keys, or secrets to the client. Variables marked "Edge Functions only" must never appear in Next.js server code or client bundles.
 
@@ -217,6 +218,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E13-02 (Account Settings)
-Currently working: E14-01 (Analytics Dashboard)
-Next up: E15-01 (Final Polish & Cross-Cutting Fixes)
+Last completed: E14-01 (Pipeline Admin Dashboard)
+Currently working: E15-01 (Final Polish & Cross-Cutting Fixes)
+Next up: E15-02 (Launch Prep)
