@@ -218,6 +218,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E15-01 (Marketing Landing Page)
-Currently working: E15-02 (Loading States, Empty States & Final Polish)
-Next up: Complete — all issues done
+Last completed: E15-02 (Loading States, Empty States & Final Polish)
+Currently working: COMPLETE — all 44 issues across 15 epics done
+Next up: N/A
