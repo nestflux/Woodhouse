@@ -531,3 +531,447 @@ export async function markAsSubmitted(
   revalidatePath("/tracker");
   return {};
 }
+
+/* ------------------------------------------------------------------ */
+/*  Tracker — Kanban Board                                             */
+/* ------------------------------------------------------------------ */
+
+export const TRACKER_STATUSES = [
+  "submitted",
+  "acknowledged",
+  "screening",
+  "interviewing",
+  "offer",
+  "accepted",
+  "rejected",
+  "withdrawn",
+] as const;
+
+export type TrackerStatus = (typeof TRACKER_STATUSES)[number];
+
+const TRACKER_STATUS_SET = new Set<string>(TRACKER_STATUSES);
+
+export interface TrackerApplication {
+  id: string;
+  status: string;
+  submittedAt: string | null;
+  updatedAt: string;
+  companyName: string;
+  companyLogoUrl: string | null;
+  jobTitle: string;
+  overallScore: number | null;
+}
+
+export interface TrackerStats {
+  totalInPipeline: number;
+  responseRate: number;
+  avgDaysToResponse: number | null;
+}
+
+export async function getTrackerApplications(): Promise<{
+  data?: TrackerApplication[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { data, error } = await supabase
+    .from("applications")
+    .select(
+      `
+      id, status, submitted_at, updated_at,
+      job_postings!inner(company_name, company_logo_url, job_title),
+      job_evaluations(overall_score)
+    `
+    )
+    .eq("profile_id", user.id)
+    .in("status", [...TRACKER_STATUSES])
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return { error: `Failed to fetch tracker applications: ${error.message}` };
+  }
+
+  const items: TrackerApplication[] = (data ?? []).map((d) => {
+    const jp = d.job_postings as unknown as {
+      company_name: string;
+      company_logo_url: string | null;
+      job_title: string;
+    };
+    const ev = d.job_evaluations as unknown as {
+      overall_score: number;
+    } | null;
+    return {
+      id: d.id,
+      status: d.status,
+      submittedAt: d.submitted_at,
+      updatedAt: d.updated_at,
+      companyName: jp.company_name,
+      companyLogoUrl: jp.company_logo_url,
+      jobTitle: jp.job_title,
+      overallScore: ev?.overall_score ?? null,
+    };
+  });
+
+  return { data: items };
+}
+
+export async function getTrackerStats(): Promise<{
+  data?: TrackerStats;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Active pipeline statuses (not terminal)
+  const pipelineStatuses = [
+    "submitted",
+    "acknowledged",
+    "screening",
+    "interviewing",
+    "offer",
+  ];
+  const responseStatuses = [
+    "acknowledged",
+    "screening",
+    "interviewing",
+    "offer",
+    "accepted",
+    "rejected",
+  ];
+
+  const [pipelineResult, totalSubmittedResult, responseResult, responseTimesResult] =
+    await Promise.all([
+      supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", user.id)
+        .in("status", pipelineStatuses),
+      supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", user.id)
+        .in("status", [...TRACKER_STATUSES]),
+      supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", user.id)
+        .in("status", responseStatuses),
+      supabase
+        .from("applications")
+        .select("submitted_at, response_received_at")
+        .eq("profile_id", user.id)
+        .not("response_received_at", "is", null)
+        .not("submitted_at", "is", null),
+    ]);
+
+  const totalSubmitted = totalSubmittedResult.count ?? 0;
+  const responseCount = responseResult.count ?? 0;
+  const responseRate =
+    totalSubmitted > 0 ? responseCount / totalSubmitted : 0;
+
+  // Calculate average days to response
+  let avgDaysToResponse: number | null = null;
+  const responseTimes = responseTimesResult.data ?? [];
+  if (responseTimes.length > 0) {
+    const totalDays = responseTimes.reduce((sum, r) => {
+      const submitted = new Date(r.submitted_at!).getTime();
+      const response = new Date(r.response_received_at!).getTime();
+      return sum + (response - submitted) / (1000 * 60 * 60 * 24);
+    }, 0);
+    avgDaysToResponse = Math.round(totalDays / responseTimes.length);
+  }
+
+  return {
+    data: {
+      totalInPipeline: pipelineResult.count ?? 0,
+      responseRate,
+      avgDaysToResponse,
+    },
+  };
+}
+
+export async function updateTrackerStatus(
+  applicationId: string,
+  newStatus: string
+): Promise<{ error?: string }> {
+  if (!TRACKER_STATUS_SET.has(newStatus)) {
+    return { error: `Invalid tracker status: ${newStatus}` };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const updateData: Record<string, unknown> = {
+    status: newStatus,
+  };
+
+  // Set response_received_at when moving from submitted to any response status
+  if (
+    ["acknowledged", "screening", "interviewing", "offer", "accepted", "rejected"].includes(
+      newStatus
+    )
+  ) {
+    // Only set if not already set
+    const { data: app } = await supabase
+      .from("applications")
+      .select("response_received_at")
+      .eq("id", applicationId)
+      .eq("profile_id", user.id)
+      .single();
+
+    if (app && !app.response_received_at) {
+      updateData.response_received_at = new Date().toISOString();
+    }
+  }
+
+  const { error } = await supabase
+    .from("applications")
+    .update(updateData)
+    .eq("id", applicationId)
+    .eq("profile_id", user.id);
+
+  if (error) {
+    return { error: `Failed to update status: ${error.message}` };
+  }
+
+  revalidatePath("/tracker");
+  revalidatePath(`/tracker/${applicationId}`);
+  revalidatePath("/dashboard");
+  return {};
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tracker Detail                                                     */
+/* ------------------------------------------------------------------ */
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface ApplicationEvent {
+  id: string;
+  event_type: string;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface TrackerDetail {
+  id: string;
+  status: string;
+  notes: string | null;
+  next_step_date: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  cover_letter: string | null;
+  application_answers: Array<{
+    question: string;
+    answer: string;
+    source?: string;
+  }>;
+  job_postings: {
+    id: string;
+    company_name: string;
+    company_logo_url: string | null;
+    job_title: string;
+    location: string | null;
+    is_remote: boolean;
+    application_url: string | null;
+  };
+  job_evaluations: {
+    overall_score: number;
+    skill_score: number | null;
+    experience_score: number | null;
+    seniority_score: number | null;
+    location_score: number | null;
+    technology_score: number | null;
+    reasoning: string | null;
+    strengths: string[];
+    gaps: string[];
+    recommendation: string;
+  } | null;
+  tailored_resume: {
+    id: string;
+    content_markdown: string | null;
+    tailoring_notes: string | null;
+    file_url_pdf: string | null;
+    file_url_docx: string | null;
+  } | null;
+  events: ApplicationEvent[];
+}
+
+export async function getTrackerDetail(
+  applicationId: string
+): Promise<{ data?: TrackerDetail; error?: string }> {
+  if (!UUID_REGEX.test(applicationId)) {
+    return { error: "Invalid application ID" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Fetch application with job + evaluation data
+  const { data, error } = await supabase
+    .from("applications")
+    .select(
+      `
+      id, status, notes, next_step_date, submitted_at, created_at, updated_at,
+      cover_letter, application_answers,
+      job_postings!inner(
+        id, company_name, company_logo_url, job_title, location,
+        is_remote, application_url
+      ),
+      job_evaluations(
+        overall_score, skill_score, experience_score, seniority_score,
+        location_score, technology_score, reasoning, strengths, gaps, recommendation
+      )
+    `
+    )
+    .eq("id", applicationId)
+    .eq("profile_id", user.id)
+    .single();
+
+  if (error) {
+    return { error: `Application not found` };
+  }
+
+  // Fetch tailored resume
+  const { data: tailoredResume } = await supabase
+    .from("resume_versions")
+    .select(
+      "id, content_markdown, tailoring_notes, file_url_pdf, file_url_docx"
+    )
+    .eq("application_id", applicationId)
+    .eq("is_base", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Fetch application events (timeline)
+  const { data: events } = await supabase
+    .from("application_events")
+    .select("id, event_type, description, metadata, created_at")
+    .eq("application_id", applicationId)
+    .order("created_at", { ascending: false });
+
+  const result = data as unknown as TrackerDetail;
+  result.tailored_resume = tailoredResume
+    ? {
+        id: tailoredResume.id,
+        content_markdown: tailoredResume.content_markdown,
+        tailoring_notes: tailoredResume.tailoring_notes,
+        file_url_pdf: tailoredResume.file_url_pdf,
+        file_url_docx: tailoredResume.file_url_docx,
+      }
+    : null;
+  result.events = (events ?? []) as ApplicationEvent[];
+
+  return { data: result };
+}
+
+export async function addApplicationNote(
+  applicationId: string,
+  noteText: string
+): Promise<{ error?: string }> {
+  if (!UUID_REGEX.test(applicationId)) {
+    return { error: "Invalid application ID" };
+  }
+  if (!noteText.trim()) {
+    return { error: "Note text cannot be empty" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Verify ownership
+  const { data: app } = await supabase
+    .from("applications")
+    .select("id")
+    .eq("id", applicationId)
+    .eq("profile_id", user.id)
+    .single();
+
+  if (!app) {
+    return { error: "Application not found" };
+  }
+
+  const { error } = await supabase.from("application_events").insert({
+    application_id: applicationId,
+    event_type: "note_added",
+    description: noteText.trim(),
+  });
+
+  if (error) {
+    return { error: `Failed to add note: ${error.message}` };
+  }
+
+  revalidatePath(`/tracker/${applicationId}`);
+  return {};
+}
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function setApplicationReminder(
+  applicationId: string,
+  date: string | null
+): Promise<{ error?: string }> {
+  if (!UUID_REGEX.test(applicationId)) {
+    return { error: "Invalid application ID" };
+  }
+  if (date !== null && !DATE_REGEX.test(date)) {
+    return { error: "Invalid date format" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("applications")
+    .update({ next_step_date: date })
+    .eq("id", applicationId)
+    .eq("profile_id", user.id);
+
+  if (error) {
+    return { error: `Failed to set reminder: ${error.message}` };
+  }
+
+  revalidatePath(`/tracker/${applicationId}`);
+  return {};
+}

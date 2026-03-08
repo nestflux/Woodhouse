@@ -211,6 +211,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E9-04 (Tailoring Prompt Customization)
-Currently working: E10-01 (Application Tracker Board)
-Next up: E10-02 (Settings & Profile Management)
+Last completed: E10-02 (Tracker Detail Screen)
+Currently working: E11-01 (In-App Notifications)
+Next up: E11-02 (Email Digests)
