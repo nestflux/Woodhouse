@@ -31,6 +31,9 @@ const JobExtractionSchema = z.object({
 
 const SERPAPI_BASE_URL = "https://serpapi.com/search";
 const JSEARCH_BASE_URL = "https://jsearch.p.rapidapi.com/search";
+const JSEARCH_CHEAP_BASE_URL =
+  "https://jsearch-cheaper-version.p.rapidapi.com/search";
+const JSEARCH_CHEAP_HOST = "jsearch-cheaper-version.p.rapidapi.com";
 const API_FETCH_TIMEOUT_MS = 30_000;
 const AI_PARSE_CONCURRENCY = 5;
 const DEDUP_CHUNK_SIZE = 50;
@@ -406,6 +409,107 @@ export async function searchJSearch(
     } catch (err) {
       captureException(err, {
         source: "jsearch",
+        job_id: job.job_id,
+      });
+    }
+  }
+
+  return postings;
+}
+
+// ─── JSearch Cheaper Version API ─────────────────────────────────────────────
+
+/**
+ * Search the JSearch Cheaper Version API (same RapidAPI key, different host).
+ * Response schema is identical to the original JSearch, so we reuse the same
+ * interfaces, normalization, and validation logic.
+ */
+export async function searchJSearchCheaper(
+  params: JSearchParams
+): Promise<DiscoveryPosting[]> {
+  const apiKey = Deno.env.get("JSEARCH_API_KEY");
+  if (!apiKey) {
+    throw new Error("JSEARCH_API_KEY is not set");
+  }
+
+  let queryStr = params.query;
+  if (params.location) queryStr += ` in ${params.location}`;
+
+  const url = new URL(JSEARCH_CHEAP_BASE_URL);
+  url.searchParams.set("query", queryStr);
+  url.searchParams.set("page", "1");
+  url.searchParams.set("num_pages", "1");
+  if (params.country) url.searchParams.set("country", params.country);
+  if (params.jobType)
+    url.searchParams.set("employment_types", params.jobType);
+
+  const response = await fetchWithTimeout(url.toString(), {
+    headers: {
+      "X-RapidAPI-Key": apiKey,
+      "X-RapidAPI-Host": JSEARCH_CHEAP_HOST,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `JSearch Cheaper API request failed: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+  const jobs: JSearchJob[] = data.data ?? [];
+
+  const postings: DiscoveryPosting[] = [];
+
+  for (const job of jobs) {
+    try {
+      const location = [job.job_city, job.job_state]
+        .filter(Boolean)
+        .join(", ");
+
+      const posting: DiscoveryPosting = {
+        external_id: job.job_id,
+        source: "jsearch_v2",
+        source_url:
+          job.job_apply_link ??
+          `https://www.google.com/search?q=${encodeURIComponent(`${job.job_title} ${job.employer_name} jobs`)}`,
+        company_name: job.employer_name,
+        job_title: job.job_title,
+        location: location || null,
+        country: job.job_country || params.country?.toUpperCase() || null,
+        is_remote: job.job_is_remote ?? false,
+        job_type: normalizeJSearchEmploymentType(job.job_employment_type),
+        experience_level: null,
+        salary_min: annualizeSalary(
+          job.job_min_salary,
+          job.job_salary_period
+        ),
+        salary_max: annualizeSalary(
+          job.job_max_salary,
+          job.job_salary_period
+        ),
+        salary_currency: job.job_salary_currency || null,
+        description_raw: job.job_description,
+        required_skills: [],
+        preferred_skills: [],
+        responsibilities: [],
+        benefits: [],
+        application_url: job.job_apply_link || null,
+        posted_date: job.job_posted_at_datetime_utc || null,
+      };
+
+      const validated = DiscoveryPostingSchema.safeParse(posting);
+      if (validated.success) {
+        postings.push(validated.data);
+      } else {
+        captureMessage("JSearch Cheaper posting failed validation", {
+          job_id: job.job_id,
+          error: validated.error.message,
+        });
+      }
+    } catch (err) {
+      captureException(err, {
+        source: "jsearch_v2",
         job_id: job.job_id,
       });
     }
@@ -1080,6 +1184,15 @@ export async function runDiscovery(
         tasks.push({
           label: `JSearch: "${query}" in ${locLabel}`,
           fn: () => searchJSearch({ query, location: loc, country: ctry, jobType: params.jobTypes?.join(",") }),
+        });
+
+        if (taskCount >= MAX_DISCOVERY_API_CALLS) break;
+
+        // JSearch Cheaper Version API (supplementary source, same key)
+        taskCount++;
+        tasks.push({
+          label: `JSearch V2: "${query}" in ${locLabel}`,
+          fn: () => searchJSearchCheaper({ query, location: loc, country: ctry, jobType: params.jobTypes?.join(",") }),
         });
       }
       if (taskCount >= MAX_DISCOVERY_API_CALLS) break;

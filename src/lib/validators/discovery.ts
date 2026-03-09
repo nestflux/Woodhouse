@@ -6,6 +6,7 @@ export const DiscoveryPostingSchema = z.object({
   source: z.enum([
     "google_jobs",
     "jsearch",
+    "jsearch_v2",
     "greenhouse",
     "lever",
     "workday",

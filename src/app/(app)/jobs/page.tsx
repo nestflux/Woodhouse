@@ -34,6 +34,7 @@ const SOURCE_OPTIONS = [
   { value: "", label: "All Sources" },
   { value: "google_jobs", label: "Google Jobs" },
   { value: "jsearch", label: "JSearch" },
+  { value: "jsearch_v2", label: "JSearch V2" },
   { value: "greenhouse", label: "Greenhouse" },
   { value: "lever", label: "Lever" },
   { value: "workday", label: "Workday" },
