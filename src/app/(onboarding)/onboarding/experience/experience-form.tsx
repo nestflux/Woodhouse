@@ -83,6 +83,19 @@ interface AiImprovement {
   suggestion: string;
 }
 
+/** Normalize partial dates (YYYY or YYYY-MM) to full YYYY-MM-DD for Postgres */
+function normalizeDate(d: string | null | undefined): string {
+  if (!d) return "";
+  const trimmed = d.trim();
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  // YYYY-MM → YYYY-MM-01
+  if (/^\d{4}-\d{2}$/.test(trimmed)) return `${trimmed}-01`;
+  // YYYY → YYYY-01-01
+  if (/^\d{4}$/.test(trimmed)) return `${trimmed}-01-01`;
+  return trimmed;
+}
+
 export function ExperienceForm({
   initialExperiences,
   hasParsedData,
@@ -132,8 +145,8 @@ export function ExperienceForm({
         job_title: (pe.job_title as string) || "",
         location: (pe.location as string) || "",
         country: (pe.country as string) || "",
-        start_date: startDate,
-        end_date: (pe.end_date as string) || "",
+        start_date: normalizeDate(startDate),
+        end_date: normalizeDate(pe.end_date as string),
         is_current: (pe.is_current as boolean) ?? false,
         description: (pe.description as string) || "",
       });

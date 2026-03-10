@@ -28,7 +28,7 @@ export interface AgentCallOptions {
 
 export async function callClaude(
   options: AgentCallOptions
-): Promise<{ text: string; usage: CallAgentResult["usage"]; model: string }> {
+): Promise<{ text: string; usage: CallAgentResult["usage"]; model: string; stop_reason: string | null }> {
   const {
     agentType,
     userId,
@@ -82,6 +82,7 @@ export async function callClaude(
       text,
       usage: result.usage,
       model: result.model,
+      stop_reason: result.stop_reason,
     };
   } catch (error) {
     // Classify Anthropic API errors

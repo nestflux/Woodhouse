@@ -59,6 +59,15 @@ export function EducationForm({
   hasParsedData,
   parsedEducation,
 }: EducationFormProps) {
+  /** Normalize partial dates (YYYY or YYYY-MM) to full YYYY-MM-DD for Postgres */
+  function normalizeDate(d: string | null | undefined): string | undefined {
+    if (!d) return undefined;
+    const trimmed = d.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (/^\d{4}-\d{2}$/.test(trimmed)) return `${trimmed}-01`;
+    if (/^\d{4}$/.test(trimmed)) return `${trimmed}-01-01`;
+    return trimmed;
+  }
   const router = useRouter();
   const [entries, setEntries] = useState<EducationEntry[]>(initialEducation);
   const [showAddForm, setShowAddForm] = useState(
@@ -80,8 +89,8 @@ export function EducationForm({
         institution: (pe.institution as string) || "",
         degree: (pe.degree as string) || "",
         field_of_study: (pe.field_of_study as string) || "",
-        start_date: (pe.start_date as string) || undefined,
-        end_date: (pe.end_date as string) || undefined,
+        start_date: normalizeDate(pe.start_date as string),
+        end_date: normalizeDate(pe.end_date as string),
         gpa: pe.gpa as number | undefined,
       });
       if (result.error) {

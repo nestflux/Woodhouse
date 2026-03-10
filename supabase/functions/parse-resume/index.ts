@@ -132,11 +132,17 @@ async function parsePdf(
           ],
         },
       ],
-      max_tokens: 4096,
+      max_tokens: 8192,
       temperature: 0,
     },
     userId
   );
+
+  if (result.stop_reason === "max_tokens") {
+    throw new Error(
+      "Resume parsing response was truncated. The resume may be too complex. Please try a simpler format."
+    );
+  }
 
   const textBlock = result.content.find(
     (block: { type: string }) => block.type === "text"
@@ -170,9 +176,15 @@ async function parseDocx(
     model: "claude-haiku-4-5",
     systemPrompt: SYSTEM_PROMPT,
     userMessage: `Parse the following resume and extract structured data:\n\n${textContent}`,
-    maxTokens: 4096,
+    maxTokens: 8192,
     temperature: 0,
   });
+
+  if (result.stop_reason === "max_tokens") {
+    throw new Error(
+      "Resume parsing response was truncated. The resume may be too complex. Please try a simpler format."
+    );
+  }
 
   return result;
 }
@@ -245,19 +257,45 @@ Deno.serve(async (req) => {
 
     // Parse and validate the AI response
     let parsedData: unknown;
+    let cleanText = result.text.trim();
+    if (cleanText.startsWith("```")) {
+      cleanText = cleanText
+        .replace(/^```(?:json)?\s*\n?/, "")
+        .replace(/\n?```\s*$/, "");
+    }
+
+    // First attempt: direct parse
     try {
-      let cleanText = result.text.trim();
-      if (cleanText.startsWith("```")) {
-        cleanText = cleanText
-          .replace(/^```(?:json)?\s*\n?/, "")
-          .replace(/\n?```\s*$/, "");
-      }
       parsedData = JSON.parse(cleanText);
     } catch {
-      return jsonResponse(
-        { error: "Failed to parse AI response as JSON" },
-        500
-      );
+      // Second attempt: repair common LLM JSON issues
+      try {
+        let repaired = cleanText;
+        // Remove trailing commas before } or ]
+        repaired = repaired.replace(/,\s*([}\]])/g, "$1");
+        // Remove any trailing text after the last } (LLM commentary)
+        const lastBrace = repaired.lastIndexOf("}");
+        if (lastBrace !== -1 && lastBrace < repaired.length - 1) {
+          repaired = repaired.substring(0, lastBrace + 1);
+        }
+        parsedData = JSON.parse(repaired);
+      } catch (parseErr) {
+        const errMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        // Show context around the error position
+        const posMatch = errMsg.match(/position (\d+)/);
+        let context = "";
+        if (posMatch) {
+          const pos = parseInt(posMatch[1], 10);
+          context = ` [near: ...${cleanText.substring(Math.max(0, pos - 40), pos + 40)}...]`;
+        }
+        return jsonResponse(
+          {
+            error: `Failed to parse AI response as JSON: ${errMsg}${context}`,
+            raw_length: cleanText.length,
+          },
+          500
+        );
+      }
     }
 
     const validated = ResumeParsingSchema.safeParse(parsedData);

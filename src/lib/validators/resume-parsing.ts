@@ -19,9 +19,9 @@ export const ResumeParsingSchema = z.object({
         location: z.string().optional(),
         country: z.string().optional(),
         start_date: z.string().optional(),
-        end_date: z.string().optional(),
+        end_date: z.string().nullable().optional(),
         is_current: z.boolean().optional(),
-        description: z.string().optional(),
+        description: z.string().nullable().optional(),
         achievements: z
           .array(
             z.object({
@@ -39,8 +39,8 @@ export const ResumeParsingSchema = z.object({
         degree: z.string(),
         field_of_study: z.string(),
         start_date: z.string().optional(),
-        end_date: z.string().optional(),
-        gpa: z.number().optional(),
+        end_date: z.string().nullable().optional(),
+        gpa: z.number().nullable().optional(),
       })
     )
     .optional(),
@@ -62,7 +62,7 @@ export const ResumeParsingSchema = z.object({
         proficiency: z
           .enum(["beginner", "intermediate", "advanced", "expert"])
           .optional(),
-        years_experience: z.number().optional(),
+        years_experience: z.number().nullable().optional(),
       })
     )
     .optional(),
@@ -82,7 +82,7 @@ export const ResumeParsingSchema = z.object({
         name: z.string(),
         issuer: z.string().optional(),
         issue_date: z.string().optional(),
-        expiry_date: z.string().optional(),
+        expiry_date: z.string().nullable().optional(),
         credential_url: z.string().optional(),
       })
     )

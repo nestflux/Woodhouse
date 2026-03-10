@@ -92,28 +92,41 @@ export default function UploadPage() {
       setUploadedFile(file.name);
       setUploading(false);
 
-      // Trigger AI parsing
+      // Trigger AI parsing via direct fetch (bypasses supabase.functions.invoke
+      // which can swallow errors and mishandle ES256 JWT tokens)
       setParsing(true);
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      const { data: parseResult, error: parseErr } =
-        await supabase.functions.invoke("parse-resume", {
-          body: { file_path: filePath },
-          headers: session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : undefined,
-        });
 
+      if (!session?.access_token) {
+        setParsing(false);
+        setParseError(
+          "Session expired. Please sign out and sign back in."
+        );
+        return;
+      }
+
+      const fnUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/parse-resume`;
+      const fnRes = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ file_path: filePath }),
+      });
+
+      const parseResult = await fnRes.json().catch(() => null);
       setParsing(false);
 
-      if (parseErr) {
-        const detail =
-          (parseResult && typeof parseResult === "object" && "error" in parseResult
-            ? (parseResult as { error: string }).error
-            : null) ?? parseErr.message ?? "";
+      if (!fnRes.ok || !parseResult) {
+        const detail = parseResult?.error ?? `HTTP ${fnRes.status}`;
+        const rawPreview = parseResult?.raw_preview
+          ? ` [raw: ${parseResult.raw_preview.substring(0, 100)}...]`
+          : "";
         setParseError(
-          `Resume parsing encountered an issue${detail ? `: ${detail}` : ""}. You can still continue and enter your information manually.`
+          `Resume parsing encountered an issue: ${detail}${rawPreview}. You can still continue and enter your information manually.`
         );
         return;
       }
