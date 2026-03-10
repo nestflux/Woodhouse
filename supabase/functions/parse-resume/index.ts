@@ -195,16 +195,19 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Missing authorization header" }, 401);
     }
 
+    // Use the service role client for both auth verification and file download.
+    // The user-scoped client fails with ES256 JWTs on newer Supabase projects.
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+      error: userError,
+    } = await admin.auth.getUser(token);
+    if (userError || !user) {
       return jsonResponse({ error: "Invalid token" }, 401);
     }
 
@@ -218,7 +221,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Access denied" }, 403);
     }
 
-    const { data: fileData, error: downloadError } = await supabase.storage
+    const { data: fileData, error: downloadError } = await admin.storage
       .from("resumes")
       .download(filePath);
 
@@ -267,13 +270,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Save parsed data to profile using service role
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    const { error: updateError } = await adminClient
+    // Save parsed data to profile
+    const { error: updateError } = await admin
       .from("profiles")
       .update({ resume_parsed_data: validated.data })
       .eq("id", user.id);

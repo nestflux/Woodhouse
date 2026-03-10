@@ -31,18 +31,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create a client with the user's JWT to verify their identity
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
+    // Verify user identity via service role client (ES256 JWT compatible)
+    const admin = getSupabaseAdmin();
+    const token = authHeader.replace(/^Bearer\s+/i, "");
     const {
       data: { user },
       error: userError,
-    } = await userClient.auth.getUser();
+    } = await admin.auth.getUser(token);
 
     if (userError || !user) {
       return new Response(
@@ -51,9 +46,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use the admin client (service role) to delete the auth user
-    // All profile data will be CASCADE deleted due to foreign key constraints
-    const admin = getSupabaseAdmin();
+    // Delete the auth user — all profile data CASCADE deletes via foreign keys
     const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
 
     if (deleteError) {

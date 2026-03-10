@@ -94,23 +94,33 @@ export default function UploadPage() {
 
       // Trigger AI parsing
       setParsing(true);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const { data: parseResult, error: parseErr } =
         await supabase.functions.invoke("parse-resume", {
           body: { file_path: filePath },
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
         });
 
       setParsing(false);
 
       if (parseErr) {
+        const detail =
+          (parseResult && typeof parseResult === "object" && "error" in parseResult
+            ? (parseResult as { error: string }).error
+            : null) ?? parseErr.message ?? "";
         setParseError(
-          "Resume parsing encountered an issue. You can still continue and enter your information manually."
+          `Resume parsing encountered an issue${detail ? `: ${detail}` : ""}. You can still continue and enter your information manually.`
         );
         return;
       }
 
       if (parseResult?.error) {
         setParseError(
-          "Could not extract data from your resume. You can still continue and enter your information manually."
+          `Could not extract data from your resume: ${parseResult.error}. You can still continue and enter your information manually.`
         );
         return;
       }
