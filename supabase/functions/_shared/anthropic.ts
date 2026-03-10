@@ -1,4 +1,4 @@
-import Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
+import Anthropic from "npm:@anthropic-ai/sdk@0.78.0";
 
 let _client: Anthropic | null = null;
 

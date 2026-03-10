@@ -264,9 +264,16 @@ export default function SettingsAccountPage() {
       }
 
       // Call the delete-account Edge Function which uses the service role
-      const { error } = await supabase.functions.invoke("delete-account");
+      const { data, error } = await supabase.functions.invoke("delete-account");
       if (error) {
-        toast.error(error.message || "Failed to delete account");
+        // Try to extract the real error from the response body
+        const msg =
+          (data && typeof data === "object" && "error" in data
+            ? (data as { error: string }).error
+            : null) ??
+          error.message ??
+          "Failed to delete account";
+        toast.error(msg);
         return;
       }
 

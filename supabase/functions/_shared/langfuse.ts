@@ -1,6 +1,6 @@
 import { Langfuse } from "npm:langfuse@3";
 import { getAnthropicClient } from "./anthropic.ts";
-import type Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
+import type Anthropic from "npm:@anthropic-ai/sdk@0.78.0";
 import { captureException } from "./sentry.ts";
 
 let _langfuse: Langfuse | null = null;
