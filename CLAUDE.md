@@ -41,7 +41,7 @@ Skipping them causes drift and rework.
 **Auth:** Supabase Auth with email/password. Not NextAuth. Not Clerk. Not Auth0.
 
 **AI:** Anthropic Claude API via `@anthropic-ai/sdk`. Not OpenAI. Not LangChain. Not any agent framework.
-- Sonnet 4.6 (`claude-sonnet-4-6`) for evaluation, tailoring, cover letters, achievement improvement.
+- Sonnet 4.6 (`claude-sonnet-4-6`) for evaluation, tailoring, cover letters, achievement improvement, resume scoring, resume improvement.
 - Haiku 4.5 (`claude-haiku-4-5`) for pre-screen, parsing, skill suggestion, application answers.
 
 **Observability:** Langfuse for all LLM call tracing. Not Helicone. Not custom logging.
@@ -94,6 +94,7 @@ E1-01 → E1-02 → E1-03 → E2-01 → E2-02 → E2-03 → E2-04 → E2-05
 → E9-01 → E9-02 → E9-03 → E9-04 → E10-01 → E10-02
 → E11-01 → E11-02 → E11-03 → E12-01 → E12-02 → E12-03
 → E13-01 → E13-02 → E14-01 → E15-01 → E15-02
+→ E16-01 → E16-02 → E16-03 → E16-04 → E16-05 → E16-06 → E16-07
 ```
 
 If you think you should jump ahead, ask first.
@@ -218,6 +219,6 @@ In these cases, post the report and wait for the owner.
 
 ## Current Status
 
-Last completed: E15-02 (Loading States, Empty States & Final Polish)
-Currently working: COMPLETE — all 44 issues across 15 epics done
-Next up: N/A
+Last completed: E16-07 — Export, Profile Sync & Polish (EPIC 16 COMPLETE)
+Currently working: (none — all 51 issues complete)
+Next up: (none)

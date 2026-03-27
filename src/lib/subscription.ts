@@ -14,6 +14,8 @@ export interface SubscriptionFeatures {
   full_tracker: boolean;
   docx_export: boolean;
   full_analytics: boolean;
+  resume_builder_limit: number;
+  resume_builder_docx_export: boolean;
 }
 
 /**
@@ -60,6 +62,8 @@ export async function checkSubscription(
       full_tracker: isPaid,
       docx_export: isPaid,
       full_analytics: isPaid,
+      resume_builder_limit: plan === "premium" ? 10 : plan === "pro" ? 5 : 3,
+      resume_builder_docx_export: isPaid,
     },
   };
 }

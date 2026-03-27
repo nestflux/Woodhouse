@@ -16,36 +16,54 @@ import type { ResumeContent } from "./types.ts";
 const SIGNED_URL_EXPIRY = 30 * 24 * 60 * 60;
 
 interface GenerateFilesInput {
-  resumeVersionId: string;
+  resumeVersionId?: string;
   profileId: string;
+  /** Direct content input — skips resume_versions lookup when provided. */
+  directContent?: ResumeContent;
+  /** User resume ID — used for storage path when generating from user_resumes. */
+  userResumeId?: string;
+  /** Formats to generate. Defaults to both PDF and DOCX. */
+  formats?: ("pdf" | "docx")[];
 }
 
 interface GenerateFilesResult {
-  pdfUrl: string;
-  docxUrl: string;
-  storagePdfPath: string;
-  storageDocxPath: string;
+  pdfUrl: string | null;
+  docxUrl: string | null;
+  storagePdfPath: string | null;
+  storageDocxPath: string | null;
 }
 
 export async function generateResumeFiles(
   input: GenerateFilesInput
 ): Promise<GenerateFilesResult> {
   const supabase = getSupabaseAdmin();
+  const formats = input.formats ?? ["pdf", "docx"];
+  const genPdf = formats.includes("pdf");
+  const genDocx = formats.includes("docx");
+  const sourceId = input.userResumeId ?? input.resumeVersionId;
 
-  // 1. Fetch the resume version content
-  const { data: resumeVersion, error: fetchError } = await supabase
-    .from("resume_versions")
-    .select("content_json, profile_id")
-    .eq("id", input.resumeVersionId)
-    .single();
+  // 1. Resolve content — either direct or from resume_versions
+  let content: ResumeContent;
 
-  if (fetchError || !resumeVersion) {
-    throw new RetryableError(
-      `Failed to fetch resume version ${input.resumeVersionId}: ${fetchError?.message ?? "Not found"}`
-    );
+  if (input.directContent) {
+    content = input.directContent;
+  } else if (input.resumeVersionId) {
+    const { data: resumeVersion, error: fetchError } = await supabase
+      .from("resume_versions")
+      .select("content_json, profile_id")
+      .eq("id", input.resumeVersionId)
+      .single();
+
+    if (fetchError || !resumeVersion) {
+      throw new RetryableError(
+        `Failed to fetch resume version ${input.resumeVersionId}: ${fetchError?.message ?? "Not found"}`
+      );
+    }
+    content = resumeVersion.content_json as ResumeContent;
+  } else {
+    throw new Error("Either directContent or resumeVersionId is required");
   }
 
-  const content = resumeVersion.content_json as ResumeContent;
   if (
     !content ||
     !content.header?.full_name ||
@@ -53,104 +71,125 @@ export async function generateResumeFiles(
     !Array.isArray(content.work_experience)
   ) {
     throw new Error(
-      `Resume version ${input.resumeVersionId} has invalid content_json — missing required fields`
+      `Resume content has invalid structure — missing required fields`
     );
   }
 
-  // 2. Generate PDF and DOCX in parallel
-  const [pdfBytes, docxBytes] = await Promise.all([
-    generateResumePdf(content).catch((err) => {
-      captureException(err, {
-        phase: "pdf-generation",
-        resumeVersionId: input.resumeVersionId,
-      });
-      throw new RetryableError(`PDF generation failed: ${err.message}`);
-    }),
-    generateResumeDocx(content).catch((err) => {
-      captureException(err, {
-        phase: "docx-generation",
-        resumeVersionId: input.resumeVersionId,
-      });
-      throw new RetryableError(`DOCX generation failed: ${err.message}`);
-    }),
-  ]);
+  // 2. Generate files
+  const pathPrefix = input.userResumeId
+    ? `${input.profileId}/rb_${input.userResumeId}`
+    : `${input.profileId}/${input.resumeVersionId}`;
 
-  // 3. Upload to Supabase Storage
-  const storagePdfPath = `${input.profileId}/${input.resumeVersionId}.pdf`;
-  const storageDocxPath = `${input.profileId}/${input.resumeVersionId}.docx`;
+  let pdfBytes: Uint8Array | null = null;
+  let docxBytes: Uint8Array | null = null;
 
-  const [pdfUpload, docxUpload] = await Promise.all([
-    supabase.storage.from("resumes").upload(storagePdfPath, pdfBytes, {
-      contentType: "application/pdf",
-      upsert: true,
-    }),
-    supabase.storage.from("resumes").upload(storageDocxPath, docxBytes, {
-      contentType:
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      upsert: true,
-    }),
-  ]);
-
-  if (pdfUpload.error) {
-    throw new RetryableError(
-      `PDF upload failed: ${pdfUpload.error.message}`
+  const genPromises: Promise<void>[] = [];
+  if (genPdf) {
+    genPromises.push(
+      generateResumePdf(content)
+        .then((bytes) => { pdfBytes = bytes; })
+        .catch((err) => {
+          captureException(err, { phase: "pdf-generation", sourceId });
+          throw new RetryableError(`PDF generation failed: ${err.message}`);
+        })
     );
   }
-  if (docxUpload.error) {
-    throw new RetryableError(
-      `DOCX upload failed: ${docxUpload.error.message}`
+  if (genDocx) {
+    genPromises.push(
+      generateResumeDocx(content)
+        .then((bytes) => { docxBytes = bytes; })
+        .catch((err) => {
+          captureException(err, { phase: "docx-generation", sourceId });
+          throw new RetryableError(`DOCX generation failed: ${err.message}`);
+        })
     );
   }
+  await Promise.all(genPromises);
+
+  // 3. Upload to storage
+  const storagePdfPath = genPdf ? `${pathPrefix}.pdf` : null;
+  const storageDocxPath = genDocx ? `${pathPrefix}.docx` : null;
+
+  const uploadPromises: Promise<void>[] = [];
+  if (pdfBytes && storagePdfPath) {
+    uploadPromises.push(
+      supabase.storage
+        .from("resumes")
+        .upload(storagePdfPath, pdfBytes, { contentType: "application/pdf", upsert: true })
+        .then(({ error }) => {
+          if (error) throw new RetryableError(`PDF upload failed: ${error.message}`);
+        })
+    );
+  }
+  if (docxBytes && storageDocxPath) {
+    uploadPromises.push(
+      supabase.storage
+        .from("resumes")
+        .upload(storageDocxPath, docxBytes, {
+          contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          upsert: true,
+        })
+        .then(({ error }) => {
+          if (error) throw new RetryableError(`DOCX upload failed: ${error.message}`);
+        })
+    );
+  }
+  await Promise.all(uploadPromises);
 
   // 4. Create signed URLs
-  const [pdfSigned, docxSigned] = await Promise.all([
-    supabase.storage
+  let pdfUrl: string | null = null;
+  let docxUrl: string | null = null;
+
+  if (storagePdfPath) {
+    const { data, error } = await supabase.storage
       .from("resumes")
-      .createSignedUrl(storagePdfPath, SIGNED_URL_EXPIRY),
-    supabase.storage
+      .createSignedUrl(storagePdfPath, SIGNED_URL_EXPIRY);
+    if (error || !data?.signedUrl) {
+      captureMessage("Failed to create signed URL for PDF", { sourceId, error: error?.message });
+      throw new RetryableError(`Failed to create PDF signed URL: ${error?.message ?? "No URL returned"}`);
+    }
+    pdfUrl = data.signedUrl;
+  }
+
+  if (storageDocxPath) {
+    const { data, error } = await supabase.storage
       .from("resumes")
-      .createSignedUrl(storageDocxPath, SIGNED_URL_EXPIRY),
-  ]);
-
-  if (pdfSigned.error || !pdfSigned.data?.signedUrl) {
-    captureMessage("Failed to create signed URL for PDF", {
-      resumeVersionId: input.resumeVersionId,
-      error: pdfSigned.error?.message,
-    });
-    throw new RetryableError(
-      `Failed to create PDF signed URL: ${pdfSigned.error?.message ?? "No URL returned"}`
-    );
+      .createSignedUrl(storageDocxPath, SIGNED_URL_EXPIRY);
+    if (error || !data?.signedUrl) {
+      captureMessage("Failed to create signed URL for DOCX", { sourceId, error: error?.message });
+      throw new RetryableError(`Failed to create DOCX signed URL: ${error?.message ?? "No URL returned"}`);
+    }
+    docxUrl = data.signedUrl;
   }
 
-  if (docxSigned.error || !docxSigned.data?.signedUrl) {
-    captureMessage("Failed to create signed URL for DOCX", {
-      resumeVersionId: input.resumeVersionId,
-      error: docxSigned.error?.message,
-    });
-    throw new RetryableError(
-      `Failed to create DOCX signed URL: ${docxSigned.error?.message ?? "No URL returned"}`
-    );
+  // 5. Update the source record with signed URLs
+  if (input.userResumeId) {
+    const updates: Record<string, string | null> = {};
+    if (pdfUrl) updates.file_url_pdf = pdfUrl;
+    if (docxUrl) updates.file_url_docx = docxUrl;
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabase
+        .from("user_resumes")
+        .update(updates)
+        .eq("id", input.userResumeId);
+      if (updateError) {
+        throw new RetryableError(`Failed to update user_resumes with file URLs: ${updateError.message}`);
+      }
+    }
+  } else if (input.resumeVersionId) {
+    const updates: Record<string, string | null> = {};
+    if (pdfUrl) updates.file_url_pdf = pdfUrl;
+    if (docxUrl) updates.file_url_docx = docxUrl;
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabase
+        .from("resume_versions")
+        .update(updates)
+        .eq("id", input.resumeVersionId);
+      if (updateError) {
+        throw new RetryableError(`Failed to update resume_versions with file URLs: ${updateError.message}`);
+      }
+    }
   }
 
-  // 5. Update resume_versions with signed URLs
-  const { error: updateError } = await supabase
-    .from("resume_versions")
-    .update({
-      file_url_pdf: pdfSigned.data.signedUrl,
-      file_url_docx: docxSigned.data.signedUrl,
-    })
-    .eq("id", input.resumeVersionId);
-
-  if (updateError) {
-    throw new RetryableError(
-      `Failed to update resume_versions with file URLs: ${updateError.message}`
-    );
-  }
-
-  return {
-    pdfUrl: pdfSigned.data.signedUrl,
-    docxUrl: docxSigned.data.signedUrl,
-    storagePdfPath,
-    storageDocxPath,
-  };
+  return { pdfUrl, docxUrl, storagePdfPath, storageDocxPath };
 }

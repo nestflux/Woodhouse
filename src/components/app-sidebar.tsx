@@ -12,6 +12,7 @@ import {
   KanbanSquare,
   PlusCircle,
   Bell,
+  FilePen,
   Settings,
   User,
   SlidersHorizontal,
@@ -39,6 +40,7 @@ const navItems: NavItem[] = [
   { label: "Tracker", href: "/tracker", icon: KanbanSquare },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Add Job", href: "/jobs/add", icon: PlusCircle },
+  { label: "Resume Builder", href: "/resume", icon: FilePen },
   {
     label: "Settings",
     href: "/settings",
@@ -349,6 +351,19 @@ export function AppSidebar({ userEmail, userName }: AppSidebarProps) {
             onClick={closeMobileMenu}
           />
           <div className="absolute right-0 bottom-16 left-0 flex flex-col bg-[var(--w-surface-alt)] p-4">
+            <Link
+              href="/resume"
+              onClick={closeMobileMenu}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium",
+                pathname.startsWith("/resume")
+                  ? "bg-[var(--w-primary)] text-white"
+                  : "text-[var(--w-text-secondary)]"
+              )}
+            >
+              <FilePen className="h-5 w-5" />
+              Resume Builder
+            </Link>
             <Link
               href="/settings"
               onClick={closeMobileMenu}

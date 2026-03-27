@@ -36,8 +36,9 @@
 | E13 | Settings | 2 | — | Profile/preferences settings, account settings |
 | E14 | Admin & Observability | 1 | — | Pipeline admin dashboard |
 | E15 | Landing Page & Polish | 2 | — | Marketing page, loading/empty/error states, responsive polish |
+| E16 | Resume Builder | 7 | — | AI-powered resume scoring, improvement, export, profile sync |
 
-**Total: 44 issues**
+**Total: 51 issues**
 
 ---
 
@@ -51,6 +52,7 @@ E1-01 → E1-02 → E1-03 → E2-01 → E2-02 → E2-03 → E2-04 → E2-05
 → E9-01 → E9-02 → E9-03 → E9-04 → E10-01 → E10-02
 → E11-01 → E11-02 → E11-03 → E12-01 → E12-02 → E12-03
 → E13-01 → E13-02 → E14-01 → E15-01 → E15-02
+→ E16-01 → E16-02 → E16-03 → E16-04 → E16-05 → E16-06 → E16-07
 ```
 
 ---
@@ -1681,6 +1683,381 @@ Add loading skeletons, empty states, error states, and final polish across all s
 - [ ] No console errors or TypeScript compilation errors
 - [ ] No broken links or dead routes
 - [ ] Sidebar collapses correctly on tablet and becomes bottom nav on mobile
+
+---
+
+# E16 — Resume Builder
+
+## E16-01 — Database Schema & Server Actions Foundation
+
+**Type:** Schema + Backend
+**Depends on:** E15-02
+**Masterplan:** N/A (new feature — spec in implementation plan)
+
+### Description
+
+Create the `user_resumes` table for storing multiple standalone resumes per user (separate from `resume_versions` which stores job-tailored versions). Add CRUD server actions, subscription limit enforcement, and a utility to convert parsed resume data or knowledge base data into the `ResumeContent` format used by the file generation system.
+
+### Implementation Notes
+
+- New migration: `supabase/migrations/20260328000001_resume_builder.sql`.
+- Table: `user_resumes` with columns: `id` (UUID PK), `profile_id` (FK → profiles), `name` (TEXT), `content` (JSONB — matches `ResumeContent` from `file-generation/types.ts`), `raw_markdown` (TEXT), `source_file_path` (TEXT), `overall_score` (INTEGER 0-100), `scoring_breakdown` (JSONB), `status` (TEXT CHECK: draft/uploading/parsing/scored/error), `is_active` (BOOLEAN DEFAULT FALSE), `file_url_pdf` (TEXT), `file_url_docx` (TEXT), `error` (TEXT), `created_at`, `updated_at`.
+- RLS: users can only manage their own rows (`profile_id = auth.uid()`).
+- Trigger: `enforce_single_active_resume` — when `is_active` is set to TRUE, unset all other rows for that user.
+- Indexes: `(profile_id)`, `(profile_id, is_active) WHERE is_active = TRUE`.
+- New server actions file: `src/lib/actions/resume-builder.ts` — `getUserResumes()`, `getUserResume(id)`, `createUserResume({ name, content })`, `updateUserResume(id, partial)`, `deleteUserResume(id)`, `setActiveResume(id)`, `checkResumeLimit()`.
+- `createUserResume` checks plan limit before insert: Free=3, Pro=5, Premium=10.
+- Update `src/lib/subscription.ts`: add `resume_builder_limit` and `resume_builder_docx_export` to `SubscriptionFeatures`.
+- New utility: `src/lib/resume-builder/convert-to-resume-content.ts` with two functions:
+  - `fromParsedResume(parsed, profile)` — converts `parse-resume` output to `ResumeContent`.
+  - `fromKnowledgeBase(profile, workExps, achievements, education, skills, projects, certs)` — converts knowledge base data to `ResumeContent`.
+
+### Acceptance Criteria
+
+- [ ] Migration creates `user_resumes` table with all columns, types, and constraints
+- [ ] RLS enabled: users can only access their own resumes
+- [ ] `enforce_single_active_resume` trigger: setting one resume active unsets all others for that user
+- [ ] `createUserResume` enforces plan limit (Free=3, Pro=5, Premium=10) and returns error when exceeded
+- [ ] `getUserResumes` returns all resumes for the current user ordered by `updated_at DESC`
+- [ ] `updateUserResume` updates only specified fields and verifies ownership
+- [ ] `deleteUserResume` deletes the row and verifies ownership
+- [ ] `setActiveResume` sets `is_active = TRUE` on the target and `FALSE` on all others
+- [ ] `checkResumeLimit` returns `{ current, limit, canCreate }` based on subscription tier
+- [ ] `fromParsedResume` correctly converts parsed resume data to `ResumeContent` format
+- [ ] `fromKnowledgeBase` correctly converts knowledge base data to `ResumeContent` format
+- [ ] `SubscriptionFeatures` includes `resume_builder_limit` and `resume_builder_docx_export`
+- [ ] Migration applies cleanly: `npx supabase db reset` succeeds without errors
+
+---
+
+## E16-02 — Score Resume Edge Function & Validators
+
+**Type:** Backend (Edge Function + AI)
+**Depends on:** E16-01
+**Masterplan:** N/A (new feature)
+
+### Description
+
+Build the `score-resume` Edge Function that takes a `user_resume_id`, loads the resume content, sends it to Claude Sonnet 4.6 for ATS scoring across 6 dimensions, validates the output with Zod, and writes the score and breakdown back to the `user_resumes` row.
+
+### Implementation Notes
+
+- New Edge Function: `supabase/functions/score-resume/index.ts`.
+- Auth: Bearer token → `admin.auth.getUser(token)`, verify `user_resumes.profile_id` matches user.
+- Model: `claude-sonnet-4-6`, temperature 0.3, max_tokens 8192.
+- Scoring dimensions (weighted):
+  - ATS Compatibility (20%): standard headings, clean dates, no parser-confusing elements.
+  - Content Quality (20%): strong action verbs, STAR/XYZ format, no "responsible for".
+  - Impact & Metrics (20%): quantified outcomes, specific numbers, 60%+ bullets with metrics.
+  - Brevity & Clarity (15%): <150 char bullets, no filler/passive voice, 1-2 pages.
+  - Keyword Optimization (15%): specific tech names, industry terms, natural density.
+  - Section Completeness (10%): has contact/summary/experience/education/skills at minimum.
+- Output: `overall_score` (weighted average), per-dimension `{ score, feedback }`, up to 25 `suggestions` (section, experience_index, bullet_index, original, suggested, reason, priority), 3-5 `general_feedback` items.
+- New Zod validator: `supabase/functions/_shared/validators/resume-score.ts` + frontend mirror at `src/lib/validators/resume-score.ts`.
+- Use `callClaude()` from `_shared/agent-call.ts` with Langfuse tracing (agent type: `score_resume`).
+- On success: write `overall_score`, `scoring_breakdown`, `status = 'scored'` to `user_resumes`.
+- New server action: `scoreResume(id)` in `src/lib/actions/resume-builder.ts` — calls the Edge Function via `fetch()` with Bearer token.
+- CORS headers on all response paths (success, error, 401).
+
+### Acceptance Criteria
+
+- [ ] `POST /functions/v1/score-resume` with `{ user_resume_id }` returns scoring data
+- [ ] Returns 6 dimension scores (0-100 each) with feedback strings
+- [ ] Returns up to 25 per-bullet suggestions with original/suggested/reason/priority
+- [ ] Returns 3-5 general feedback items
+- [ ] Overall score is the weighted average of dimension scores
+- [ ] Zod validation passes on Claude output (`ResumeScoreSchema`)
+- [ ] Score and breakdown are persisted to `user_resumes.overall_score` and `scoring_breakdown`
+- [ ] Status is updated to `'scored'` on success
+- [ ] Langfuse trace logged with agent type `score_resume`, user ID, token counts
+- [ ] Returns 401 for unauthenticated requests
+- [ ] Returns 403 if user_resume_id belongs to a different user
+- [ ] `scoreResume(id)` server action works end-to-end
+- [ ] Frontend mirror validator matches Edge Function validator exactly
+
+---
+
+## E16-03 — Improve Resume Edge Function & Validators
+
+**Type:** Backend (Edge Function + AI)
+**Depends on:** E16-01
+**Masterplan:** N/A (new feature)
+
+### Description
+
+Build the `improve-resume` Edge Function that takes a resume and an improvement mode (auto, reference, or custom), sends it to Claude Sonnet 4.6 with mode-specific prompts, and returns the improved content with a tracked changes array. The function does NOT auto-save — it returns the result for frontend review.
+
+### Implementation Notes
+
+- New Edge Function: `supabase/functions/improve-resume/index.ts`.
+- Auth: Bearer token → `admin.auth.getUser(token)`, verify ownership.
+- Model: `claude-sonnet-4-6`, max_tokens 8192.
+- Request body: `{ user_resume_id, mode: "auto"|"reference"|"custom", reference_resume_content?, custom_prompt? }`.
+- Three modes with distinct system prompts:
+  - **auto** (temp 0.3): Improve based on ATS best practices — stronger action verbs, add metric placeholders, XYZ format, remove filler/passive voice. Available to all plans.
+  - **reference** (temp 0.5): Adopt the style, tone, structure, and bullet format of a provided reference resume WITHOUT copying its content. Pro+ only.
+  - **custom** (temp 0.5): Follow freeform user instructions. Pro+ only.
+- All modes: NEVER change factual info (company names, titles, dates, institutions). NEVER add fabricated experiences or skills.
+- Output: `{ improved_content: ResumeContent, changes: [{ section, experience_index?, bullet_index?, field, original, improved }], change_summary: string }`.
+- New Zod validator: `supabase/functions/_shared/validators/resume-improvement.ts` + frontend mirror at `src/lib/validators/resume-improvement.ts`.
+- Plan gating: for `reference` and `custom` modes, check user's subscription via profile query. Return 403 with upgrade message for free plan users.
+- Use `callClaude()` with Langfuse tracing (agent type: `improve_resume`).
+- New server action: `improveResume(id, mode, opts)` in `src/lib/actions/resume-builder.ts`.
+
+### Acceptance Criteria
+
+- [ ] `POST /functions/v1/improve-resume` with `mode: "auto"` returns improved content
+- [ ] Auto mode: bullets have stronger action verbs, metric placeholders added, filler removed
+- [ ] Reference mode: adopts style/format from reference resume without copying content
+- [ ] Custom mode: follows user's freeform instructions accurately
+- [ ] All modes: factual info (company names, titles, dates) is preserved unchanged
+- [ ] All modes: no fabricated experiences or skills added
+- [ ] Changes array tracks every modification with original and improved text
+- [ ] Change summary describes what was changed and why
+- [ ] `improved_content` validates against `ResumeImprovementSchema` (Zod)
+- [ ] Free plan users get 403 for `reference` and `custom` modes with upgrade message
+- [ ] Pro and Premium users can use all three modes
+- [ ] Langfuse trace logged with agent type `improve_resume`, user ID, mode, token counts
+- [ ] `improveResume(id, mode, opts)` server action works end-to-end
+- [ ] Frontend mirror validator matches Edge Function validator exactly
+
+---
+
+## E16-04 — Resume List Page & New Resume Page
+
+**Type:** Frontend
+**Depends on:** E16-01
+**Masterplan:** N/A (new feature)
+
+### Description
+
+Add "Resume Builder" to the sidebar navigation and build the resume list page (showing all user resumes as cards) and the new resume page (upload a resume or create from profile data).
+
+### Implementation Notes
+
+- Add nav item to `src/components/app-sidebar.tsx`: `{ label: "Resume Builder", href: "/resume", icon: FileEdit }` from lucide-react. Position between "Add Job" and "Settings".
+- Also add to mobile bottom nav "More" menu.
+- Resume list page: `src/app/(app)/resume/page.tsx`.
+  - Header: "Resume Builder" h1 + "Build and optimize your base resumes before tailoring." subtitle.
+  - "New Resume" button in header — disabled when at plan limit (with tooltip).
+  - Plan limit indicator: "3 of 5 resumes" pill.
+  - Card grid: 1 col mobile, 2 col tablet, 3 col desktop. Each card shows: name, score badge (green 80+/yellow 60-79/red <60/gray unscored), status badge, "Active" badge if `is_active`, last updated, actions (Open, Set Active, Delete).
+  - Empty state: illustration + "Create your first resume" CTA.
+- New resume page: `src/app/(app)/resume/new/page.tsx`.
+  - Two large option cards:
+    - **Upload Resume**: drag-and-drop zone (reuse pattern from `src/app/(onboarding)/onboarding/upload/page.tsx`), accepts PDF/DOCX (5MB max), uploads to `resumes` bucket, calls `parse-resume` Edge Function, converts via `fromParsedResume()`, creates `user_resumes` row, redirects to `/resume/[id]`.
+    - **Create from Profile**: button fetches knowledge base data via server action, converts via `fromKnowledgeBase()`, creates row, redirects to `/resume/[id]`.
+- New components:
+  - `src/components/resume-builder/resume-card.tsx` — card for list view.
+  - `src/components/resume-builder/score-badge.tsx` — circular score indicator with color coding.
+
+### Acceptance Criteria
+
+- [ ] Sidebar shows "Resume Builder" with `FileEdit` icon, active state on `/resume*` paths
+- [ ] Mobile bottom nav includes Resume Builder in the "More" menu
+- [ ] Resume list page shows all user resumes as cards with name, score, status, date
+- [ ] Score badge uses correct colors: green (#059669) 80+, yellow (#d97706) 60-79, red (#dc2626) <60, gray if unscored
+- [ ] "Active" badge shows on the resume marked `is_active`
+- [ ] "New Resume" button navigates to `/resume/new`
+- [ ] "New Resume" button is disabled with tooltip when at plan limit
+- [ ] Plan limit indicator shows "X of Y resumes" based on subscription
+- [ ] Empty state shows when no resumes exist with "Create your first resume" CTA
+- [ ] Upload resume: drag-and-drop zone accepts PDF/DOCX (max 5MB), rejects other formats
+- [ ] Upload resume: file is uploaded to storage, parsed, converted, saved, redirects to editor
+- [ ] "Create from Profile" pulls knowledge base data, converts to ResumeContent, saves, redirects to editor
+- [ ] Delete action shows confirmation dialog, deletes on confirm
+- [ ] "Set Active" action updates the active resume
+- [ ] Loading skeleton shown while fetching resume list
+
+---
+
+## E16-05 — Resume Editor with Scoring UI
+
+**Type:** Frontend
+**Depends on:** E16-02, E16-04
+**Masterplan:** N/A (new feature)
+
+### Description
+
+Build the resume detail/editor page with a two-panel layout: resume content on the left (with collapsible sections and inline editing) and the scoring panel on the right (score breakdown, dimension chart, and suggestion list with "Apply" buttons that update content in real-time).
+
+### Implementation Notes
+
+- Route: `src/app/(app)/resume/[id]/page.tsx`.
+- Server component loads resume data via `getUserResume(id)`, passes to client editor component.
+- Two-panel layout: left panel (resume content, scrollable), right panel (scoring, scrollable). Panels stack vertically on mobile.
+- **Left panel — Resume Content:**
+  - Collapsible sections: Header, Summary, Work Experience, Skills, Education, Projects, Certifications.
+  - Each section uses `ChevronDown`/`ChevronRight` toggle pattern (matches settings/profile).
+  - Summary: editable textarea with save on blur.
+  - Work experience: company/title/dates display, then bullet list. Each bullet is editable on click.
+  - Bullets with pending suggestions show a sparkle indicator.
+  - Skills: editable tag list.
+  - All edits update React state optimistically, then call `updateUserResume` server action.
+- **Right panel — Score Panel:**
+  - Overall score: large circular gauge (same color coding as badges).
+  - 6 dimension scores as horizontal bar chart with labels, scores, and short feedback.
+  - Suggestion list: ordered by priority (high → medium → low). Each item shows section context, original text, suggested text, reason, and "Apply" button.
+  - "Apply" on a suggestion: calls `applyBulletSuggestion` server action, updates left panel content in real-time, marks suggestion as applied (gray out with checkmark).
+  - "Apply All" button at top of suggestion list.
+- **Header actions:**
+  - Resume name (editable inline, save on blur/Enter).
+  - "Score Resume" button (or "Rescore" if already scored) — calls `scoreResume(id)`, shows loading spinner, updates right panel on completion.
+  - "Improve with AI" button — opens improve dialog (E16-06).
+  - "Export" button — opens export dialog (E16-07).
+  - "Use as Profile" button — profile sync (E16-07).
+  - "Set as Active" toggle.
+- New components:
+  - `src/components/resume-builder/resume-editor.tsx` — main client component managing content state.
+  - `src/components/resume-builder/resume-section.tsx` — collapsible section renderer.
+  - `src/components/resume-builder/bullet-suggestion.tsx` — bullet with inline suggestion diff and Apply/Dismiss.
+  - `src/components/resume-builder/score-panel.tsx` — right panel with score breakdown.
+  - `src/components/resume-builder/dimension-chart.tsx` — horizontal bar chart for 6 dimensions.
+  - `src/components/resume-builder/suggestion-list.tsx` — ordered suggestion items with Apply buttons.
+
+### Acceptance Criteria
+
+- [ ] Resume editor page loads at `/resume/[id]` with two-panel layout
+- [ ] Left panel renders all resume sections (header, summary, experience, skills, education, projects, certs)
+- [ ] Sections are collapsible with chevron toggle
+- [ ] Summary and bullet text are editable inline
+- [ ] Skills are editable as tags
+- [ ] Right panel shows overall score as a large circular gauge with correct color
+- [ ] 6 dimension scores render as horizontal bars with labels, scores, and feedback
+- [ ] Suggestion list shows items ordered by priority (high first)
+- [ ] Each suggestion shows: section context, original text, suggested replacement, reason
+- [ ] Clicking "Apply" on a suggestion updates the bullet in the left panel in real-time
+- [ ] Applied suggestions are grayed out with a checkmark
+- [ ] "Apply All" applies all unapplied suggestions at once
+- [ ] "Score Resume" button triggers scoring, shows loading state, updates panel on completion
+- [ ] "Rescore" button appears after initial scoring and works the same way
+- [ ] Resume name is editable inline in the header
+- [ ] "Set as Active" toggle works and shows current state
+- [ ] Panels stack vertically on mobile with content first, scoring below
+- [ ] Loading skeleton shown while fetching resume data
+- [ ] Edits persist: refreshing the page shows the updated content
+
+---
+
+## E16-06 — AI Improvement Dialog & Change Review
+
+**Type:** Frontend + Integration
+**Depends on:** E16-03, E16-05
+**Masterplan:** N/A (new feature)
+
+### Description
+
+Build the "Improve with AI" dialog modal with three tabs (Auto, Reference, Custom), the change review overlay that shows inline diffs after AI improvement, and the accept/reject flow for applying changes.
+
+### Implementation Notes
+
+- New component: `src/components/resume-builder/improve-dialog.tsx` — modal dialog with three tabs.
+- **Tab 1 — Auto-Improve:**
+  - Description: "Automatically improve your resume based on ATS best practices."
+  - Single "Improve" button.
+  - Calls `improveResume(id, "auto")`.
+  - Available to all plans.
+- **Tab 2 — Reference Resume:**
+  - Description: "Upload another resume to use as a style and format guide."
+  - Drag-and-drop upload zone for reference PDF/DOCX.
+  - On upload: call `parse-resume` Edge Function, convert to `ResumeContent`.
+  - Alternative: dropdown to select an existing `user_resumes` row as reference.
+  - Calls `improveResume(id, "reference", { reference_resume_content })`.
+  - Free plan: tab shows lock icon, disabled state, "Upgrade to Pro" CTA.
+- **Tab 3 — Custom Prompt:**
+  - Description: "Tell the AI how you want to change your resume."
+  - Textarea (max 2000 chars) with placeholder examples: "Focus more on leadership experience", "Make it suitable for a product management role", "Condense to one page".
+  - Calls `improveResume(id, "custom", { custom_prompt })`.
+  - Free plan: tab shows lock icon, disabled state, "Upgrade to Pro" CTA.
+- **After AI returns — Change Review Overlay:**
+  - Overlay on the editor page showing each changed section/bullet.
+  - Each change: highlighted diff (original in red strikethrough, improved in green).
+  - Per-change checkbox to select/deselect.
+  - Change summary shown at top.
+  - Action buttons: "Accept All", "Accept Selected", "Reject All".
+  - "Accept All" / "Accept Selected": calls `applyAllSuggestions` (or individual `applyBulletSuggestion` for selected), updates editor content, closes overlay.
+  - "Reject All": discards improved content, closes overlay.
+  - After accepting, user can click "Rescore" to see the updated score.
+- Loading state: spinner/skeleton in the dialog while AI processes. Process can take 10-30 seconds.
+- Error state: toast notification if AI call fails, dialog stays open for retry.
+
+### Acceptance Criteria
+
+- [ ] "Improve with AI" button in editor header opens the improve dialog modal
+- [ ] Dialog has three tabs: Auto-Improve, Reference Resume, Custom Prompt
+- [ ] Auto-Improve tab: clicking "Improve" calls the AI and returns results
+- [ ] Reference Resume tab: upload zone accepts PDF/DOCX, parses it, uses as style guide
+- [ ] Reference Resume tab: dropdown to select an existing resume as reference
+- [ ] Custom Prompt tab: textarea accepts up to 2000 chars with example placeholders
+- [ ] Free plan: Reference and Custom tabs show lock icon and "Upgrade to Pro" CTA
+- [ ] Pro/Premium plan: all three tabs are fully functional
+- [ ] Loading state shows during AI processing (10-30 seconds)
+- [ ] After AI returns: change review overlay shows all changes with inline diffs
+- [ ] Original text shown in red strikethrough, improved text in green
+- [ ] Each change has a checkbox for selective acceptance
+- [ ] "Accept All" applies all changes to the resume content
+- [ ] "Accept Selected" applies only checked changes
+- [ ] "Reject All" discards all changes and closes the overlay
+- [ ] After accepting changes, resume content in the editor reflects the updates
+- [ ] User can click "Rescore" after accepting changes to get an updated score
+- [ ] Error during AI call shows toast notification, dialog remains open for retry
+
+---
+
+## E16-07 — Export, Profile Sync & Polish
+
+**Type:** Frontend + Backend Integration
+**Depends on:** E16-05
+**Masterplan:** N/A (new feature)
+
+### Description
+
+Build the export dialog (PDF/DOCX generation), extend the existing `generate-resume-files` Edge Function to support direct content input, implement the "Use as Profile" sync action, and add final polish (loading skeletons, error handling, mobile responsiveness).
+
+### Implementation Notes
+
+- **Export dialog:** `src/components/resume-builder/export-dialog.tsx`.
+  - Two buttons: "Download PDF" (always available), "Download DOCX" (Pro+ only, free plan shows upgrade CTA).
+  - Calls `exportResume(id, format)` server action.
+  - Server action calls `generate-resume-files` Edge Function with direct content.
+- **Extend `generate-resume-files`:**
+  - Modify `supabase/functions/generate-resume-files/index.ts` to accept alternative body: `{ content: ResumeContent, user_resume_id: string, profile_id: string }`.
+  - When `content` and `user_resume_id` are provided, skip `resume_versions` lookup, generate files from content directly.
+  - Upload to storage path: `{profile_id}/rb_{user_resume_id}.{pdf|docx}`.
+  - Update `user_resumes.file_url_pdf` / `file_url_docx` with signed URLs (30-day expiry).
+  - Also modify `supabase/functions/_shared/file-generation/index.ts` if the orchestration function needs adjustment.
+- **Profile sync:** `syncResumeToProfile(resumeId)` server action in `src/lib/actions/resume-builder.ts`.
+  - Confirmation dialog: "This will replace your current profile data (work experience, education, skills, projects, certifications) with the content of this resume. This cannot be undone."
+  - On confirm: read `user_resumes.content`, update `profiles` (name, headline, summary, contact fields), delete + re-insert `work_experiences` (with `achievements`), `education`, `skills`, `projects`, `certifications`.
+  - Revalidate `/settings/profile` and `/resume`.
+- **Polish:**
+  - Loading skeletons for resume list page and editor page.
+  - Error boundaries for `/resume`, `/resume/new`, `/resume/[id]` routes.
+  - Toast notifications for all actions (save, score, improve, export, sync, delete, set active).
+  - Inline resume name editing on both list cards and editor header (save on blur/Enter).
+  - Delete confirmation dialog with warning text.
+  - Mobile responsiveness: verify list page (single column cards), editor page (stacked panels), new resume page (stacked option cards).
+  - No console errors, no TypeScript errors, no broken navigation.
+
+### Acceptance Criteria
+
+- [ ] Export dialog shows "Download PDF" and "Download DOCX" buttons
+- [ ] PDF export generates and downloads a correctly formatted resume
+- [ ] DOCX export works for Pro/Premium users
+- [ ] DOCX export shows "Upgrade to Pro" CTA for free plan users
+- [ ] `generate-resume-files` Edge Function accepts direct content input (no `resume_versions` row required)
+- [ ] Generated files are uploaded to storage and signed URLs saved to `user_resumes`
+- [ ] "Use as Profile" button shows confirmation dialog with warning text
+- [ ] Confirming sync: profile and all knowledge base tables updated with resume content
+- [ ] After sync: settings/profile page reflects the synced data
+- [ ] Resume name editable inline on list cards and editor header
+- [ ] Loading skeletons shown on resume list and editor pages while fetching
+- [ ] Error boundaries catch and display user-friendly error messages
+- [ ] Toast notifications for: save, score complete, improve complete, export ready, sync complete, delete, set active, errors
+- [ ] Delete shows confirmation dialog before removing
+- [ ] All pages responsive: list (1-col mobile, 2-col tablet, 3-col desktop), editor (stacked mobile, side-by-side desktop), new (stacked mobile)
+- [ ] No console errors or TypeScript compilation errors
+- [ ] No broken links or dead navigation
 
 ---
 
