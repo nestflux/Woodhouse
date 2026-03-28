@@ -101,10 +101,12 @@ export async function getJobFeed(
   }
 
   // Text search on job_postings fields
+  // PostgREST requires .or() on foreign tables to use the foreignTable option
   if (filters.search) {
     const term = `%${filters.search}%`;
     query = query.or(
-      `job_postings.job_title.ilike.${term},job_postings.company_name.ilike.${term}`
+      `job_title.ilike.${term},company_name.ilike.${term}`,
+      { foreignTable: "job_postings" }
     );
   }
 
