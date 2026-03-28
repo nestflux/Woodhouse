@@ -559,3 +559,78 @@ export async function createManualJob(
     },
   };
 }
+
+/* ------------------------------------------------------------------ */
+/*  Trigger Discovery                                                   */
+/* ------------------------------------------------------------------ */
+
+export async function triggerDiscovery(): Promise<{
+  data?: { discoveryRunId: string; status: string; jobsFound?: number };
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Check search preferences exist
+  const { data: prefs } = await supabase
+    .from("search_preferences")
+    .select("id, is_active, keywords")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (!prefs) {
+    return { error: "No search preferences configured. Go to Settings → Preferences to set up your job search criteria." };
+  }
+
+  if (!prefs.is_active) {
+    return { error: "Discovery is paused. Enable it in Settings → Preferences." };
+  }
+
+  const keywords = prefs.keywords as string[] | null;
+  if (!keywords || keywords.length === 0) {
+    return { error: "No search keywords configured. Add target roles in Settings → Preferences." };
+  }
+
+  // Get session for auth token
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    return { error: "Session expired. Please sign in again." };
+  }
+
+  // Call discover-jobs Edge Function
+  const fnUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/discover-jobs`;
+  const res = await fetch(fnUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ profile_id: user.id }),
+  });
+
+  const result = await res.json().catch(() => null);
+
+  if (!res.ok || !result) {
+    return { error: result?.error ?? `Discovery failed (HTTP ${res.status})` };
+  }
+
+  revalidatePath("/jobs");
+  revalidatePath("/dashboard");
+
+  return {
+    data: {
+      discoveryRunId: result.discovery_run_id,
+      status: result.status,
+      jobsFound: result.jobs_found,
+    },
+  };
+}

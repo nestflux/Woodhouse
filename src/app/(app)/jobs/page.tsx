@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   getJobFeed,
   addJobToQueue,
+  triggerDiscovery,
   type JobFeedItem,
   type JobFeedFilters,
 } from "@/lib/actions/jobs";
@@ -24,6 +25,7 @@ import {
   ArrowUpDown,
   Filter,
   Inbox,
+  Radar,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -445,6 +447,8 @@ export default function JobFeedPage() {
     fetchJobs(appliedFilters, nextPage, true);
   }
 
+  const [discovering, setDiscovering] = useState(false);
+
   function handleAddToQueue(jobPostingId: string) {
     startTransition(async () => {
       const result = await addJobToQueue(jobPostingId);
@@ -452,7 +456,6 @@ export default function JobFeedPage() {
         toast.error(result.error);
       } else if (result.data) {
         toast.success("Job added to queue — tailoring started");
-        // Update the local state to show application link
         setJobs((prev) =>
           prev.map((j) =>
             j.id === jobPostingId
@@ -462,6 +465,29 @@ export default function JobFeedPage() {
         );
       }
     });
+  }
+
+  async function handleDiscoverJobs() {
+    setDiscovering(true);
+    try {
+      const result = await triggerDiscovery();
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.data) {
+        const count = result.data.jobsFound ?? 0;
+        toast.success(
+          count > 0
+            ? `Discovery complete — ${count} new job${count !== 1 ? "s" : ""} found`
+            : "Discovery complete — no new jobs found this time"
+        );
+        // Refresh the feed
+        fetchJobs(appliedFilters, 1);
+      }
+    } catch {
+      toast.error("Discovery failed. Please try again.");
+    } finally {
+      setDiscovering(false);
+    }
   }
 
   if (loading && jobs.length === 0) return <FeedSkeleton />;
@@ -479,8 +505,23 @@ export default function JobFeedPage() {
           </p>
         </div>
 
-        {/* Sort */}
-        <div className="flex items-center gap-2">
+        {/* Actions */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-1.5 bg-[var(--w-primary)] text-white hover:bg-[var(--w-primary-light)]"
+            disabled={discovering}
+            onClick={handleDiscoverJobs}
+          >
+            {discovering ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Radar className="h-4 w-4" />
+            )}
+            {discovering ? "Discovering..." : "Discover Jobs"}
+          </Button>
+
           <ArrowUpDown className="h-4 w-4 text-[var(--w-text-muted)]" />
           <select
             value={draftFilters.sort ?? "newest"}
@@ -511,14 +552,14 @@ export default function JobFeedPage() {
       />
 
       {/* Job List */}
-      {jobs.length === 0 ? (
+      {jobs.length === 0 && !loading ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Inbox className="h-12 w-12 text-[var(--w-text-muted)]" />
+          <Radar className="h-12 w-12 text-[var(--w-text-muted)]" />
           <h3 className="mt-4 text-sm font-medium text-[var(--w-text-primary)]">
-            No jobs found matching your criteria
+            No jobs found yet
           </h3>
           <p className="mt-1 text-sm text-[var(--w-text-muted)] max-w-sm">
-            Try adjusting your filters or search preferences.
+            Click &ldquo;Discover Jobs&rdquo; to search for jobs matching your preferences, or adjust your filters.
           </p>
         </div>
       ) : (
