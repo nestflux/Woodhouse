@@ -3,6 +3,8 @@ import { getUserResume } from "@/lib/actions/resume-builder";
 import { checkSubscription } from "@/lib/subscription";
 import { ResumeEditor } from "@/components/resume-builder/resume-editor";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ id: string }>;
 }
