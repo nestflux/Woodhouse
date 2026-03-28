@@ -106,8 +106,8 @@ export function fromParsedResume(
     education: (parsed.education ?? []).map((edu) => ({
       source_id: generateId(),
       institution: edu.institution,
-      degree: edu.degree,
-      field_of_study: edu.field_of_study,
+      degree: edu.degree ?? "",
+      field_of_study: edu.field_of_study ?? "",
       dates: formatDateRange(edu.start_date, edu.end_date),
     })),
     projects: (parsed.projects ?? []).map((proj) => ({
