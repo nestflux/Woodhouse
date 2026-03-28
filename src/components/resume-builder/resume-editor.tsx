@@ -58,7 +58,7 @@ interface ResumeEditorProps {
   isPaidPlan: boolean;
 }
 
-export function ResumeEditor({ resume: initial, isPaidPlan }: ResumeEditorProps) {
+export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }: ResumeEditorProps) {
   const router = useRouter();
   const [content, setContent] = useState<ResumeContent>(initial.content);
   const [name, setName] = useState(initial.name);
@@ -68,6 +68,30 @@ export function ResumeEditor({ resume: initial, isPaidPlan }: ResumeEditorProps)
     initial.scoring_breakdown
   );
   const [status, setStatus] = useState(initial.status);
+  const [isPaidPlan, setIsPaidPlan] = useState(initialIsPaidPlan);
+
+  // Client-side subscription check fallback
+  useEffect(() => {
+    async function checkPlan() {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("subscriptions")
+          .select("plan")
+          .eq("profile_id", user.id)
+          .single();
+        if (data && data.plan !== "free") {
+          setIsPaidPlan(true);
+        }
+      } catch {
+        // Ignore — keep server-side value
+      }
+    }
+    if (!initialIsPaidPlan) checkPlan();
+  }, [initialIsPaidPlan]);
 
   // UI state
   const [scoring, setScoring] = useState(false);

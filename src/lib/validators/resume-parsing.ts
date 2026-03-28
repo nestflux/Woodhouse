@@ -2,25 +2,25 @@ import { z } from "zod";
 import { ValidationError } from "./errors";
 
 export const ResumeParsingSchema = z.object({
-  full_name: z.string().optional(),
-  phone: z.string().optional(),
-  location: z.string().optional(),
-  country: z.string().optional(),
-  linkedin_url: z.string().optional(),
-  portfolio_url: z.string().optional(),
-  github_url: z.string().optional(),
-  headline: z.string().optional(),
-  summary: z.string().optional(),
+  full_name: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  linkedin_url: z.string().nullable().optional(),
+  portfolio_url: z.string().nullable().optional(),
+  github_url: z.string().nullable().optional(),
+  headline: z.string().nullable().optional(),
+  summary: z.string().nullable().optional(),
   work_experiences: z
     .array(
       z.object({
         company_name: z.string(),
         job_title: z.string(),
-        location: z.string().optional(),
-        country: z.string().optional(),
-        start_date: z.string().optional(),
+        location: z.string().nullable().optional(),
+        country: z.string().nullable().optional(),
+        start_date: z.string().nullable().optional(),
         end_date: z.string().nullable().optional(),
-        is_current: z.boolean().optional(),
+        is_current: z.boolean().nullable().optional(),
         description: z.string().nullable().optional(),
         achievements: z
           .array(
@@ -36,9 +36,9 @@ export const ResumeParsingSchema = z.object({
     .array(
       z.object({
         institution: z.string(),
-        degree: z.string(),
-        field_of_study: z.string(),
-        start_date: z.string().optional(),
+        degree: z.string().nullable().optional(),
+        field_of_study: z.string().nullable().optional(),
+        start_date: z.string().nullable().optional(),
         end_date: z.string().nullable().optional(),
         gpa: z.number().nullable().optional(),
       })
@@ -61,6 +61,7 @@ export const ResumeParsingSchema = z.object({
           .optional(),
         proficiency: z
           .enum(["beginner", "intermediate", "advanced", "expert"])
+          .nullable()
           .optional(),
         years_experience: z.number().nullable().optional(),
       })
@@ -70,9 +71,9 @@ export const ResumeParsingSchema = z.object({
     .array(
       z.object({
         name: z.string(),
-        description: z.string().optional(),
-        url: z.string().optional(),
-        technologies: z.array(z.string()).optional(),
+        description: z.string().nullable().optional(),
+        url: z.string().nullable().optional(),
+        technologies: z.array(z.string()).nullable().optional(),
       })
     )
     .optional(),
@@ -80,10 +81,10 @@ export const ResumeParsingSchema = z.object({
     .array(
       z.object({
         name: z.string(),
-        issuer: z.string().optional(),
-        issue_date: z.string().optional(),
+        issuer: z.string().nullable().optional(),
+        issue_date: z.string().nullable().optional(),
         expiry_date: z.string().nullable().optional(),
-        credential_url: z.string().optional(),
+        credential_url: z.string().nullable().optional(),
       })
     )
     .optional(),
