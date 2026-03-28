@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useTransition, useRef } from "react";
+import { useEffect, useState, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   getJobFeed,
@@ -385,18 +385,18 @@ function FeedSkeleton() {
 /*  Main Page                                                          */
 /* ------------------------------------------------------------------ */
 
-const EMPTY_FILTERS: JobFeedFilters = {};
-
 export default function JobFeedPage() {
   const [jobs, setJobs] = useState<JobFeedItem[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<JobFeedFilters>({ sort: "newest" });
+  // Draft filters — user edits these, applied on Search
+  const [draftFilters, setDraftFilters] = useState<JobFeedFilters>({ sort: "newest" });
+  // Committed filters — actually sent to the server
+  const [appliedFilters, setAppliedFilters] = useState<JobFeedFilters>({ sort: "newest" });
   const [searchInput, setSearchInput] = useState("");
   const [isPending, startTransition] = useTransition();
-  const initialLoadDone = useRef(false);
 
   const fetchJobs = useCallback(
     async (f: JobFeedFilters, pageNum: number, append = false) => {
@@ -414,31 +414,35 @@ export default function JobFeedPage() {
     []
   );
 
-  // Initial load + refetch when non-search filters change
+  // Initial load only
   useEffect(() => {
-    // Skip search field — it only triggers on Enter/button
-    setPage(1);
-    fetchJobs(filters, 1);
-    initialLoadDone.current = true;
-  }, [filters.source, filters.status, filters.isRemote, filters.country, filters.location, filters.scoreMin, filters.scoreMax, filters.sort, fetchJobs]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchJobs(appliedFilters, 1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleFilterChange(partial: Partial<JobFeedFilters>) {
-    setFilters((prev) => ({ ...prev, ...partial }));
+    setDraftFilters((prev) => ({ ...prev, ...partial }));
   }
 
   function handleSearch() {
-    setFilters((prev) => ({ ...prev, search: searchInput || undefined }));
+    const committed = { ...draftFilters, search: searchInput || undefined };
+    setAppliedFilters(committed);
+    setPage(1);
+    fetchJobs(committed, 1);
   }
 
   function handleClearFilters() {
     setSearchInput("");
-    setFilters({ sort: filters.sort });
+    const cleared: JobFeedFilters = { sort: draftFilters.sort };
+    setDraftFilters(cleared);
+    setAppliedFilters(cleared);
+    setPage(1);
+    fetchJobs(cleared, 1);
   }
 
   function handleLoadMore() {
     const nextPage = page + 1;
     setPage(nextPage);
-    fetchJobs(filters, nextPage, true);
+    fetchJobs(appliedFilters, nextPage, true);
   }
 
   function handleAddToQueue(jobPostingId: string) {
@@ -479,7 +483,7 @@ export default function JobFeedPage() {
         <div className="flex items-center gap-2">
           <ArrowUpDown className="h-4 w-4 text-[var(--w-text-muted)]" />
           <select
-            value={filters.sort ?? "newest"}
+            value={draftFilters.sort ?? "newest"}
             onChange={(e) =>
               handleFilterChange({
                 sort: e.target.value as JobFeedFilters["sort"],
@@ -498,7 +502,7 @@ export default function JobFeedPage() {
 
       {/* Filters */}
       <FilterBar
-        filters={filters}
+        filters={draftFilters}
         searchInput={searchInput}
         onSearchInputChange={setSearchInput}
         onSearch={handleSearch}
