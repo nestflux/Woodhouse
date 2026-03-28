@@ -114,15 +114,21 @@ function ScoreBadge({ score }: { score: number }) {
 
 function FilterBar({
   filters,
+  searchInput,
+  onSearchInputChange,
+  onSearch,
   onChange,
   onClear,
 }: {
   filters: JobFeedFilters;
+  searchInput: string;
+  onSearchInputChange: (value: string) => void;
+  onSearch: () => void;
   onChange: (f: Partial<JobFeedFilters>) => void;
   onClear: () => void;
 }) {
   const hasFilters =
-    filters.search ||
+    searchInput ||
     filters.source ||
     filters.status ||
     filters.isRemote !== undefined ||
@@ -148,14 +154,20 @@ function FilterBar({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Search */}
-        <div className="relative sm:col-span-2">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--w-text-muted)]" />
-          <Input
-            placeholder="Search by job title or company..."
-            value={filters.search ?? ""}
-            onChange={(e) => onChange({ search: e.target.value || undefined })}
-            className="pl-9 h-8 text-sm"
-          />
+        <div className="relative sm:col-span-2 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--w-text-muted)]" />
+            <Input
+              placeholder="Search by job title or company..."
+              value={searchInput}
+              onChange={(e) => onSearchInputChange(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") onSearch(); }}
+              className="pl-9 h-8 text-sm"
+            />
+          </div>
+          <Button variant="default" size="sm" className="h-8 px-3" onClick={onSearch}>
+            Search
+          </Button>
         </div>
 
         {/* Source */}
@@ -382,7 +394,9 @@ export default function JobFeedPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<JobFeedFilters>({ sort: "newest" });
+  const [searchInput, setSearchInput] = useState("");
   const [isPending, startTransition] = useTransition();
+  const initialLoadDone = useRef(false);
 
   const fetchJobs = useCallback(
     async (f: JobFeedFilters, pageNum: number, append = false) => {
@@ -400,22 +414,24 @@ export default function JobFeedPage() {
     []
   );
 
-  // Debounced fetch on filter changes
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Initial load + refetch when non-search filters change
   useEffect(() => {
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPage(1);
-      fetchJobs(filters, 1);
-    }, 300);
-    return () => clearTimeout(debounceRef.current);
-  }, [filters, fetchJobs]);
+    // Skip search field — it only triggers on Enter/button
+    setPage(1);
+    fetchJobs(filters, 1);
+    initialLoadDone.current = true;
+  }, [filters.source, filters.status, filters.isRemote, filters.country, filters.location, filters.scoreMin, filters.scoreMax, filters.sort, fetchJobs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleFilterChange(partial: Partial<JobFeedFilters>) {
     setFilters((prev) => ({ ...prev, ...partial }));
   }
 
+  function handleSearch() {
+    setFilters((prev) => ({ ...prev, search: searchInput || undefined }));
+  }
+
   function handleClearFilters() {
+    setSearchInput("");
     setFilters({ sort: filters.sort });
   }
 
@@ -483,6 +499,9 @@ export default function JobFeedPage() {
       {/* Filters */}
       <FilterBar
         filters={filters}
+        searchInput={searchInput}
+        onSearchInputChange={setSearchInput}
+        onSearch={handleSearch}
         onChange={handleFilterChange}
         onClear={handleClearFilters}
       />

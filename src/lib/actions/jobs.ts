@@ -64,68 +64,60 @@ export async function getJobFeed(
   const page = filters.page ?? 1;
   const offset = (page - 1) * JOB_FEED_PAGE_SIZE;
 
-  // Query job_evaluations (user-scoped) joined with job_postings
+  // Query job_postings with optional evaluation data (left join)
+  // This shows all discovered jobs, not just evaluated ones
   let query = supabase
-    .from("job_evaluations")
+    .from("job_postings")
     .select(
       `
-      id, overall_score, recommendation, passes_threshold, evaluated_at,
-      job_posting_id,
-      job_postings!inner(
-        id, company_name, company_logo_url, job_title, location, country,
-        is_remote, source, posted_date, discovered_at, status
+      id, company_name, company_logo_url, job_title, location, country,
+      is_remote, source, posted_date, discovered_at, status,
+      job_evaluations(
+        id, overall_score, recommendation, passes_threshold, evaluated_at, profile_id
       )
     `,
       { count: "exact" }
-    )
-    .eq("profile_id", user.id);
+    );
 
-  // Apply filters on the joined job_postings
+  // Apply filters
   if (filters.source) {
-    query = query.eq("job_postings.source", filters.source);
+    query = query.eq("source", filters.source);
   }
   if (filters.status) {
-    query = query.eq("job_postings.status", filters.status);
+    query = query.eq("status", filters.status);
   }
   if (filters.isRemote !== undefined) {
-    query = query.eq("job_postings.is_remote", filters.isRemote);
+    query = query.eq("is_remote", filters.isRemote);
   }
   if (filters.country) {
-    query = query.eq("job_postings.country", filters.country);
-  }
-  if (filters.scoreMin !== undefined) {
-    query = query.gte("overall_score", filters.scoreMin);
-  }
-  if (filters.scoreMax !== undefined) {
-    query = query.lte("overall_score", filters.scoreMax);
+    query = query.eq("country", filters.country);
   }
 
-  // Text search on job_postings fields
-  // PostgREST requires .or() on foreign tables to use the foreignTable option
+  // Text search
   if (filters.search) {
     const term = `%${filters.search}%`;
     query = query.or(
-      `job_title.ilike.${term},company_name.ilike.${term}`,
-      { foreignTable: "job_postings" }
+      `job_title.ilike.${term},company_name.ilike.${term}`
     );
   }
 
   // Location text search
   if (filters.location) {
-    query = query.ilike("job_postings.location", `%${filters.location}%`);
+    query = query.ilike("location", `%${filters.location}%`);
   }
 
   // Sorting
   switch (filters.sort) {
     case "score":
-      query = query.order("overall_score", { ascending: false });
+      // Score sort falls back to newest when no evaluations
+      query = query.order("discovered_at", { ascending: false });
       break;
     case "company":
-      query = query.order("job_postings(company_name)", { ascending: true });
+      query = query.order("company_name", { ascending: true });
       break;
     case "newest":
     default:
-      query = query.order("evaluated_at", { ascending: false });
+      query = query.order("discovered_at", { ascending: false });
       break;
   }
 
@@ -138,10 +130,7 @@ export async function getJobFeed(
   }
 
   // Look up applications for these job postings
-  const jobPostingIds = (data ?? []).map((d) => {
-    const jp = d.job_postings as unknown as { id: string };
-    return jp.id;
-  });
+  const jobPostingIds = (data ?? []).map((d) => d.id);
 
   let applicationMap: Record<string, string> = {};
   if (jobPostingIds.length > 0) {
@@ -159,35 +148,34 @@ export async function getJobFeed(
   }
 
   const items: JobFeedItem[] = (data ?? []).map((d) => {
-    const jp = d.job_postings as unknown as {
-      id: string;
-      company_name: string;
-      company_logo_url: string | null;
-      job_title: string;
-      location: string | null;
-      is_remote: boolean;
-      source: string;
-      posted_date: string | null;
-      discovered_at: string;
-      status: string;
-    };
+    // Find evaluation for this user (if any)
+    const evals = d.job_evaluations as unknown as Array<{
+      overall_score: number;
+      recommendation: string;
+      passes_threshold: boolean;
+      profile_id: string;
+    }> | null;
+    const userEval = evals?.find((e) => e.profile_id === user.id) ?? null;
+
     return {
-      id: jp.id,
-      companyName: jp.company_name,
-      companyLogoUrl: jp.company_logo_url,
-      jobTitle: jp.job_title,
-      location: jp.location,
-      isRemote: jp.is_remote,
-      source: jp.source,
-      postedDate: jp.posted_date,
-      discoveredAt: jp.discovered_at,
-      jobPostingStatus: jp.status,
-      evaluation: {
-        overallScore: d.overall_score,
-        recommendation: d.recommendation,
-        passesThreshold: d.passes_threshold,
-      },
-      applicationId: applicationMap[jp.id] ?? null,
+      id: d.id,
+      companyName: d.company_name,
+      companyLogoUrl: d.company_logo_url,
+      jobTitle: d.job_title,
+      location: d.location,
+      isRemote: d.is_remote,
+      source: d.source,
+      postedDate: d.posted_date,
+      discoveredAt: d.discovered_at,
+      jobPostingStatus: d.status,
+      evaluation: userEval
+        ? {
+            overallScore: userEval.overall_score,
+            recommendation: userEval.recommendation,
+            passesThreshold: userEval.passes_threshold,
+          }
+        : null,
+      applicationId: applicationMap[d.id] ?? null,
     };
   });
 
