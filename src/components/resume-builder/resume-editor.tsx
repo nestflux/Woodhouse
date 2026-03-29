@@ -1096,14 +1096,27 @@ function applyGenericSuggestion(
 ): ResumeContent | null {
   const updated = structuredClone(content);
 
+  // Summary
+  if (suggestion.section === "summary") {
+    updated.summary = suggestion.suggested;
+    return updated;
+  }
+
+  // Skills — match original text and replace
   if (suggestion.section === "skills") {
     const idx = updated.skills.indexOf(suggestion.original);
     if (idx !== -1) {
       updated.skills[idx] = suggestion.suggested;
       return updated;
     }
+    // If original not found, it might be a "add skill" suggestion
+    if (!updated.skills.includes(suggestion.suggested)) {
+      updated.skills.push(suggestion.suggested);
+      return updated;
+    }
   }
 
+  // Header — match any field value
   if (suggestion.section === "header") {
     const header = updated.header as unknown as Record<
       string,
@@ -1113,6 +1126,109 @@ function applyGenericSuggestion(
       if (header[key] === suggestion.original) {
         header[key] = suggestion.suggested;
         return updated;
+      }
+    }
+  }
+
+  // Work experience — match by experience_index + bullet_index
+  if (suggestion.section === "work_experience") {
+    const expIdx = suggestion.experience_index;
+    const bulletIdx = suggestion.bullet_index;
+    if (expIdx !== null && bulletIdx !== null) {
+      const exp = updated.work_experience[expIdx];
+      if (exp?.achievements[bulletIdx]) {
+        exp.achievements[bulletIdx].text = suggestion.suggested;
+        return updated;
+      }
+    }
+    // Fallback: match by original text across all experiences
+    for (const exp of updated.work_experience) {
+      for (let i = 0; i < exp.achievements.length; i++) {
+        if (exp.achievements[i].text === suggestion.original) {
+          exp.achievements[i].text = suggestion.suggested;
+          return updated;
+        }
+      }
+    }
+  }
+
+  // Education — match by experience_index or original text
+  if (suggestion.section === "education") {
+    const eduIdx = suggestion.experience_index;
+    if (eduIdx !== null && updated.education[eduIdx]) {
+      const edu = updated.education[eduIdx];
+      // Try to match which field the original corresponds to
+      for (const key of ["institution", "degree", "field_of_study", "dates"] as const) {
+        if (edu[key] === suggestion.original) {
+          (edu as unknown as Record<string, string>)[key] = suggestion.suggested;
+          return updated;
+        }
+      }
+    }
+    // Fallback: search all education entries
+    for (const edu of updated.education) {
+      for (const key of ["institution", "degree", "field_of_study", "dates"] as const) {
+        if (edu[key] === suggestion.original) {
+          (edu as unknown as Record<string, string>)[key] = suggestion.suggested;
+          return updated;
+        }
+      }
+    }
+  }
+
+  // Projects — match by experience_index or original text
+  if (suggestion.section === "projects" && updated.projects) {
+    const projIdx = suggestion.experience_index;
+    if (projIdx !== null && updated.projects[projIdx]) {
+      const proj = updated.projects[projIdx];
+      for (const key of ["name", "description"] as const) {
+        if (proj[key] === suggestion.original) {
+          (proj as unknown as Record<string, string>)[key] = suggestion.suggested;
+          return updated;
+        }
+      }
+      // Technologies array — match individual items
+      const techIdx = proj.technologies.indexOf(suggestion.original);
+      if (techIdx !== -1) {
+        proj.technologies[techIdx] = suggestion.suggested;
+        return updated;
+      }
+    }
+    // Fallback: search all projects
+    for (const proj of updated.projects) {
+      for (const key of ["name", "description"] as const) {
+        if (proj[key] === suggestion.original) {
+          (proj as unknown as Record<string, string>)[key] = suggestion.suggested;
+          return updated;
+        }
+      }
+      const techIdx = proj.technologies.indexOf(suggestion.original);
+      if (techIdx !== -1) {
+        proj.technologies[techIdx] = suggestion.suggested;
+        return updated;
+      }
+    }
+  }
+
+  // Certifications — match by experience_index or original text
+  if (suggestion.section === "certifications" && updated.certifications) {
+    const certIdx = suggestion.experience_index;
+    if (certIdx !== null && updated.certifications[certIdx]) {
+      const cert = updated.certifications[certIdx];
+      for (const key of ["name", "issuer"] as const) {
+        if (cert[key] === suggestion.original) {
+          (cert as unknown as Record<string, string>)[key] = suggestion.suggested;
+          return updated;
+        }
+      }
+    }
+    // Fallback: search all certifications
+    for (const cert of updated.certifications) {
+      for (const key of ["name", "issuer"] as const) {
+        if (cert[key] === suggestion.original) {
+          (cert as unknown as Record<string, string>)[key] = suggestion.suggested;
+          return updated;
+        }
       }
     }
   }
