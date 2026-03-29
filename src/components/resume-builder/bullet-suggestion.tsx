@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Suggestion } from "@/lib/actions/resume-builder";
 
@@ -10,6 +10,7 @@ interface BulletSuggestionProps {
   suggestion?: Suggestion;
   isApplied: boolean;
   onTextChange: (newText: string) => void;
+  onDelete?: () => void;
 }
 
 export function BulletSuggestion({
@@ -17,6 +18,7 @@ export function BulletSuggestion({
   suggestion,
   isApplied,
   onTextChange,
+  onDelete,
 }: BulletSuggestionProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(text);
@@ -100,6 +102,19 @@ export function BulletSuggestion({
       </span>
       {hasSuggestion && (
         <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#d97706]" />
+      )}
+      {onDelete && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="mt-0.5 hidden shrink-0 rounded p-0.5 text-[var(--w-text-muted)] hover:bg-[var(--w-surface)] hover:text-[#dc2626] group-hover:block"
+          title="Remove bullet"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
       )}
     </li>
   );

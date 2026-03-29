@@ -404,6 +404,25 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
     }
   }
 
+  function handleBulletAdd(expIndex: number) {
+    const updated = structuredClone(content);
+    const exp = updated.work_experience[expIndex];
+    if (!exp) return;
+    exp.achievements.push({
+      source_id: crypto.randomUUID(),
+      text: "New achievement — click to edit",
+    });
+    updateContent(updated);
+  }
+
+  function handleBulletRemove(expIndex: number, bulletIndex: number) {
+    const updated = structuredClone(content);
+    const exp = updated.work_experience[expIndex];
+    if (!exp || exp.achievements.length <= 1) return; // keep at least 1
+    exp.achievements.splice(bulletIndex, 1);
+    updateContent(updated);
+  }
+
   function handleSummaryChange(newSummary: string) {
     const updated = { ...content, summary: newSummary };
     updateContent(updated);
@@ -696,10 +715,21 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
                                 newText
                               )
                             }
+                            onDelete={() =>
+                              handleBulletRemove(expIndex, bulletIndex)
+                            }
                           />
                         );
                       })}
                     </ul>
+                    <button
+                      type="button"
+                      onClick={() => handleBulletAdd(expIndex)}
+                      className="mt-2 flex items-center gap-1 rounded px-2 py-1 text-xs text-[var(--w-text-muted)] hover:bg-[var(--w-surface-alt)] hover:text-[var(--w-text-secondary)]"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add bullet
+                    </button>
                   </div>
                 ))}
               </div>
