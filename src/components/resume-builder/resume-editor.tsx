@@ -423,6 +423,49 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
     updateContent(updated);
   }
 
+  // ── Header field editing ──
+  function handleHeaderChange(field: string, value: string) {
+    const updated = structuredClone(content);
+    (updated.header as unknown as Record<string, string | null>)[field] = value || null;
+    updateContent(updated);
+  }
+
+  // ── Work experience metadata editing ──
+  function handleExpFieldChange(expIndex: number, field: string, value: string) {
+    const updated = structuredClone(content);
+    const exp = updated.work_experience[expIndex];
+    if (!exp) return;
+    (exp as unknown as Record<string, string | null>)[field] = value || null;
+    updateContent(updated);
+  }
+
+  // ── Education field editing ──
+  function handleEduFieldChange(eduIndex: number, field: string, value: string) {
+    const updated = structuredClone(content);
+    const edu = updated.education[eduIndex];
+    if (!edu) return;
+    (edu as unknown as Record<string, string | null>)[field] = value || null;
+    updateContent(updated);
+  }
+
+  // ── Project field editing ──
+  function handleProjectFieldChange(projIndex: number, field: string, value: string) {
+    const updated = structuredClone(content);
+    const proj = updated.projects?.[projIndex];
+    if (!proj) return;
+    (proj as unknown as Record<string, string | null>)[field] = value || null;
+    updateContent(updated);
+  }
+
+  // ── Certification field editing ──
+  function handleCertFieldChange(certIndex: number, field: string, value: string) {
+    const updated = structuredClone(content);
+    const cert = updated.certifications?.[certIndex];
+    if (!cert) return;
+    (cert as unknown as Record<string, string | null>)[field] = value || null;
+    updateContent(updated);
+  }
+
   // ── Find suggestion for a bullet ──
   function findSuggestion(
     expIndex: number,
@@ -587,19 +630,13 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
           {/* Header Section */}
           <ResumeSection title="Contact Information">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Field label="Full Name" value={content.header.full_name} />
-              <Field label="Headline" value={content.header.headline} />
-              <Field label="Email" value={content.header.email} />
-              <Field label="Phone" value={content.header.phone ?? ""} />
-              <Field label="Location" value={content.header.location ?? ""} />
-              <Field
-                label="LinkedIn"
-                value={content.header.linkedin_url ?? ""}
-              />
-              <Field
-                label="Portfolio"
-                value={content.header.portfolio_url ?? ""}
-              />
+              <Field label="Full Name" value={content.header.full_name} onChange={(v) => handleHeaderChange("full_name", v)} />
+              <Field label="Headline" value={content.header.headline} onChange={(v) => handleHeaderChange("headline", v)} />
+              <Field label="Email" value={content.header.email} onChange={(v) => handleHeaderChange("email", v)} />
+              <Field label="Phone" value={content.header.phone ?? ""} onChange={(v) => handleHeaderChange("phone", v)} />
+              <Field label="Location" value={content.header.location ?? ""} onChange={(v) => handleHeaderChange("location", v)} />
+              <Field label="LinkedIn" value={content.header.linkedin_url ?? ""} onChange={(v) => handleHeaderChange("linkedin_url", v)} />
+              <Field label="Portfolio" value={content.header.portfolio_url ?? ""} onChange={(v) => handleHeaderChange("portfolio_url", v)} />
             </div>
           </ResumeSection>
 
@@ -634,18 +671,12 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
                     key={exp.source_id}
                     className="rounded-md border border-[var(--w-border)] p-3"
                   >
-                    <div className="mb-2">
-                      <p className="text-sm font-semibold text-[var(--w-text-primary)]">
-                        {exp.job_title}
-                      </p>
-                      <p className="text-xs text-[var(--w-text-secondary)]">
-                        {exp.company_name}
-                        {exp.location ? ` · ${exp.location}` : ""}
-                      </p>
-                      <p className="text-xs text-[var(--w-text-muted)]">
-                        {exp.start_date}
-                        {exp.end_date ? ` – ${exp.end_date}` : ""}
-                      </p>
+                    <div className="mb-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                      <Field label="Job Title" value={exp.job_title} onChange={(v) => handleExpFieldChange(expIndex, "job_title", v)} />
+                      <Field label="Company" value={exp.company_name} onChange={(v) => handleExpFieldChange(expIndex, "company_name", v)} />
+                      <Field label="Location" value={exp.location ?? ""} onChange={(v) => handleExpFieldChange(expIndex, "location", v)} />
+                      <Field label="Start Date" value={exp.start_date ?? ""} onChange={(v) => handleExpFieldChange(expIndex, "start_date", v)} />
+                      <Field label="End Date" value={exp.end_date ?? ""} onChange={(v) => handleExpFieldChange(expIndex, "end_date", v)} />
                     </div>
                     <ul className="flex flex-col gap-1">
                       {exp.achievements.map((ach, bulletIndex) => {
@@ -692,20 +723,14 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
               </p>
             ) : (
               <div className="flex flex-col gap-3">
-                {content.education.map((edu) => (
-                  <div key={edu.source_id}>
-                    <p className="text-sm font-medium text-[var(--w-text-primary)]">
-                      {edu.degree}
-                      {edu.field_of_study ? ` in ${edu.field_of_study}` : ""}
-                    </p>
-                    <p className="text-xs text-[var(--w-text-secondary)]">
-                      {edu.institution}
-                    </p>
-                    {edu.dates && (
-                      <p className="text-xs text-[var(--w-text-muted)]">
-                        {edu.dates}
-                      </p>
-                    )}
+                {content.education.map((edu, eduIndex) => (
+                  <div key={edu.source_id} className="rounded-md border border-[var(--w-border)] p-3">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <Field label="Degree" value={edu.degree ?? ""} onChange={(v) => handleEduFieldChange(eduIndex, "degree", v)} />
+                      <Field label="Field of Study" value={edu.field_of_study ?? ""} onChange={(v) => handleEduFieldChange(eduIndex, "field_of_study", v)} />
+                      <Field label="Institution" value={edu.institution} onChange={(v) => handleEduFieldChange(eduIndex, "institution", v)} />
+                      <Field label="Dates" value={edu.dates ?? ""} onChange={(v) => handleEduFieldChange(eduIndex, "dates", v)} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -716,14 +741,12 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
           {content.projects && content.projects.length > 0 && (
             <ResumeSection title="Projects" defaultOpen={false}>
               <div className="flex flex-col gap-3">
-                {content.projects.map((proj) => (
-                  <div key={proj.source_id}>
-                    <p className="text-sm font-medium text-[var(--w-text-primary)]">
-                      {proj.name}
-                    </p>
-                    <p className="text-xs text-[var(--w-text-secondary)]">
-                      {proj.description}
-                    </p>
+                {content.projects.map((proj, projIndex) => (
+                  <div key={proj.source_id} className="rounded-md border border-[var(--w-border)] p-3">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-2">
+                      <Field label="Project Name" value={proj.name} onChange={(v) => handleProjectFieldChange(projIndex, "name", v)} />
+                      <Field label="Description" value={proj.description} onChange={(v) => handleProjectFieldChange(projIndex, "description", v)} />
+                    </div>
                     {proj.technologies.length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {proj.technologies.map((tech) => (
@@ -746,16 +769,12 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
           {content.certifications && content.certifications.length > 0 && (
             <ResumeSection title="Certifications" defaultOpen={false}>
               <div className="flex flex-col gap-2">
-                {content.certifications.map((cert) => (
-                  <div key={cert.source_id}>
-                    <p className="text-sm font-medium text-[var(--w-text-primary)]">
-                      {cert.name}
-                    </p>
-                    {cert.issuer && (
-                      <p className="text-xs text-[var(--w-text-muted)]">
-                        {cert.issuer}
-                      </p>
-                    )}
+                {content.certifications.map((cert, certIndex) => (
+                  <div key={cert.source_id} className="rounded-md border border-[var(--w-border)] p-3">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <Field label="Certification" value={cert.name} onChange={(v) => handleCertFieldChange(certIndex, "name", v)} />
+                      <Field label="Issuer" value={cert.issuer ?? ""} onChange={(v) => handleCertFieldChange(certIndex, "issuer", v)} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -813,15 +832,78 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
 
 // ── Helper components ──
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange?: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setEditVal(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus();
+  }, [editing]);
+
+  function handleBlur() {
+    setEditing(false);
+    const trimmed = editVal.trim();
+    if (trimmed !== value && onChange) {
+      onChange(trimmed);
+    }
+  }
+
+  if (!onChange) {
+    return (
+      <div>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--w-text-muted)]">
+          {label}
+        </span>
+        <p className="text-xs text-[var(--w-text-secondary)]">{value || "—"}</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--w-text-muted)]">
         {label}
       </span>
-      <p className="text-xs text-[var(--w-text-secondary)]">
-        {value || "—"}
-      </p>
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editVal}
+          onChange={(e) => setEditVal(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleBlur();
+            if (e.key === "Escape") {
+              setEditVal(value);
+              setEditing(false);
+            }
+          }}
+          className="w-full rounded border border-[var(--w-primary)] bg-[var(--w-surface)] px-1.5 py-0.5 text-xs text-[var(--w-text-primary)] outline-none"
+        />
+      ) : (
+        <p
+          role="button"
+          tabIndex={0}
+          onClick={() => setEditing(true)}
+          onKeyDown={(e) => { if (e.key === "Enter") setEditing(true); }}
+          className="cursor-pointer text-xs text-[var(--w-text-secondary)] hover:text-[var(--w-text-primary)] hover:underline decoration-dotted"
+        >
+          {value || "—"}
+        </p>
+      )}
     </div>
   );
 }

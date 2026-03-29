@@ -34,6 +34,23 @@ const JSEARCH_BASE_URL = "https://jsearch.p.rapidapi.com/search";
 const JSEARCH_CHEAP_BASE_URL =
   "https://jsearch-cheaper-version.p.rapidapi.com/search";
 const JSEARCH_CHEAP_HOST = "jsearch-cheaper-version.p.rapidapi.com";
+
+/** Map internal job_type values to JSearch employment_types */
+const JSEARCH_EMPLOYMENT_TYPE_MAP: Record<string, string> = {
+  full_time: "FULLTIME",
+  part_time: "PARTTIME",
+  contract: "CONTRACTOR",
+  freelance: "CONTRACTOR",
+  internship: "INTERN",
+};
+
+function toJSearchEmploymentTypes(jobTypes: string[]): string {
+  return jobTypes
+    .map((t) => JSEARCH_EMPLOYMENT_TYPE_MAP[t] ?? t.toUpperCase())
+    .filter(Boolean)
+    .join(",");
+}
+
 const API_FETCH_TIMEOUT_MS = 30_000;
 const AI_PARSE_CONCURRENCY = 5;
 const DEDUP_CHUNK_SIZE = 50;
@@ -350,8 +367,9 @@ export async function searchJSearch(
   });
 
   if (!response.ok) {
+    const errBody = await response.text().catch(() => "");
     throw new Error(
-      `JSearch API request failed: ${response.status} ${response.statusText}`
+      `JSearch API request failed: ${response.status} ${response.statusText} — ${errBody}`
     );
   }
 
@@ -1183,7 +1201,7 @@ export async function runDiscovery(
         taskCount++;
         tasks.push({
           label: `JSearch: "${query}" in ${locLabel}`,
-          fn: () => searchJSearch({ query, location: loc, country: ctry, jobType: params.jobTypes?.join(",") }),
+          fn: () => searchJSearch({ query, location: loc, country: ctry, jobType: params.jobTypes ? toJSearchEmploymentTypes(params.jobTypes) : undefined }),
         });
 
         if (taskCount >= MAX_DISCOVERY_API_CALLS) break;
@@ -1192,7 +1210,7 @@ export async function runDiscovery(
         taskCount++;
         tasks.push({
           label: `JSearch V2: "${query}" in ${locLabel}`,
-          fn: () => searchJSearchCheaper({ query, location: loc, country: ctry, jobType: params.jobTypes?.join(",") }),
+          fn: () => searchJSearchCheaper({ query, location: loc, country: ctry, jobType: params.jobTypes ? toJSearchEmploymentTypes(params.jobTypes) : undefined }),
         });
       }
       if (taskCount >= MAX_DISCOVERY_API_CALLS) break;
