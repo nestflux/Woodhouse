@@ -25,6 +25,7 @@ interface ChangeReviewProps {
     improvedContent: ResumeContent
   ) => void;
   onRejectAll: () => void;
+  workExperiences?: Array<{ company_name: string }>;
 }
 
 export function ChangeReview({
@@ -34,6 +35,7 @@ export function ChangeReview({
   onAcceptAll,
   onAcceptSelected,
   onRejectAll,
+  workExperiences,
 }: ChangeReviewProps) {
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(changes.map((_, i) => i))
@@ -154,7 +156,7 @@ export function ChangeReview({
                     </button>
                     <div className="min-w-0 flex-1">
                       <span className="text-xs font-medium text-[var(--w-text-muted)]">
-                        {formatChangeLabel(change)}
+                        {formatChangeLabel(change, workExperiences)}
                       </span>
                     </div>
                   </div>
@@ -210,7 +212,10 @@ export function ChangeReview({
   );
 }
 
-function formatChangeLabel(change: Change): string {
+function formatChangeLabel(
+  change: Change,
+  workExperiences?: Array<{ company_name: string }>
+): string {
   const section = change.section
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -220,11 +225,13 @@ function formatChangeLabel(change: Change): string {
     change.experience_index !== null &&
     change.experience_index !== undefined
   ) {
+    const company = workExperiences?.[change.experience_index]?.company_name;
+    const label = company || `${section} #${change.experience_index + 1}`;
     const bulletLabel =
       change.bullet_index !== null && change.bullet_index !== undefined
         ? ` · Bullet ${change.bullet_index + 1}`
         : "";
-    return `${section} #${change.experience_index + 1}${bulletLabel}`;
+    return `${label}${bulletLabel}`;
   }
 
   if (change.field) {

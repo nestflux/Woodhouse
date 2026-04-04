@@ -278,6 +278,12 @@ Deno.serve(async (req) => {
         if (lastBrace !== -1 && lastBrace < repaired.length - 1) {
           repaired = repaired.substring(0, lastBrace + 1);
         }
+        // Quote unquoted date values — LLMs sometimes omit quotes around YYYY-MM-DD
+        // e.g. "start_date": 2020-01-15 → "start_date": "2020-01-15"
+        repaired = repaired.replace(
+          /("(?:start|end|issue|expiry)_date"\s*:\s*)(\d{4}(?:-\d{2}(?:-\d{2})?)?)\b(?!")/g,
+          '$1"$2"'
+        );
         parsedData = JSON.parse(repaired);
       } catch (parseErr) {
         const errMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);

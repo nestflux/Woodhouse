@@ -2061,4 +2061,77 @@ Build the export dialog (PDF/DOCX generation), extend the existing `generate-res
 
 ---
 
+## Post-Launch Fixes & Enhancements
+
+### PLF-01 — Resume Builder: Make All Fields Editable
+**Status:** DONE (2026-03-28)
+**What changed:**
+- Contact info fields (name, headline, email, phone, location, LinkedIn, portfolio) — click-to-edit with inline input
+- Work experience metadata (job title, company, location, start/end dates) — click-to-edit
+- Education fields (degree, field of study, institution, dates) — click-to-edit
+- Project fields (name, description) — click-to-edit
+- Certification fields (name, issuer) — click-to-edit
+- All edits auto-save to database with 1s debounce via `updateContent()`
+
+### PLF-02 — Job Discovery: Fix Employment Type Mapping
+**Status:** DONE (2026-03-28)
+**What changed:**
+- Internal job types (`full_time`, `part_time`, `contract`) now correctly map to JSearch's expected format (`FULLTIME`, `PARTTIME`, `CONTRACTOR`)
+- Added `toJSearchEmploymentTypes()` mapping function in discovery agent
+- Discovery now returns jobs (70 found on first run after fix)
+
+### PLF-03 — Job Feed: Add Manual Discovery Trigger
+**Status:** DONE (2026-03-28)
+**What changed:**
+- Added "Discover Jobs" button to job feed header
+- New `triggerDiscovery()` server action calls `discover-jobs` Edge Function
+- Loading state with spinner while discovering
+- Empty state updated to prompt discovery
+- Toast notifications for success/failure with job count
+
+### PLF-04 — Job Feed: Search Only on Enter/Button
+**Status:** DONE (2026-03-28)
+**What changed:**
+- Search no longer triggers on every keystroke
+- Filters apply only when user clicks Search button or presses Enter
+- All filter inputs (source, status, country, location, score, remote) use draft state until explicitly applied
+
+### PLF-05 — Resume Parsing: Allow Nullable Fields
+**Status:** DONE (2026-03-28)
+**What changed:**
+- Zod validators for resume parsing updated with `.nullable()` on all optional string fields
+- Fixes: phone, location, linkedin_url, portfolio_url, github_url, work experience location, education start_date
+- Both frontend (`src/lib/validators/`) and Edge Function (`supabase/functions/_shared/validators/`) copies updated
+
+### PLF-06 — Subscription Check: Fix Profile ID Passthrough
+**Status:** DONE (2026-03-28)
+**What changed:**
+- Resume editor page now passes `profile_id` from loaded resume to `checkSubscription()`
+- Fixes `isPaidPlan` always returning `false` for non-test accounts
+
+---
+
+### PLF-07 — Resume Suggestions: Fix Display Labels & Apply Failures
+**Status:** DONE (2026-04-03)
+**Type:** Bug fix
+**Files:**
+- `src/components/resume-builder/suggestion-list.tsx`
+- `src/components/resume-builder/score-panel.tsx`
+- `src/components/resume-builder/change-review.tsx`
+- `src/components/resume-builder/resume-editor.tsx`
+
+**Problems:**
+1. Suggestions display "Work Experience #2" instead of the actual company name
+2. Applying suggestions to skills, projects, education, certifications, and header silently fails when exact string match doesn't hit
+3. `handleAcceptSelectedChanges()` (Improve with AI → Accept Selected) ignores education, projects, and certifications entirely
+4. No error feedback when a suggestion fails to apply
+
+**Changes:**
+- Thread `workExperiences` prop to `SuggestionList` and `ChangeReview` to display company names
+- Add `textMatch()` helper for case-insensitive/trimmed matching as fallback in `applyGenericSuggestion()`
+- Add education, projects, certifications handling to `handleAcceptSelectedChanges()`
+- Add `toast.error()` when `applyGenericSuggestion()` returns null
+
+---
+
 *End of Build Plan*

@@ -93,6 +93,11 @@ Rules:
 - For bullets with no metrics, suggest a plausible metric placeholder like "~X%" that the user can fill in.
 - Include at most 25 suggestions to avoid overwhelming the user.
 - general_feedback should be 3-5 items covering broad themes.
+- For work_experience suggestions: set experience_index to the 0-based index of the job in the work_experience array, bullet_index to the 0-based index of the achievement in that job's achievements array.
+- For skills suggestions: set experience_index to the 0-based index of the skill in the skills array (e.g., if "Python" is skills[2], set experience_index to 2). Set original to the exact skill string as it appears in the array. To suggest adding a new skill, set original to "" and experience_index to null.
+- For education suggestions: set experience_index to the 0-based index in the education array.
+- For projects suggestions: set experience_index to the 0-based index in the projects array.
+- For certifications suggestions: set experience_index to the 0-based index in the certifications array.
 - Return ONLY the JSON object, no additional text.`;
 
 // Dimension weights for computing the weighted average

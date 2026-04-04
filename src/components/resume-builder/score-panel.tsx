@@ -13,6 +13,7 @@ interface ScorePanelProps {
   onApplyAll: () => void;
   applyingIndex: number | null;
   applyingAll: boolean;
+  workExperiences?: Array<{ company_name: string }>;
 }
 
 export function ScorePanel({
@@ -23,6 +24,7 @@ export function ScorePanel({
   onApplyAll,
   applyingIndex,
   applyingAll,
+  workExperiences,
 }: ScorePanelProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -80,6 +82,7 @@ export function ScorePanel({
           onApplyAll={onApplyAll}
           applyingIndex={applyingIndex}
           applyingAll={applyingAll}
+          workExperiences={workExperiences}
         />
       </div>
     </div>

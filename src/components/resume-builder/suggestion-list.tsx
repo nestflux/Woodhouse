@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { highlightPlaceholders } from "@/lib/resume-builder/highlight-placeholders";
 import type { Suggestion } from "@/lib/actions/resume-builder";
 
 const PRIORITY_ORDER: Record<string, number> = {
@@ -25,6 +26,7 @@ interface SuggestionListProps {
   onApplyAll: () => void;
   applyingIndex: number | null;
   applyingAll: boolean;
+  workExperiences?: Array<{ company_name: string }>;
 }
 
 export function SuggestionList({
@@ -34,6 +36,7 @@ export function SuggestionList({
   onApplyAll,
   applyingIndex,
   applyingAll,
+  workExperiences,
 }: SuggestionListProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
@@ -110,7 +113,8 @@ export function SuggestionList({
                     <span className="text-xs text-[var(--w-text-muted)]">
                       {formatSection(
                         suggestion.section,
-                        suggestion.experience_index
+                        suggestion.experience_index,
+                        workExperiences
                       )}
                     </span>
                   </div>
@@ -166,7 +170,7 @@ export function SuggestionList({
                       Suggested
                     </span>
                     <p className="text-xs text-[#059669]">
-                      {suggestion.suggested}
+                      {highlightPlaceholders(suggestion.suggested)}
                     </p>
                   </div>
                 </div>
@@ -181,11 +185,13 @@ export function SuggestionList({
 
 function formatSection(
   section: string,
-  experienceIndex: number | null
+  experienceIndex: number | null,
+  workExperiences?: Array<{ company_name: string }>
 ): string {
-  const name = section.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   if (experienceIndex !== null && section === "work_experience") {
-    return `${name} #${experienceIndex + 1}`;
+    const company = workExperiences?.[experienceIndex]?.company_name;
+    if (company) return `Work Experience · ${company}`;
+    return `Work Experience #${experienceIndex + 1}`;
   }
-  return name;
+  return section.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

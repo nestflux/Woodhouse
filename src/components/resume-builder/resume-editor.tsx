@@ -39,6 +39,7 @@ import {
   type Suggestion,
 } from "@/lib/actions/resume-builder";
 import type { ResumeContent } from "@/lib/resume-builder/convert-to-resume-content";
+import { highlightPlaceholders } from "@/lib/resume-builder/highlight-placeholders";
 
 interface ImproveResult {
   improved_content: ResumeContent;
@@ -245,6 +246,8 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
           setContent(updated);
           setAppliedIndices((prev) => new Set([...prev, index]));
         }
+      } else {
+        toast.error("Could not apply this suggestion — the original text may have changed");
       }
     }
 
@@ -338,7 +341,7 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
       } else if (change.section === "summary") {
         updated.summary = change.improved;
       } else if (change.section === "skills") {
-        const idx = updated.skills.indexOf(change.original);
+        const idx = flexIndexOf(updated.skills, change.original);
         if (idx !== -1) {
           updated.skills[idx] = change.improved;
         }
@@ -347,10 +350,63 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
           string,
           string | null | undefined
         >;
-        for (const key of Object.keys(header)) {
-          if (header[key] === change.original) {
-            header[key] = change.improved;
-            break;
+        const key = matchField(header, Object.keys(header), change.original);
+        if (key) {
+          header[key] = change.improved;
+        }
+      } else if (change.section === "education") {
+        const eduKeys = ["institution", "degree", "field_of_study", "dates"];
+        const eduIdx = change.experience_index;
+        let matched = false;
+        if (eduIdx !== null && eduIdx !== undefined && updated.education[eduIdx]) {
+          const edu = updated.education[eduIdx] as unknown as Record<string, string | null | undefined>;
+          const key = matchField(edu, eduKeys, change.original);
+          if (key) { edu[key] = change.improved; matched = true; }
+        }
+        if (!matched) {
+          for (const edu of updated.education) {
+            const rec = edu as unknown as Record<string, string | null | undefined>;
+            const key = matchField(rec, eduKeys, change.original);
+            if (key) { rec[key] = change.improved; break; }
+          }
+        }
+      } else if (change.section === "projects" && updated.projects) {
+        const projKeys = ["name", "description"];
+        const projIdx = change.experience_index;
+        let matched = false;
+        if (projIdx !== null && projIdx !== undefined && updated.projects[projIdx]) {
+          const proj = updated.projects[projIdx];
+          const rec = proj as unknown as Record<string, string | null | undefined>;
+          const key = matchField(rec, projKeys, change.original);
+          if (key) { rec[key] = change.improved; matched = true; }
+          if (!matched) {
+            const techIdx = flexIndexOf(proj.technologies, change.original);
+            if (techIdx !== -1) { proj.technologies[techIdx] = change.improved; matched = true; }
+          }
+        }
+        if (!matched) {
+          for (const proj of updated.projects) {
+            const rec = proj as unknown as Record<string, string | null | undefined>;
+            const key = matchField(rec, projKeys, change.original);
+            if (key) { rec[key] = change.improved; break; }
+            const techIdx = flexIndexOf(proj.technologies, change.original);
+            if (techIdx !== -1) { proj.technologies[techIdx] = change.improved; break; }
+          }
+        }
+      } else if (change.section === "certifications" && updated.certifications) {
+        const certKeys = ["name", "issuer"];
+        const certIdx = change.experience_index;
+        let matched = false;
+        if (certIdx !== null && certIdx !== undefined && updated.certifications[certIdx]) {
+          const cert = updated.certifications[certIdx] as unknown as Record<string, string | null | undefined>;
+          const key = matchField(cert, certKeys, change.original);
+          if (key) { cert[key] = change.improved; matched = true; }
+        }
+        if (!matched) {
+          for (const cert of updated.certifications) {
+            const rec = cert as unknown as Record<string, string | null | undefined>;
+            const key = matchField(rec, certKeys, change.original);
+            if (key) { rec[key] = change.improved; break; }
           }
         }
       }
@@ -822,6 +878,7 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
             onApplyAll={handleApplyAll}
             applyingIndex={applyingIndex}
             applyingAll={applyingAll}
+            workExperiences={content.work_experience}
           />
         </div>
       </div>
@@ -854,6 +911,7 @@ export function ResumeEditor({ resume: initial, isPaidPlan: initialIsPaidPlan }:
           onAcceptAll={handleAcceptAllChanges}
           onAcceptSelected={handleAcceptSelectedChanges}
           onRejectAll={() => setImproveResult(null)}
+          workExperiences={content.work_experience}
         />
       )}
     </div>
@@ -1008,7 +1066,9 @@ function EditableText({
       }}
       className="cursor-text rounded px-1 py-0.5 text-xs leading-relaxed text-[var(--w-text-secondary)] transition-colors hover:bg-[var(--w-surface-alt)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--w-primary)]"
     >
-      {value || (
+      {value ? (
+        highlightPlaceholders(value)
+      ) : (
         <span className="text-[var(--w-text-muted)]">
           {placeholder ?? "Click to edit..."}
         </span>
@@ -1089,6 +1149,34 @@ function SkillTags({
   );
 }
 
+/** Case-insensitive, trimmed text comparison for matching AI-generated originals. */
+function textMatch(a: string | null | undefined, b: string): boolean {
+  if (!a) return false;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/** Find index in a string array with exact match first, then flexible fallback. */
+function flexIndexOf(arr: string[], target: string): number {
+  const exact = arr.indexOf(target);
+  if (exact !== -1) return exact;
+  return arr.findIndex((s) => textMatch(s, target));
+}
+
+/** Match a field value in a record — exact first, then flexible. */
+function matchField(
+  record: Record<string, string | null | undefined>,
+  keys: readonly string[],
+  original: string
+): string | null {
+  for (const key of keys) {
+    if (record[key] === original) return key;
+  }
+  for (const key of keys) {
+    if (textMatch(record[key], original)) return key;
+  }
+  return null;
+}
+
 /** Apply a generic suggestion by matching original text in the content. */
 function applyGenericSuggestion(
   content: ResumeContent,
@@ -1102,18 +1190,27 @@ function applyGenericSuggestion(
     return updated;
   }
 
-  // Skills — match original text and replace
+  // Skills — use experience_index as skill array index (preferred), fall back to text match
   if (suggestion.section === "skills") {
-    const idx = updated.skills.indexOf(suggestion.original);
+    const skillIdx = suggestion.experience_index;
+    if (skillIdx !== null && updated.skills[skillIdx] !== undefined) {
+      updated.skills[skillIdx] = suggestion.suggested;
+      return updated;
+    }
+    // Text match fallback for older suggestions or when index not provided
+    const idx = flexIndexOf(updated.skills, suggestion.original);
     if (idx !== -1) {
       updated.skills[idx] = suggestion.suggested;
       return updated;
     }
-    // If original not found, it might be a "add skill" suggestion
-    if (!updated.skills.includes(suggestion.suggested)) {
-      updated.skills.push(suggestion.suggested);
-      return updated;
+    // "Add skill" — original is empty or doesn't match; add suggested if not already present
+    if (!suggestion.original.trim() || flexIndexOf(updated.skills, suggestion.suggested) === -1) {
+      if (flexIndexOf(updated.skills, suggestion.suggested) === -1) {
+        updated.skills.push(suggestion.suggested);
+        return updated;
+      }
     }
+    return null;
   }
 
   // Header — match any field value
@@ -1122,12 +1219,12 @@ function applyGenericSuggestion(
       string,
       string | null | undefined
     >;
-    for (const key of Object.keys(header)) {
-      if (header[key] === suggestion.original) {
-        header[key] = suggestion.suggested;
-        return updated;
-      }
+    const key = matchField(header, Object.keys(header), suggestion.original);
+    if (key) {
+      header[key] = suggestion.suggested;
+      return updated;
     }
+    return null;
   }
 
   // Work experience — match by experience_index + bullet_index
@@ -1144,51 +1241,52 @@ function applyGenericSuggestion(
     // Fallback: match by original text across all experiences
     for (const exp of updated.work_experience) {
       for (let i = 0; i < exp.achievements.length; i++) {
-        if (exp.achievements[i].text === suggestion.original) {
+        if (textMatch(exp.achievements[i].text, suggestion.original)) {
           exp.achievements[i].text = suggestion.suggested;
           return updated;
         }
       }
     }
+    return null;
   }
 
   // Education — match by experience_index or original text
   if (suggestion.section === "education") {
+    const eduKeys = ["institution", "degree", "field_of_study", "dates"] as const;
     const eduIdx = suggestion.experience_index;
     if (eduIdx !== null && updated.education[eduIdx]) {
-      const edu = updated.education[eduIdx];
-      // Try to match which field the original corresponds to
-      for (const key of ["institution", "degree", "field_of_study", "dates"] as const) {
-        if (edu[key] === suggestion.original) {
-          (edu as unknown as Record<string, string>)[key] = suggestion.suggested;
-          return updated;
-        }
+      const edu = updated.education[eduIdx] as unknown as Record<string, string | null | undefined>;
+      const key = matchField(edu, eduKeys, suggestion.original);
+      if (key) {
+        edu[key] = suggestion.suggested;
+        return updated;
       }
     }
     // Fallback: search all education entries
     for (const edu of updated.education) {
-      for (const key of ["institution", "degree", "field_of_study", "dates"] as const) {
-        if (edu[key] === suggestion.original) {
-          (edu as unknown as Record<string, string>)[key] = suggestion.suggested;
-          return updated;
-        }
+      const rec = edu as unknown as Record<string, string | null | undefined>;
+      const key = matchField(rec, eduKeys, suggestion.original);
+      if (key) {
+        rec[key] = suggestion.suggested;
+        return updated;
       }
     }
+    return null;
   }
 
   // Projects — match by experience_index or original text
   if (suggestion.section === "projects" && updated.projects) {
+    const projKeys = ["name", "description"] as const;
     const projIdx = suggestion.experience_index;
     if (projIdx !== null && updated.projects[projIdx]) {
       const proj = updated.projects[projIdx];
-      for (const key of ["name", "description"] as const) {
-        if (proj[key] === suggestion.original) {
-          (proj as unknown as Record<string, string>)[key] = suggestion.suggested;
-          return updated;
-        }
+      const rec = proj as unknown as Record<string, string | null | undefined>;
+      const key = matchField(rec, projKeys, suggestion.original);
+      if (key) {
+        rec[key] = suggestion.suggested;
+        return updated;
       }
-      // Technologies array — match individual items
-      const techIdx = proj.technologies.indexOf(suggestion.original);
+      const techIdx = flexIndexOf(proj.technologies, suggestion.original);
       if (techIdx !== -1) {
         proj.technologies[techIdx] = suggestion.suggested;
         return updated;
@@ -1196,41 +1294,43 @@ function applyGenericSuggestion(
     }
     // Fallback: search all projects
     for (const proj of updated.projects) {
-      for (const key of ["name", "description"] as const) {
-        if (proj[key] === suggestion.original) {
-          (proj as unknown as Record<string, string>)[key] = suggestion.suggested;
-          return updated;
-        }
+      const rec = proj as unknown as Record<string, string | null | undefined>;
+      const key = matchField(rec, projKeys, suggestion.original);
+      if (key) {
+        rec[key] = suggestion.suggested;
+        return updated;
       }
-      const techIdx = proj.technologies.indexOf(suggestion.original);
+      const techIdx = flexIndexOf(proj.technologies, suggestion.original);
       if (techIdx !== -1) {
         proj.technologies[techIdx] = suggestion.suggested;
         return updated;
       }
     }
+    return null;
   }
 
   // Certifications — match by experience_index or original text
   if (suggestion.section === "certifications" && updated.certifications) {
+    const certKeys = ["name", "issuer"] as const;
     const certIdx = suggestion.experience_index;
     if (certIdx !== null && updated.certifications[certIdx]) {
-      const cert = updated.certifications[certIdx];
-      for (const key of ["name", "issuer"] as const) {
-        if (cert[key] === suggestion.original) {
-          (cert as unknown as Record<string, string>)[key] = suggestion.suggested;
-          return updated;
-        }
+      const cert = updated.certifications[certIdx] as unknown as Record<string, string | null | undefined>;
+      const key = matchField(cert, certKeys, suggestion.original);
+      if (key) {
+        cert[key] = suggestion.suggested;
+        return updated;
       }
     }
     // Fallback: search all certifications
     for (const cert of updated.certifications) {
-      for (const key of ["name", "issuer"] as const) {
-        if (cert[key] === suggestion.original) {
-          (cert as unknown as Record<string, string>)[key] = suggestion.suggested;
-          return updated;
-        }
+      const rec = cert as unknown as Record<string, string | null | undefined>;
+      const key = matchField(rec, certKeys, suggestion.original);
+      if (key) {
+        rec[key] = suggestion.suggested;
+        return updated;
       }
     }
+    return null;
   }
 
   return null;

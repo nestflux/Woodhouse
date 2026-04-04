@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { highlightPlaceholders } from "@/lib/resume-builder/highlight-placeholders";
 import type { Suggestion } from "@/lib/actions/resume-builder";
 
 interface BulletSuggestionProps {
@@ -98,7 +99,7 @@ export function BulletSuggestion({
     >
       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--w-text-muted)]" />
       <span className="flex-1 text-xs leading-relaxed text-[var(--w-text-secondary)]">
-        {text}
+        {highlightPlaceholders(text)}
       </span>
       {hasSuggestion && (
         <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#d97706]" />
